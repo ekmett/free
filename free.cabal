@@ -1,0 +1,38 @@
+name:          free
+category:      Control, Monads
+version:       0.1.0
+license:       BSD3
+cabal-version: >= 1.6
+license-file:  LICENSE
+author:        Edward A. Kmett
+maintainer:    Edward A. Kmett <ekmett@gmail.com>
+stability:     provisional
+homepage:      git://github.com/ekmett/free/
+copyright:     Copyright (C) 2008-2011 Edward A. Kmett
+synopsis:      Haskell 98 monads for free
+description:   Haskell 98 monads for free
+build-type:    Simple
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/free.git
+
+library
+  build-depends: 
+    base >= 4 && < 4.4,
+    distributive >= 0.1 && < 0.2,
+    transformers >= 0.2.0 && <= 0.3,
+    semigroupoids >= 1.1.1 && <= 1.2,
+    comonad >= 1.0.1 && < 1.1,
+    semigroups >= 0.3.4 && < 0.4
+
+  if impl(ghc)
+    cpp-options: -DGHC_TYPEABLE
+
+  extensions: CPP
+
+  exposed-modules:
+    Control.Monad.Free
+    Control.Comonad.Cofree
+
+  ghc-options:      -Wall 
