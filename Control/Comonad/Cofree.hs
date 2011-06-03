@@ -14,6 +14,7 @@
 ----------------------------------------------------------------------------
 module Control.Comonad.Cofree
   ( Cofree(..)
+  , section
   , outCofree
   , coiter
   , unfold

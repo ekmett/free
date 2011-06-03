@@ -19,7 +19,7 @@ module Control.Monad.Free
   ) where
 
 import Control.Applicative
-import Control.Monad (liftM)
+import Control.Monad (liftM, MonadPlus(..))
 import Control.Monad.Trans.Class
 import Data.Functor.Bind
 import Data.Foldable
@@ -83,6 +83,14 @@ instance Functor f => Monad (Free f) where
   return = Pure
   Pure a >>= f = f a
   Free m >>= f = Free ((>>= f) <$> m)
+
+instance Alternative v => Alternative (Free v) where
+  empty = Free empty
+  a <|> b = Free (pure a <|> pure b)
+
+instance (Functor v, MonadPlus v) => MonadPlus (Free v) where
+  mzero = Free mzero
+  a `mplus` b = Free (return a `mplus` return b)
 
 instance MonadTrans Free where
   lift = Free . liftM Pure
