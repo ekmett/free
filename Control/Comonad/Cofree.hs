@@ -21,6 +21,7 @@ module Control.Comonad.Cofree
 
 import Control.Applicative
 import Control.Comonad
+import Control.Comonad.Trans.Class
 import Data.Functor.Bind
 import Data.Distributive
 import Data.Foldable
@@ -61,6 +62,13 @@ instance Functor f => Extend (Cofree f) where
 
 instance Functor f => Comonad (Cofree f) where
   extract (a :< _) = a
+
+instance ComonadTrans Cofree where
+  lower (_ :< as) = fmap extract as
+
+-- | lower . section = id
+section :: Comonad f => f a -> Cofree f a 
+section as = extract as :< extend section as
 
 instance Apply f => Apply (Cofree f) where
   (f :< fs) <.> (a :< as) = f a :< ((<.>) <$> fs <.> as)

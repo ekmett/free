@@ -14,10 +14,13 @@
 ----------------------------------------------------------------------------
 module Control.Monad.Free
   ( Free(..)
+  , retract
   , iter
   ) where
 
 import Control.Applicative
+import Control.Monad (liftM)
+import Control.Monad.Trans.Class
 import Data.Functor.Bind
 import Data.Foldable
 import Data.Traversable
@@ -80,6 +83,14 @@ instance Functor f => Monad (Free f) where
   return = Pure
   Pure a >>= f = f a
   Free m >>= f = Free ((>>= f) <$> m)
+
+instance MonadTrans Free where
+  lift = Free . liftM Pure
+
+-- | retract . lift = id
+retract :: Monad f => Free f a -> f a
+retract (Pure a) = return a
+retract (Free as) = as >>= retract
 
 instance Foldable f => Foldable (Free f) where
   foldMap f (Pure a) = f a
