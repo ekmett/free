@@ -1,4 +1,7 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses
+           , FunctionalDependencies
+           , FlexibleInstances
+           , UndecidableInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree.Class
@@ -7,7 +10,7 @@
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  experimental
--- Portability :  non-portable (fundeps, MPTCs)
+-- Portability :  fundeps, MPTCs
 ----------------------------------------------------------------------------
 module Control.Comonad.Cofree.Class 
   ( ComonadCofree(..)
@@ -15,9 +18,6 @@ module Control.Comonad.Cofree.Class
 
 import Control.Applicative
 import Control.Comonad
-import Control.Comonad.Trans.Cofree (Cofree(..))
-import qualified Control.Comonad.Trans.Cofree as Cofree
--- import Control.Comonad.Trans.Class
 import qualified Control.Comonad.Trans.Env.Strict as Strict
 import qualified Control.Comonad.Trans.Store.Strict as Strict
 import qualified Control.Comonad.Trans.Discont.Strict as Strict
@@ -34,9 +34,6 @@ import Data.Semigroup
 
 class (Functor f, Comonad w) => ComonadCofree f w | w -> f where
   unwrap :: w a -> f (w a)
-
-instance Functor f => ComonadCofree f (Cofree f) where
-  unwrap = Cofree.unwrap
 
 instance ComonadCofree f w => ComonadCofree f (IdentityT w) where
   unwrap = fmap IdentityT . unwrap . runIdentityT

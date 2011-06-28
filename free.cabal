@@ -9,8 +9,8 @@ maintainer:    Edward A. Kmett <ekmett@gmail.com>
 stability:     provisional
 homepage:      git://github.com/ekmett/free/
 copyright:     Copyright (C) 2008-2011 Edward A. Kmett
-synopsis:      Haskell 98 monads for free
-description:   Haskell 98 monads for free
+synopsis:      Monads for free
+description:   Monads for free
 build-type:    Simple
 
 source-repository head
@@ -22,6 +22,7 @@ library
     base >= 4 && < 4.4,
     distributive >= 0.2 && < 0.3,
     transformers >= 0.2.0 && <= 0.3,
+    mtl >= 2.0.1.0 && < 2.1,
     semigroupoids >= 1.2.2 && <= 1.3,
     comonad >= 1.1 && < 1.2,
     comonad-transformers >= 1.8 && < 1.9,
@@ -35,9 +36,7 @@ library
   exposed-modules:
     Control.Monad.Free
     Control.Monad.Free.Class
-    Control.Monad.Trans.Free
     Control.Comonad.Cofree
     Control.Comonad.Cofree.Class
-    Control.Comonad.Trans.Cofree
 
   ghc-options:      -Wall 
