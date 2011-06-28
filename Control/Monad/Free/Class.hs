@@ -62,4 +62,3 @@ instance (Functor f, MonadFree f m) => MonadFree f (ListT m) where
 
 instance (Functor f, MonadFree f m, Error e) => MonadFree f (ErrorT e m) where
   wrap = ErrorT . wrap . fmap runErrorT
-  
