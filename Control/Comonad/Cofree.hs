@@ -28,6 +28,9 @@ import Control.Applicative
 import Control.Comonad
 import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
+import Control.Comonad.Env.Class
+import Control.Comonad.Store.Class
+import Control.Comonad.Traced.Class
 import Data.Functor.Bind
 import Data.Distributive
 import Data.Foldable
@@ -154,3 +157,14 @@ cofreeDataType :: DataType
 cofreeDataType = mkDataType "Control.Comonad.Cofree.Cofree" [cofreeConstr]
 {-# NOINLINE cofreeDataType #-}
 #endif
+
+instance ComonadEnv e w => ComonadEnv e (Cofree w) where
+  ask = ask . lower
+
+instance ComonadStore s w => ComonadStore s (Cofree w) where
+  pos (_ :< as) = pos as
+  peek s (_ :< as) = extract (peek s as)
+
+
+instance ComonadTraced m w => ComonadTraced m (Cofree w) where
+  trace m = trace m . lower
