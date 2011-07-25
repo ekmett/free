@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       1.8.0
+version:       1.8.0.1
 license:       BSD3
 cabal-version: >= 1.6
 license-file:  LICENSE
@@ -19,7 +19,7 @@ source-repository head
 
 library
   build-depends: 
-    base >= 4 && < 4.4,
+    base >= 4 && < 5,
     distributive >= 0.2 && < 0.3,
     transformers >= 0.2.0 && <= 0.3,
     mtl >= 2.0.1.0 && < 2.1,
