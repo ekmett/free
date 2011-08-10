@@ -1,13 +1,13 @@
 name:          free
 category:      Control, Monads
-version:       2.0.1
+version:       2.0.1.1
 license:       BSD3
 cabal-version: >= 1.6
 license-file:  LICENSE
 author:        Edward A. Kmett
 maintainer:    Edward A. Kmett <ekmett@gmail.com>
 stability:     provisional
-homepage:      git://github.com/ekmett/free/
+homepage:      http://github.com/ekmett/free/
 copyright:     Copyright (C) 2008-2011 Edward A. Kmett
 synopsis:      Monads for free
 description:   Monads for free
