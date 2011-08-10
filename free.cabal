@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       2.0
+version:       2.0.1
 license:       BSD3
 cabal-version: >= 1.6
 license-file:  LICENSE
@@ -33,6 +33,7 @@ library
     comonad >= 1.1.1 && < 1.2,
     comonad-transformers >= 2.0 && < 2.1,
     comonads-fd >= 2.0 && < 2.1,
+    data-lens >= 2.0 && < 2.1,
     semigroups >= 0.7.1 && < 0.8
 
   if impl(ghc)

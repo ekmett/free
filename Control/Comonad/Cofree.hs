@@ -22,6 +22,10 @@ module Control.Comonad.Cofree
   , unwrap
   , coiter
   , unfold
+  -- * Lenses into cofree comonads
+  , extractLens
+  , unwrapLens
+  , telescope
   ) where
 
 import Control.Applicative
@@ -29,8 +33,11 @@ import Control.Comonad
 import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
 import Control.Comonad.Env.Class
-import Control.Comonad.Store.Class
+import Control.Comonad.Store.Class as Class
+import Control.Comonad.Trans.Store
 import Control.Comonad.Traced.Class
+import Control.Category
+import Data.Lens.Common
 import Data.Functor.Bind
 import Data.Distributive
 import Data.Foldable
@@ -39,6 +46,7 @@ import Data.Monoid
 import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
+import Prelude hiding (id,(.))
 
 #ifdef GHC_TYPEABLE
 import Data.Data
@@ -162,9 +170,24 @@ instance ComonadEnv e w => ComonadEnv e (Cofree w) where
   ask = ask . lower
 
 instance ComonadStore s w => ComonadStore s (Cofree w) where
-  pos (_ :< as) = pos as
-  peek s (_ :< as) = extract (peek s as)
+  pos (_ :< as) = Class.pos as
+  peek s (_ :< as) = extract (Class.peek s as)
 
 
 instance ComonadTraced m w => ComonadTraced m (Cofree w) where
   trace m = trace m . lower
+
+extractLens :: Lens (Cofree f a) a
+extractLens = Lens $ \(a :< as) -> store (:< as) a
+
+unwrapLens :: Lens (Cofree f a) (f (Cofree f a))
+unwrapLens = Lens $ \(a :< as) -> store (a :<) as
+
+-- | 
+-- We'd prefer the following non-Haskell 98 type to make parametricity clearer,
+-- but this suffices
+--
+-- > telescope :: (forall b. [Lens (f b) b]) -> Lens (Cofree f a) a
+telescope :: [Lens (f (Cofree f a)) (Cofree f a)] -> Lens (Cofree f a) a
+telescope []     = extractLens
+telescope (l:ls) = telescope ls . l . unwrapLens
