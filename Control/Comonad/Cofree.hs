@@ -140,7 +140,11 @@ instance (Typeable1 f, Typeable a) => Typeable (Cofree f a) where
   typeOf = typeOfDefault
 
 cofreeTyCon :: TyCon
+#if __GLASGOW_HASKELL__ < 704
 cofreeTyCon = mkTyCon "Control.Comonad.Cofree.Cofree"
+#else
+cofreeTyCon = mkTyCon3 "free" "Control.Comonad.Cofree" "Cofree"
+#endif
 {-# NOINLINE cofreeTyCon #-}
 
 instance
