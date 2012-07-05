@@ -20,6 +20,8 @@ source-repository head
   location: git://github.com/ekmett/free.git
 
 library
+  hs-source-dirs: src
+
   other-extensions:
     MultiParamTypeClasses
     FunctionalDependencies
