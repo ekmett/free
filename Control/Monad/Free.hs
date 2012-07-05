@@ -1,7 +1,7 @@
-{-# LANGUAGE FlexibleContexts
-           , FlexibleInstances
-           , UndecidableInstances
-	   , MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free
@@ -59,7 +59,7 @@ instance (Show (f (Free f a)), Show a) => Show (Free f a) where
 
 instance (Read (f (Free f a)), Read a) => Read (Free f a) where
   readsPrec d r = readParen (d > 10)
-      (\r' -> [ (Pure m, t) 
+      (\r' -> [ (Pure m, t)
              | ("Pure", s) <- lex r'
              , (m, t) <- readsPrec 11 s]) r
     ++ readParen (d > 10)
@@ -75,7 +75,7 @@ instance Functor f => Apply (Free f) where
   Pure a  <.> Pure b = Pure (a b)
   Pure a  <.> Free fb = Free $ fmap a <$> fb
   Free fa <.> b = Free $ (<.> b) <$> fa
-  
+
 instance Functor f => Applicative (Free f) where
   pure = Pure
   Pure a <*> Pure b = Pure $ a b
@@ -85,7 +85,7 @@ instance Functor f => Applicative (Free f) where
 instance Functor f => Bind (Free f) where
   Pure a >>- f = f a
   Free m >>- f = Free ((>>- f) <$> m)
-  
+
 instance Functor f => Monad (Free f) where
   return = Pure
   Pure a >>= f = f a
@@ -111,7 +111,7 @@ instance Foldable1 f => Foldable1 (Free f) where
   foldMap1 f (Free fa) = foldMap1 (foldMap1 f) fa
 
 instance Traversable f => Traversable (Free f) where
-  traverse f (Pure a) = Pure <$> f a 
+  traverse f (Pure a) = Pure <$> f a
   traverse f (Free fa) = Free <$> traverse (traverse f) fa
 
 instance Traversable1 f => Traversable1 (Free f) where
@@ -122,11 +122,11 @@ instance (Functor m, MonadWriter e m) => MonadWriter e (Free m) where
   tell = lift . tell
   listen = lift . listen . retract
   pass = lift . pass . retract
-  
+
 instance (Functor m, MonadReader e m) => MonadReader e (Free m) where
   ask = lift ask
   local f = lift . local f . retract
-  
+
 instance (Functor m, MonadState s m) => MonadState s (Free m) where
   get = lift get
   put s = lift (put s)
@@ -144,7 +144,7 @@ liftF = Free . fmap Pure
 instance Functor f => MonadFree f (Free f) where
   wrap = Free
 
--- | 
+-- |
 --
 -- > retract . lift = id
 -- > retract . liftF = id

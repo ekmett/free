@@ -1,4 +1,7 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free.Class
@@ -9,7 +12,7 @@
 -- Stability   :  experimental
 -- Portability :  non-portable (fundeps, MPTCs)
 ----------------------------------------------------------------------------
-module Control.Monad.Free.Class 
+module Control.Monad.Free.Class
   ( MonadFree(..)
   ) where
 
@@ -24,7 +27,7 @@ import qualified Control.Monad.Trans.RWS.Lazy as Lazy
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.List
 import Control.Monad.Trans.Error
-import Control.Monad.Trans.Identity 
+import Control.Monad.Trans.Identity
 import Data.Monoid
 
 class Monad m => MonadFree f m | m -> f where
@@ -55,7 +58,7 @@ instance (Functor f, MonadFree f m) => MonadFree f (MaybeT m) where
   wrap = MaybeT . wrap . fmap runMaybeT
 
 instance (Functor f, MonadFree f m) => MonadFree f (IdentityT m) where
-  wrap = IdentityT . wrap . fmap runIdentityT 
+  wrap = IdentityT . wrap . fmap runIdentityT
 
 instance (Functor f, MonadFree f m) => MonadFree f (ListT m) where
   wrap = ListT . wrap . fmap runListT

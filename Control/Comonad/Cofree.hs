@@ -1,8 +1,8 @@
-{-# LANGUAGE CPP
-           , FlexibleContexts
-           , FlexibleInstances
-           , UndecidableInstances
-           , MultiParamTypeClasses #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree
@@ -23,9 +23,9 @@ module Control.Comonad.Cofree
   , coiter
   , unfold
   -- * Lenses into cofree comonads
-  , extractLens
-  , unwrapLens
-  , telescope
+  , extracting
+  , unwrapping
+  , telescoping
   ) where
 
 import Control.Applicative
@@ -34,10 +34,8 @@ import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
 import Control.Comonad.Env.Class
 import Control.Comonad.Store.Class as Class
-import Control.Comonad.Trans.Store
 import Control.Comonad.Traced.Class
 import Control.Category
-import Data.Lens.Common
 import Data.Functor.Bind
 import Data.Distributive
 import Data.Foldable
@@ -59,7 +57,7 @@ coiter :: Functor f => (a -> f a) -> a -> Cofree f a
 coiter psi a = a :< (coiter psi <$> psi a)
 
 unfold :: Functor f => (b -> (a, f b)) -> b -> Cofree f a
-unfold f c = case f c of 
+unfold f c = case f c of
   (x, d) -> x :< fmap (unfold f) d
 
 instance Functor f => ComonadCofree f (Cofree f) where
@@ -83,7 +81,7 @@ instance ComonadTrans Cofree where
   lower (_ :< as) = fmap extract as
 
 -- | lower . section = id
-section :: Comonad f => f a -> Cofree f a 
+section :: Comonad f => f a -> Cofree f a
 section as = extract as :< extend section as
 
 instance Apply f => Apply (Cofree f) where
@@ -98,7 +96,7 @@ instance Applicative f => Applicative (Cofree f) where
   (_ :< fs)  *> (a :< as) = a :< (( *>) <$> fs <*> as)
 
 instance (Show (f (Cofree f a)), Show a) => Show (Cofree f a) where
-  showsPrec d (a :< as) = showParen (d > 5) $ 
+  showsPrec d (a :< as) = showParen (d > 5) $
     showsPrec 6 a . showString " :< " . showsPrec 5 as
 
 instance (Read (f (Cofree f a)), Read a) => Read (Cofree f a) where
@@ -180,17 +178,16 @@ instance ComonadStore s w => ComonadStore s (Cofree w) where
 instance ComonadTraced m w => ComonadTraced m (Cofree w) where
   trace m = trace m . lower
 
-extractLens :: Lens (Cofree f a) a
-extractLens = Lens $ \(a :< as) -> store (:< as) a
+extracting :: Functor f => (a -> f a) -> Cofree g a -> f (Cofree g a)
+extracting f (a :< as) = (:< as) <$> f a
+{-# INLINE extracting #-}
 
-unwrapLens :: Lens (Cofree f a) (f (Cofree f a))
-unwrapLens = Lens $ \(a :< as) -> store (a :<) as
+unwrapping :: Functor f => (g (Cofree g a) -> f (g (Cofree g a))) -> Cofree g a -> f (Cofree g a)
+unwrapping f (a :< as) = (a :<) <$> f as
+{-# INLINE unwrapping #-}
 
--- | 
--- We'd prefer the following non-Haskell 98 type to make parametricity clearer,
--- but this suffices
---
--- > telescope :: (forall b. [Lens (f b) b]) -> Lens (Cofree f a) a
-telescope :: [Lens (f (Cofree f a)) (Cofree f a)] -> Lens (Cofree f a) a
-telescope []     = extractLens
-telescope (l:ls) = telescope ls . l . unwrapLens
+telescoping :: (Functor f, Functor g) =>
+             [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
+              (a -> f a) -> Cofree g a -> f (Cofree g a)
+telescoping [] = extracting
+telescoping (l:ls) = unwrapping . l . telescoping ls

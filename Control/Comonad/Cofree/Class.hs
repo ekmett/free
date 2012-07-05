@@ -1,7 +1,7 @@
-{-# LANGUAGE MultiParamTypeClasses
-           , FunctionalDependencies
-           , FlexibleInstances
-           , UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree.Class
