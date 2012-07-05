@@ -37,6 +37,7 @@ import Control.Comonad.Store.Class as Class
 import Control.Comonad.Traced.Class
 import Control.Category
 import Data.Functor.Bind
+import Data.Functor.Extend
 import Data.Distributive
 import Data.Foldable
 import Data.Semigroup
@@ -71,10 +72,12 @@ instance Functor f => Functor (Cofree f) where
   b <$ (_ :< as) = b :< fmap (b <$) as
 
 instance Functor f => Extend (Cofree f) where
-  extend f w = f w :< fmap (extend f) (unwrap w)
-  duplicate w = w :< fmap duplicate (unwrap w)
+  extended = extend
+  duplicated = duplicate
 
 instance Functor f => Comonad (Cofree f) where
+  extend f w = f w :< fmap (extend f) (unwrap w)
+  duplicate w = w :< fmap duplicate (unwrap w)
   extract (a :< _) = a
 
 instance ComonadTrans Cofree where
@@ -88,6 +91,11 @@ instance Apply f => Apply (Cofree f) where
   (f :< fs) <.> (a :< as) = f a :< ((<.>) <$> fs <.> as)
   (f :< fs) <.  (_ :< as) = f :< ((<. ) <$> fs <.> as)
   (_ :< fs)  .> (a :< as) = a :< (( .>) <$> fs <.> as)
+
+instance ComonadApply f => ComonadApply (Cofree f) where
+  (f :< fs) <@> (a :< as) = f a :< ((<@>) <$> fs <@> as)
+  (f :< fs) <@  (_ :< as) = f :< ((<@ ) <$> fs <@> as)
+  (_ :< fs)  @> (a :< as) = a :< (( @>) <$> fs <@> as)
 
 instance Applicative f => Applicative (Cofree f) where
   pure a = as where as = a :< pure as
