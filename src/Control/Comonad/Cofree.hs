@@ -6,7 +6,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree
--- Copyright   :  (C) 2008-2011 Edward Kmett,
+-- Copyright   :  (C) 2008-2012 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -18,8 +18,8 @@
 ----------------------------------------------------------------------------
 module Control.Comonad.Cofree
   ( Cofree(..)
+  , ComonadCofree(..)
   , section
-  , unwrap
   , coiter
   , unfold
   -- * Lenses into cofree comonads
@@ -52,11 +52,16 @@ import Data.Data
 
 infixr 5 :<
 
+-- | The 'Cofree' 'Comonad' of a functor @f@.
 data Cofree f a = a :< f (Cofree f a)
 
+-- | Use coiteration to generate a cofree comonad from a seed.
+--
+-- @'coiter' f = 'unfold' ('id' 'Control.Arrow.&&&' f)@
 coiter :: Functor f => (a -> f a) -> a -> Cofree f a
 coiter psi a = a :< (coiter psi <$> psi a)
 
+-- | Unfold a cofree comonad from a seed.
 unfold :: Functor f => (b -> (a, f b)) -> b -> Cofree f a
 unfold f c = case f c of
   (x, d) -> x :< fmap (unfold f) d
@@ -80,10 +85,13 @@ instance Functor f => Comonad (Cofree f) where
   duplicate w = w :< fmap duplicate (unwrap w)
   extract (a :< _) = a
 
+-- | This is not a true 'Comonad' transformer, but this instance is convenient.
 instance ComonadTrans Cofree where
   lower (_ :< as) = fmap extract as
 
--- | lower . section = id
+-- |
+--
+-- @'lower' . 'section' = 'id'@
 section :: Comonad f => f a -> Cofree f a
 section as = extract as :< extend section as
 
@@ -182,7 +190,6 @@ instance ComonadStore s w => ComonadStore s (Cofree w) where
   pos (_ :< as) = Class.pos as
   peek s (_ :< as) = extract (Class.peek s as)
 
-
 instance ComonadTraced m w => ComonadTraced m (Cofree w) where
   trace m = trace m . lower
 
@@ -194,10 +201,11 @@ unwrapping :: Functor f => (g (Cofree g a) -> f (g (Cofree g a))) -> Cofree g a 
 unwrapping f (a :< as) = (a :<) <$> f as
 {-# INLINE unwrapping #-}
 
+-- | Construct a @Lens@ into a @'Cofree' f@ given a list of lenses into the base functor.
+--
+-- For more on lenses see the 'lens' package on hackage
 telescoping :: (Functor f, Functor g) =>
              [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
               (a -> f a) -> Cofree g a -> f (Cofree g a)
 telescoping [] = extracting
 telescoping (l:ls) = unwrapping . l . telescoping ls
-
--- newtype CofreeT f w x = CofreeT { runCofreeT :: w (x, f (CofreeT f w x)) }

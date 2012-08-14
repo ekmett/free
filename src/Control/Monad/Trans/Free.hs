@@ -18,6 +18,7 @@
 ----------------------------------------------------------------------------
 module Control.Monad.Trans.Free
   ( FreeT(..)
+  , MonadFree(..)
   , liftF
   ) where
 

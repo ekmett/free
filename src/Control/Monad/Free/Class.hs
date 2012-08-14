@@ -30,7 +30,12 @@ import Control.Monad.Trans.Error
 import Control.Monad.Trans.Identity
 import Data.Monoid
 
+-- |
+-- Note: The 'kan-extensions' package provides an 'MonadFree' that can
+-- improve the asymptotic performance of code written using 'Control.Monad.Free.Free'
+-- monads.
 class Monad m => MonadFree f m | m -> f where
+  -- | Add a layer.
   wrap :: f (m a) -> m a
 
 instance (Functor f, MonadFree f m) => MonadFree f (ReaderT e m) where

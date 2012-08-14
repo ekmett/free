@@ -9,9 +9,9 @@ maintainer:    Edward A. Kmett <ekmett@gmail.com>
 stability:     provisional
 homepage:      http://github.com/ekmett/free/
 bug-reports:   http://github.com/ekmett/free/issues
-copyright:     Copyright (C) 2008-2011 Edward A. Kmett
-synopsis:      Monads for free
-description:   Monads for free
+copyright:     Copyright (C) 2008-2012 Edward A. Kmett
+synopsis:      Monads (and comonads) for free
+description:   Monads (and comonads) for free
 build-type:    Simple
 extra-source-files: .travis.yml
 

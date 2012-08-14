@@ -6,7 +6,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free
--- Copyright   :  (C) 2008-2011 Edward Kmett
+-- Copyright   :  (C) 2008-2012 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -43,8 +43,8 @@ import Data.Semigroup.Traversable
 import Data.Data
 #endif
 
+-- | The 'Free' 'Monad' for a 'Functor' @f@.
 data Free f a = Pure a | Free (f (Free f a))
-
 
 instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where
   Pure a == Pure b = a == b
@@ -147,6 +147,7 @@ instance (Functor m, MonadError e m) => MonadError e (Free m) where
 instance (Functor m, MonadCont m) => MonadCont (Free m) where
   callCC f = lift (callCC (retract . f . liftM lift))
 
+-- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftF :: Functor f => f a -> Free f a
 liftF = Free . fmap Pure
 
@@ -154,6 +155,8 @@ instance Functor f => MonadFree f (Free f) where
   wrap = Free
 
 -- |
+-- 'retract' is the left inverse of 'lift' and 'liftF'
+--
 -- @
 -- 'retract' . 'lift' = 'id'
 -- 'retract' . 'liftF' = 'id'
@@ -162,6 +165,7 @@ retract :: Monad f => Free f a -> f a
 retract (Pure a) = return a
 retract (Free as) = as >>= retract
 
+-- | Tear down a 'Free' 'Monad' using iteration.
 iter :: Functor f => (f a -> a) -> Free f a -> a
 iter _ (Pure a) = a
 iter phi (Free m) = phi (iter phi <$> m)

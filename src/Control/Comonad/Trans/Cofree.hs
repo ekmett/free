@@ -6,7 +6,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Trans.Cofree
--- Copyright   :  (C) 2008-2011 Edward Kmett,
+-- Copyright   :  (C) 2008-2012 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -14,14 +14,13 @@
 -- Portability :  MPTCs, fundeps
 --
 -- The cofree comonad transformer
---
 ----------------------------------------------------------------------------
 module Control.Comonad.Trans.Cofree
   ( CofreeT(..)
   , CofreeF(..)
+  , ComonadCofree(..)
   , headF
   , tailF
---  , lowerF(..)
   ) where
 
 import Control.Applicative
@@ -43,13 +42,15 @@ import Data.Data
 
 infixr 5 :<
 
-
+-- | This is the base functor of the cofree comonad transformer.
 data CofreeF f a b = a :< f b
   deriving (Eq,Ord,Show,Read)
 
+-- | Extract the head of the base functor
 headF :: CofreeF f a b -> a
 headF (a :< _) = a
 
+-- | Extract the tails of the base functor
 tailF :: CofreeF f a b -> f b
 tailF (_ :< as) = as
 
@@ -71,14 +72,14 @@ instance Foldable f => Bifoldable (CofreeF f) where
 instance Traversable f => Bitraversable (CofreeF f) where
   bitraverse f g (a :< as) = (:<) <$> f a <*> traverse g as
 
+-- | This is a cofree comonad of some functor @f@, with a comonad @w@ threaded through it at each level.
 newtype CofreeT f w a = CofreeT { runCofreeT :: w (CofreeF f a (CofreeT f w a)) }
 
 instance (Functor f, Functor w) => Functor (CofreeT f w) where
   fmap f = CofreeT . fmap (bimap f (fmap f)) . runCofreeT
 
 instance (Functor f, Comonad w) => Comonad (CofreeT f w) where
-  extract (CofreeT w) = case extract w of
-    a :< _ -> a
+  extract = headF . extract . runCofreeT
   extend f = CofreeT . extend (\w -> f (CofreeT w) :< (extend f <$> tailF (extract w))) . runCofreeT
 
 instance (Foldable f, Foldable w) => Foldable (CofreeT f w) where

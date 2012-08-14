@@ -25,6 +25,7 @@ import Control.Comonad.Trans.Identity
 import Data.Semigroup
 
 class (Functor f, Comonad w) => ComonadCofree f w | w -> f where
+  -- | Remove a layer.
   unwrap :: w a -> f (w a)
 
 instance ComonadCofree f w => ComonadCofree f (IdentityT w) where
