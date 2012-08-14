@@ -164,8 +164,8 @@ cofreeTConstr = mkConstr cofreeTDataType "CofreeT" [] Prefix
 {-# NOINLINE cofreeTConstr #-}
 
 cofreeFDataType, cofreeTDataType :: DataType
-cofreeFDataType = mkDataType "Control.Comonad.Cofree.CofreeF" [cofreeFConstr]
-cofreeTDataType = mkDataType "Control.Comonad.Cofree.CofreeT" [cofreeTConstr]
+cofreeFDataType = mkDataType "Control.Comonad.Trans.Cofree.CofreeF" [cofreeFConstr]
+cofreeTDataType = mkDataType "Control.Comonad.Trans.Cofree.CofreeT" [cofreeTConstr]
 {-# NOINLINE cofreeFDataType #-}
 {-# NOINLINE cofreeTDataType #-}
 #endif

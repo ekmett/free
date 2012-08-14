@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -181,8 +182,8 @@ freeTConstr = mkConstr freeTDataType "FreeT" [] Prefix
 {-# NOINLINE freeTConstr #-}
 
 freeFDataType, freeTDataType :: DataType
-freeFDataType = mkDataType "Control.Monad.Free.FreeF" [pureConstr, freeConstr]
-freeTDataType = mkDataType "Control.Monad.Free.FreeT" [freeTConstr]
+freeFDataType = mkDataType "Control.Monad.Trans.Free.FreeF" [pureConstr, freeConstr]
+freeTDataType = mkDataType "Control.Monad.Trans.Free.FreeT" [freeTConstr]
 {-# NOINLINE freeFDataType #-}
 {-# NOINLINE freeTDataType #-}
 #endif

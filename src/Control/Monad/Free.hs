@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -38,7 +39,12 @@ import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 
+#ifdef GHC_TYPEABLE
+import Data.Data
+#endif
+
 data Free f a = Pure a | Free (f (Free f a))
+
 
 instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where
   Pure a == Pure b = a == b
@@ -159,3 +165,44 @@ retract (Free as) = as >>= retract
 iter :: Functor f => (f a -> a) -> Free f a -> a
 iter _ (Pure a) = a
 iter phi (Free m) = phi (iter phi <$> m)
+
+#ifdef GHC_TYPEABLE
+instance Typeable1 f => Typeable1 (Free f) where
+  typeOf1 t = mkTyConApp freeTyCon [typeOf1 (f t)] where
+    f :: Free f a -> f a
+    f = undefined
+
+freeTyCon :: TyCon
+#if __GLASGOW_HASKELL__ < 704
+freeTyCon = mkTyCon "Control.Monad.Free.Free"
+#else
+freeTyCon = mkTyCon3 "free" "Control.Monad.Free" "Free"
+#endif
+{-# NOINLINE freeTyCon #-}
+
+instance
+  ( Typeable1 f, Typeable a
+  , Data a, Data (f (Free f a))
+  ) => Data (Free f a) where
+    gfoldl f z (Pure a) = z Pure `f` a
+    gfoldl f z (Free as) = z Free `f` as
+    toConstr Pure{} = pureConstr
+    toConstr Free{} = freeConstr
+    gunfold k z c = case constrIndex c of
+        1 -> k (z Pure)
+        2 -> k (z Free)
+        _ -> error "gunfold"
+    dataTypeOf _ = freeDataType
+    dataCast1 f = gcast1 f
+
+pureConstr, freeConstr :: Constr
+pureConstr = mkConstr freeDataType "Pure" [] Prefix
+freeConstr = mkConstr freeDataType "Free" [] Prefix
+{-# NOINLINE pureConstr #-}
+{-# NOINLINE freeConstr #-}
+
+freeDataType :: DataType
+freeDataType = mkDataType "Control.Monad.Free.FreeF" [pureConstr, freeConstr]
+{-# NOINLINE freeDataType #-}
+
+#endif
