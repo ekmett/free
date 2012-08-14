@@ -29,7 +29,6 @@ import Control.Comonad
 import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
 import Control.Category
-import Data.Distributive
 import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
@@ -110,12 +109,12 @@ instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
 
 #ifdef GHC_TYPEABLE
 
-instance Typeable1 f => Typeable2 (Cofree f) where
+instance Typeable1 f => Typeable2 (CofreeF f) where
   typeOf2 t = mkTyConApp cofreeFTyCon [typeOf1 (f t)] where
     f :: CofreeF f a b -> f a
     f = undefined
 
-instance (Typeable1 f, Typeable1 w) => Typeable1 (Cofree f) where
+instance (Typeable1 f, Typeable1 w) => Typeable1 (CofreeT f w) where
   typeOf1 t = mkTyConApp cofreeTTyCon [typeOf1 (f t), typeOf1 (w t)] where
     f :: CofreeT f w a -> f a
     f = undefined
@@ -130,13 +129,14 @@ cofreeFTyCon = mkTyCon "Control.Comonad.Trans.Cofree.CofreeF"
 cofreeTTyCon = mkTyCon3 "free" "Control.Comonad.Trans.Cofree" "CofreeT"
 cofreeFTyCon = mkTyCon3 "free" "Control.Comonad.Trans.Cofree" "CofreeF"
 #endif
-{-# NOINLINE cofreeTyCon #-}
+{-# NOINLINE cofreeTTyCon #-}
+{-# NOINLINE cofreeFTyCon #-}
 
 instance
   ( Typeable1 f, Typeable a, Typeable b
-  , Data a, Data (f b)
-  ) => Data (CofreeF f w a) where
-    gfoldl f z (a :< as) = z CofreeT `f` a `f` as
+  , Data a, Data (f b), Data b
+  ) => Data (CofreeF f a b) where
+    gfoldl f z (a :< as) = z (:<) `f` a `f` as
     toConstr _ = cofreeFConstr
     gunfold k z c = case constrIndex c of
         1 -> k (k (z (:<)))
@@ -147,8 +147,9 @@ instance
 instance
   ( Typeable1 f, Typeable1 w, Typeable a
   , Data (w (CofreeF f a (CofreeT f w a)))
+  , Data a
   ) => Data (CofreeT f w a) where
-    gfoldl f z (CofreeT w) = z CofreeT `f` a
+    gfoldl f z (CofreeT w) = z CofreeT `f` w
     toConstr _ = cofreeTConstr
     gunfold k z c = case constrIndex c of
         1 -> k (z CofreeT)

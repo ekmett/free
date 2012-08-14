@@ -51,5 +51,6 @@ library
     Control.Monad.Trans.Free
     Control.Comonad.Cofree
     Control.Comonad.Cofree.Class
+    Control.Comonad.Trans.Cofree
 
   ghc-options:      -Wall
