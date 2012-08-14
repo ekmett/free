@@ -91,14 +91,17 @@ instance Functor f => Monad (Free f) where
   Pure a >>= f = f a
   Free m >>= f = Free ((>>= f) <$> m)
 
+-- | This violates the Alternative laws, handle with care.
 instance Alternative v => Alternative (Free v) where
   empty = Free empty
   a <|> b = Free (pure a <|> pure b)
 
+-- | This violates the MonadPlus laws, handle with care.
 instance (Functor v, MonadPlus v) => MonadPlus (Free v) where
   mzero = Free mzero
   a `mplus` b = Free (return a `mplus` return b)
 
+-- | This is not a true monad transformer. It is only a monad transformer \"up to 'retract'\".
 instance MonadTrans Free where
   lift = Free . liftM Pure
 
@@ -145,9 +148,10 @@ instance Functor f => MonadFree f (Free f) where
   wrap = Free
 
 -- |
---
--- > retract . lift = id
--- > retract . liftF = id
+-- @
+-- 'retract' . 'lift' = 'id'
+-- 'retract' . 'liftF' = 'id'
+-- @
 retract :: Monad f => Free f a -> f a
 retract (Pure a) = return a
 retract (Free as) = as >>= retract

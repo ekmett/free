@@ -199,3 +199,5 @@ telescoping :: (Functor f, Functor g) =>
               (a -> f a) -> Cofree g a -> f (Cofree g a)
 telescoping [] = extracting
 telescoping (l:ls) = unwrapping . l . telescoping ls
+
+-- newtype CofreeT f w x = CofreeT { runCofreeT :: w (x, f (CofreeT f w x)) }

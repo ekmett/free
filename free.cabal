@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       3.0
+version:       3.1
 license:       BSD3
 cabal-version: >= 1.6
 license-file:  LICENSE
@@ -30,13 +30,14 @@ library
 
   build-depends:
     base                 >= 4       && < 5,
+    bifunctors           == 3.0.*,
     distributive         >= 0.2.1   && < 0.3,
     transformers         >= 0.2.0   && < 0.4,
     mtl                  >= 2.0.1.0 && < 2.2,
-    semigroupoids        >= 3.0     && < 3.1,
-    comonad              >= 3.0     && < 3.1,
-    comonad-transformers >= 3.0     && < 3.1,
-    comonads-fd          >= 3.0     && < 3.1,
+    semigroupoids        == 3.0.*,
+    comonad              == 3.0.*,
+    comonad-transformers == 3.0.*,
+    comonads-fd          == 3.0.*,
     semigroups           >= 0.8.3.1 && < 0.9
 
   if impl(ghc)
@@ -47,6 +48,7 @@ library
   exposed-modules:
     Control.Monad.Free
     Control.Monad.Free.Class
+    Control.Monad.Trans.Free
     Control.Comonad.Cofree
     Control.Comonad.Cofree.Class
 
