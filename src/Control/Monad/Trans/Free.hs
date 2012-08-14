@@ -31,6 +31,9 @@ import Data.Traversable
 import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
+#ifdef GHC_TYPEABLE
+import Data.Data
+#endif
 
 data FreeF f a b = Pure a | Free (f b)
   deriving (Eq,Ord,Show,Read)
@@ -115,3 +118,72 @@ instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
 
 instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) where
   traverse f (FreeT m) = FreeT <$> traverse (bitraverse f (traverse f)) m
+
+#ifdef GHC_TYPEABLE
+
+instance Typeable1 f => Typeable2 (FreeF f) where
+  typeOf2 t = mkTyConApp freeFTyCon [typeOf1 (f t)] where
+    f :: FreeF f a b -> f a
+    f = undefined
+
+instance (Typeable1 f, Typeable1 w) => Typeable1 (FreeT f w) where
+  typeOf1 t = mkTyConApp freeTTyCon [typeOf1 (f t), typeOf1 (w t)] where
+    f :: FreeT f w a -> f a
+    f = undefined
+    w :: FreeT f w a -> w a
+    w = undefined
+
+freeFTyCon, freeTTyCon :: TyCon
+#if __GLASGOW_HASKELL__ < 704
+freeTTyCon = mkTyCon "Control.Monad.Trans.Free.FreeT"
+freeFTyCon = mkTyCon "Control.Monad.Trans.Free.FreeF"
+#else
+freeTTyCon = mkTyCon3 "free" "Control.Monad.Trans.Free" "FreeT"
+freeFTyCon = mkTyCon3 "free" "Control.Monad.Trans.Free" "FreeF"
+#endif
+{-# NOINLINE freeTTyCon #-}
+{-# NOINLINE freeFTyCon #-}
+
+instance
+  ( Typeable1 f, Typeable a, Typeable b
+  , Data a, Data (f b), Data b
+  ) => Data (FreeF f a b) where
+    gfoldl f z (Pure a) = z Pure `f` a
+    gfoldl f z (Free as) = z Free `f` as
+    toConstr Pure{} = pureConstr
+    toConstr Free{} = freeConstr
+    gunfold k z c = case constrIndex c of
+        1 -> k (z Pure)
+        2 -> k (z Free)
+        _ -> error "gunfold"
+    dataTypeOf _ = freeFDataType
+    dataCast1 f = gcast1 f
+
+instance
+  ( Typeable1 f, Typeable1 w, Typeable a
+  , Data (w (FreeF f a (FreeT f w a)))
+  , Data a
+  ) => Data (FreeT f w a) where
+    gfoldl f z (FreeT w) = z FreeT `f` w
+    toConstr _ = freeTConstr
+    gunfold k z c = case constrIndex c of
+        1 -> k (z FreeT)
+        _ -> error "gunfold"
+    dataTypeOf _ = freeTDataType
+    dataCast1 f = gcast1 f
+
+pureConstr, freeConstr, freeTConstr :: Constr
+pureConstr = mkConstr freeFDataType "Pure" [] Prefix
+freeConstr = mkConstr freeFDataType "Free" [] Prefix
+freeTConstr = mkConstr freeTDataType "FreeT" [] Prefix
+{-# NOINLINE pureConstr #-}
+{-# NOINLINE freeConstr #-}
+{-# NOINLINE freeTConstr #-}
+
+freeFDataType, freeTDataType :: DataType
+freeFDataType = mkDataType "Control.Monad.Free.FreeF" [pureConstr, freeConstr]
+freeTDataType = mkDataType "Control.Monad.Free.FreeT" [freeTConstr]
+{-# NOINLINE freeFDataType #-}
+{-# NOINLINE freeTDataType #-}
+#endif
+
