@@ -10,8 +10,21 @@ stability:     provisional
 homepage:      http://github.com/ekmett/free/
 bug-reports:   http://github.com/ekmett/free/issues
 copyright:     Copyright (C) 2008-2012 Edward A. Kmett
-synopsis:      Monads (and comonads) for free
-description:   Monads (and comonads) for free
+synopsis:      Monads for free
+description:
+  Free monads are useful for many tree-like structures and domain specific languages.
+  .
+  A 'Monad' @n@ is a free 'Monad' for @f@ if every 'Monad' homomorphism
+  from @n@ to another monad @m@ is equivalent to a natural transformation
+  from @f@ to @m@.
+  .
+  Cofree comonads provide convenient ways to talk about branching streams and rose-trees,
+  and can be used to annotate syntax trees.
+  .
+  A 'Comonad' @v@ is a cofree 'Comonad' for @f@ if every 'Comonad' homomorphism
+  another comonad @w@ to @v@ is equivalent to a natural transformation
+  from @w@ to @f@.
+
 build-type:    Simple
 extra-source-files: .travis.yml
 
