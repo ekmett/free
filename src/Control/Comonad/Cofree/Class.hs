@@ -24,6 +24,7 @@ import Control.Comonad.Trans.Traced
 import Control.Comonad.Trans.Identity
 import Data.Semigroup
 
+-- | Allows you to peel a layer off a cofree comonad.
 class (Functor f, Comonad w) => ComonadCofree f w | w -> f where
   -- | Remove a layer.
   unwrap :: w a -> f (w a)

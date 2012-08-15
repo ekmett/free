@@ -13,7 +13,7 @@
 -- Stability   :  provisional
 -- Portability :  MPTCs, fundeps
 --
--- Free monads
+-- Monads for free
 --
 ----------------------------------------------------------------------------
 module Control.Monad.Free
@@ -44,6 +44,49 @@ import Data.Data
 #endif
 
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
+--
+-- /Formally/
+--
+-- A 'Monad' @n@ is a free 'Monad' for @f@ if every monad homomorphism
+-- from @n@ to another monad @m@ is equivalent to a natural transformation
+-- from @f@ to @m@.
+--
+-- /Why Free?/
+--
+-- Every \"free\" functor is left adjoint to some \"forgetful\" functor.
+--
+-- If we define a forgetful functor @U@ from the category of monads to the category of functors
+-- that just forgets the 'Monad', leaving only the 'Functor'. i.e.
+--
+-- @U (M,'return','Control.Monad.join') = M@
+--
+-- then 'Free' is the left adjoint to @U@.
+--
+-- Being 'Free' being left adjoint to @U@ means that there is an isomorphism between
+--
+-- @'Free' f -> m@ in the category of monads and @f -> U m@ in the category of functors.
+--
+-- Morphisms in the category of monads are 'Monad' homomorphisms (natural transformations that respect 'return' and 'Control.Monad.join').
+--
+-- Morphisms in the category of functors are 'Functor' homomorphisms (natural transformations).
+--
+-- Given this isomorphism, every monad homomorphism from @'Free' f@ to @m@ is equivalent to a natural transformation from @f@ to @m@
+--
+-- Showing that this isomorphism holds is left as an exercise.
+--
+-- In practice, you can just view a @'Free' f a@ as many layers of @f@ wrapped around values of type @a@, where
+-- @('>>=')@ performs substitution and grafts new layers of @f@ in for each of the free variables.
+--
+-- This can be very useful for modeling domain specific languages, trees, or other constructs.
+--
+-- This instance of 'MonadFree' is fairly naive about the encoding. For more efficient free monad implementations that require additional
+-- extensions and thus aren't included here, you may want to look at the @kan-extensions@ package.
+--
+-- A number of common monads arise as free monads,
+--
+-- * Given @data Empty a@, @'Free' Empty@ is isomorphic to the 'Data.Functor.Identity' monad.
+--
+-- * @'Free' 'Maybe'@ can be used to model a partiality monad where each layer represents running the computation for a while longer.
 data Free f a = Pure a | Free (f (Free f a))
 
 instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where

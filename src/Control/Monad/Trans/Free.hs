@@ -37,6 +37,7 @@ import Data.Bitraversable
 import Data.Data
 #endif
 
+-- | The base functor for a free monad.
 data FreeF f a b = Pure a | Free (f b)
   deriving (Eq,Ord,Show,Read)
 
@@ -64,6 +65,7 @@ instance Traversable f => Bitraversable (FreeF f) where
   bitraverse f _ (Pure a)  = Pure <$> f a
   bitraverse _ g (Free as) = Free <$> traverse g as
 
+-- | The \"free monad transformer\" for a functor @f@.
 newtype FreeT f m a = FreeT { runFreeT :: m (FreeF f a (FreeT f m a)) }
 
 instance Eq (m (FreeF f a (FreeT f m a))) => Eq (FreeT f m a) where
@@ -112,6 +114,9 @@ instance (Functor f, MonadPlus m) => MonadPlus (FreeT f m) where
 instance (Functor f, Monad m) => MonadFree f (FreeT f m) where
   wrap = FreeT . return . Free
 
+-- | FreeT is a functor from the category of functors to the category of monads.
+--
+-- This provides the mapping.
 liftF :: (Functor f, Monad m) => f a -> FreeT f m a
 liftF = wrap . fmap return
 

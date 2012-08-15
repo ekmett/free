@@ -11,6 +11,8 @@
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  experimental
 -- Portability :  non-portable (fundeps, MPTCs)
+--
+-- Monads for free.
 ----------------------------------------------------------------------------
 module Control.Monad.Free.Class
   ( MonadFree(..)
@@ -31,9 +33,49 @@ import Control.Monad.Trans.Identity
 import Data.Monoid
 
 -- |
--- Note: The 'kan-extensions' package provides an 'MonadFree' that can
--- improve the asymptotic performance of code written using 'Control.Monad.Free.Free'
--- monads.
+-- Monads provide substitution ('fmap') and renormalization ('Control.Monad.join'):
+--
+-- @m '>>=' f = 'Control.Monad.join' . 'fmap' f m@
+--
+-- A free 'Monad' is one that does no work during the normalization step beyond simply grafting the two monadic values together.
+--
+-- @[]@ is not a free 'Monad' (in this sense) because @'Control.Monad.join' [[a]]@ smashes the lists flat.
+--
+-- On the other hand, consider:
+--
+-- @
+-- data Tree a = Bin (Tree a) (Tree a) | Tip a
+-- @
+--
+-- @
+-- instance 'Monad' Tree where
+--   'return' = Tip
+--   Tip a '>>=' f = f a
+--   Bin l r '>>=' f = Bin (l '>>=' f) (r '>>=' f)
+-- @
+--
+-- This 'Monad' is the free 'Monad' of Pair:
+--
+-- @
+-- data Pair a = Pair a a
+-- @
+--
+-- And we could make an instance of 'MonadFree' for it directly:
+--
+-- @
+-- instance 'MonadFree' Pair Tree where
+--    'wrap' (Pair l r) = Bin l r
+-- @
+--
+-- Or we could choose to program with @'Control.Monad.Free.Free' Pair@ instead of 'Tree'
+-- and thereby avoid having to define our own 'Monad' instance.
+--
+-- Moreover, the @kan-extensions@ package provides 'MonadFree' instances that can
+-- improve the /asymptotic/ complexity of code that constructors free monads by
+-- effectively reassociating the use of ('>>=').
+--
+-- See 'Control.Monad.Free.Free' for a more formal definition of the free 'Monad'
+-- for a 'Functor'.
 class Monad m => MonadFree f m | m -> f where
   -- | Add a layer.
   wrap :: f (m a) -> m a

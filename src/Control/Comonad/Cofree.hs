@@ -23,9 +23,9 @@ module Control.Comonad.Cofree
   , coiter
   , unfold
   -- * Lenses into cofree comonads
-  , extracting
-  , unwrapping
-  , telescoping
+  , extracted
+  , unwrapped
+  , telescoped
   ) where
 
 import Control.Applicative
@@ -53,6 +53,35 @@ import Data.Data
 infixr 5 :<
 
 -- | The 'Cofree' 'Comonad' of a functor @f@.
+--
+-- /Formally/
+--
+-- A 'Comonad' @v@ is a cofree 'Comonad' for @f@ if every comonad homomorphism
+-- another comonad @w@ to @v@ is equivalent to a natural transformation
+-- from @w@ to @f@.
+--
+-- A 'cofree' functor is right adjoint to a forgetful functor.
+--
+-- Cofree is a functor from the category of functors to the category of comonads
+-- that is right adjoint to the forgetful functor from the category of comonads
+-- to the category of functors that forgets how to 'extract' and
+-- 'duplicate', leaving you with only a 'Functor'.
+--
+-- In practice, cofree comonads are quite useful for annotating syntax trees,
+-- or talking about streams.
+--
+-- A number of common comonads arise directly as cofree comonads.
+--
+-- For instance,
+--
+-- * @'Cofree' 'Maybe'@ forms the a comonad for a non-empty list.
+--
+-- * @'Cofree' ('Const' b)@ is a product.
+--
+-- * @'Cofree' 'Identity'@ forms an infinite stream.
+--
+-- * @'Cofree' ((->) b)'@ describes a Moore machine with states labeled with values of type a, and transitions on edges of type b.
+--
 data Cofree f a = a :< f (Cofree f a)
 
 -- | Use coiteration to generate a cofree comonad from a seed.
@@ -193,19 +222,35 @@ instance ComonadStore s w => ComonadStore s (Cofree w) where
 instance ComonadTraced m w => ComonadTraced m (Cofree w) where
   trace m = trace m . lower
 
-extracting :: Functor f => (a -> f a) -> Cofree g a -> f (Cofree g a)
-extracting f (a :< as) = (:< as) <$> f a
-{-# INLINE extracting #-}
+-- | This is a lens that can be used to read or write from the target of 'extract'.
+--
+-- @foo ^. 'extracted' == 'extract' foo@
+--
+-- For more on lenses see the 'lens' package on hackage
+--
+-- @extracted :: Simple Lens (Cofree g a) a@
+extracted :: Functor f => (a -> f a) -> Cofree g a -> f (Cofree g a)
+extracted f (a :< as) = (:< as) <$> f a
+{-# INLINE extracted #-}
 
-unwrapping :: Functor f => (g (Cofree g a) -> f (g (Cofree g a))) -> Cofree g a -> f (Cofree g a)
-unwrapping f (a :< as) = (a :<) <$> f as
-{-# INLINE unwrapping #-}
+-- | This is a lens that can be used to read or write to the tails of a 'Cofree' 'Comonad'.
+--
+-- @foo ^. 'unwrapped' == 'unwrap' foo@
+--
+-- For more on lenses see the 'lens' package on hackage
+--
+-- @unwrapped :: Simple Lens (Cofree g a) (g (Cofree g a))@
+unwrapped :: Functor f => (g (Cofree g a) -> f (g (Cofree g a))) -> Cofree g a -> f (Cofree g a)
+unwrapped  f (a :< as) = (a :<) <$> f as
+{-# INLINE unwrapped #-}
 
 -- | Construct a @Lens@ into a @'Cofree' f@ given a list of lenses into the base functor.
 --
--- For more on lenses see the 'lens' package on hackage
-telescoping :: (Functor f, Functor g) =>
+-- For more on lenses see the 'lens' package on hackage.
+--
+-- @telescoped :: Functor g => [Rep g] -> Simple Lens (Cofree g a) a@
+telescoped :: (Functor f, Functor g) =>
              [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
               (a -> f a) -> Cofree g a -> f (Cofree g a)
-telescoping [] = extracting
-telescoping (l:ls) = unwrapping . l . telescoping ls
+telescoped [] = extracted
+telescoped (l:ls) = unwrapped . l . telescoped ls
