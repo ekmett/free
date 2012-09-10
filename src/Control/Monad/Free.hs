@@ -15,7 +15,6 @@
 -- Portability :  MPTCs, fundeps
 --
 -- Monads for free
---
 ----------------------------------------------------------------------------
 module Control.Monad.Free
   ( MonadFree(..)

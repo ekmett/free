@@ -12,9 +12,9 @@
 -- Stability   :  provisional
 -- Portability :  non-portable (rank-2 polymorphism)
 --
--- Free Monads for Less.
+-- \"Free Monads for Less\"
 --
--- http://comonad.com/reader/2011/free-monads-for-less-2/
+-- <http://comonad.com/reader/2011/free-monads-for-less-2/>
 ----------------------------------------------------------------------------
 module Control.Monad.Free.Church
   ( F(..)
