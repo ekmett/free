@@ -10,10 +10,9 @@
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  provisional
--- Portability :  MPTCs, fundeps
+-- Portability :  GADTs, Rank2Types
 --
--- Applicatives for free
---
+-- 'Applicative' functors for free
 ----------------------------------------------------------------------------
 module Control.Applicative.Free
   ( Ap(..)
