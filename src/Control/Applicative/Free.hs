@@ -51,11 +51,11 @@ instance Applicative (Ap f) where
   Ap x y <*> z = Ap x (flip <$> y <*> z)
 
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
-liftAp :: Functor f => f a -> Ap f a
+liftAp :: f a -> Ap f a
 liftAp x = Ap x (Pure id)
 {-# INLINE liftAp #-}
 
-hoistAp :: Functor g => (forall a. f a -> g a) -> Ap f b -> Ap g b
+hoistAp :: (forall a. f a -> g a) -> Ap f b -> Ap g b
 hoistAp _ (Pure a) = Pure a
 hoistAp f (Ap x y) = Ap (f x) (hoistAp f y)
 {-# INLINE hoistAp #-}
