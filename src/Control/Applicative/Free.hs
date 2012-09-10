@@ -33,6 +33,7 @@ data Ap f a where
   Pure :: a -> Ap f a
   Ap   :: f a -> Ap f (a -> b) -> Ap f b
 
+-- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
 runAp :: Applicative g => (forall x. f x -> g x) -> Ap f a -> g a
 runAp _ (Pure x) = pure x
 runAp u (Ap f x) = flip id <$> u f <*> runAp u x
@@ -55,6 +56,7 @@ liftAp :: f a -> Ap f a
 liftAp x = Ap x (Pure id)
 {-# INLINE liftAp #-}
 
+-- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @Ap f@ to @Ap g@.
 hoistAp :: (forall a. f a -> g a) -> Ap f b -> Ap g b
 hoistAp _ (Pure a) = Pure a
 hoistAp f (Ap x y) = Ap (f x) (hoistAp f y)

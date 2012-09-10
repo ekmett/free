@@ -14,6 +14,9 @@
 --
 -- \"Free Monads for Less\"
 --
+-- This is based on the \"Free Monads for Less\" series of articles:
+--
+-- <http://comonad.com/reader/2011/free-monads-for-less/>
 -- <http://comonad.com/reader/2011/free-monads-for-less-2/>
 ----------------------------------------------------------------------------
 module Control.Monad.Free.Church
@@ -35,6 +38,11 @@ import Control.Monad.Trans.Class
 import Control.Monad.State.Class
 import Data.Functor.Bind
 
+-- | The Church-encoded free monad for a functor @f@.
+--
+-- It is /asymptotically/ more efficient to use ('>>=') for 'F' than it is to ('>>=') with 'Free'.
+--
+-- <http://comonad.com/reader/2011/free-monads-for-less-2/>
 newtype F f a = F { runF :: forall r. (a -> r) -> (f r -> r) -> r }
 
 instance Functor (F f) where
@@ -84,23 +92,43 @@ instance MonadWriter w m => MonadWriter w (F m) where
 instance MonadCont m => MonadCont (F m) where
   callCC f = lift $ callCC (retract . f . fmap lift)
 
+-- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftF :: Functor f => f a -> F f a
 liftF f = F (\kp kf -> kf (fmap kp f))
 {-# INLINE liftF #-}
 
+-- |
+-- 'retract' is the left inverse of 'lift' and 'liftF'
+--
+-- @
+-- 'retract' . 'lift' = 'id'
+-- 'retract' . 'liftF' = 'id'
+-- @
 retract :: Monad m => F m a -> m a
 retract (F m) = m return Monad.join
 {-# INLINE retract #-}
 
+-- | Convert to another free monad representation.
 fromF :: MonadFree f m => F f a -> m a
 fromF (F m) = m return wrap
 {-# INLINE fromF #-}
 
+-- | Generate a Church-encoded free monad, from a 'Free' monad.
 toF :: Functor f => Free f a -> F f a
 toF xs = F (\kp kf -> go kp kf xs) where
   go kp _  (Pure a) = kp a
   go kp kf (Free fma) = kf (fmap (go kp kf) fma)
 
+-- | Improve the asymptotic performance of code that builds a free monad with only binds and returns by using 'F' behind the scenes.
+--
+-- This is based on the \"Free Monads for Less\" series of articles by Edward Kmett:
+--
+-- <http://comonad.com/reader/2011/free-monads-for-less/>
+-- <http://comonad.com/reader/2011/free-monads-for-less-2/>
+--
+-- and \"Asymptotic Improvement of Computations over Free Monads\" by Janis Voightländer:
+--
+-- <http://www.iai.uni-bonn.de/~jv/mpc08.pdf>
 improve :: Functor f => (forall m. MonadFree f m => m a) -> Free f a
 improve m = fromF m
 {-# INLINE improve #-}
