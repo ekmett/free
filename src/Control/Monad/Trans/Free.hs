@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE Rank2Types #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.Free
@@ -21,6 +22,8 @@ module Control.Monad.Trans.Free
   , FreeT(..)
   , MonadFree(..)
   , liftF
+  , hoistFreeT
+  , transFreeT
   ) where
 
 import Control.Applicative
@@ -66,6 +69,11 @@ instance Traversable f => Bitraversable (FreeF f) where
   bitraverse f _ (Pure a)  = Pure <$> f a
   bitraverse _ g (Free as) = Free <$> traverse g as
 
+transFreeF :: (forall x. f x -> g x) -> FreeF f a b -> FreeF g a b
+transFreeF _ (Pure a) = Pure a
+transFreeF t (Free as) = Free (t as)
+{-# INLINE transFreeF #-}
+
 -- | The \"free monad transformer\" for a functor @f@.
 newtype FreeT f m a = FreeT { runFreeT :: m (FreeF f a (FreeT f m a)) }
 
@@ -90,42 +98,62 @@ instance (Functor f, Monad m) => Functor (FreeT f m) where
 
 instance (Functor f, Monad m) => Applicative (FreeT f m) where
   pure a = FreeT (return (Pure a))
+  {-# INLINE pure #-}
   (<*>) = ap
+  {-# INLINE (<*>) #-}
 
 instance (Functor f, Monad m) => Monad (FreeT f m) where
   return a = FreeT (return (Pure a))
+  {-# INLINE return #-}
   FreeT m >>= f = FreeT $ m >>= \v -> case v of
     Pure a -> runFreeT (f a)
     Free w -> return (Free (fmap (>>= f) w))
 
 instance MonadTrans (FreeT f) where
   lift = FreeT . liftM Pure
+  {-# INLINE lift #-}
 
 instance (Functor f, MonadIO m) => MonadIO (FreeT f m) where
   liftIO = lift . liftIO
+  {-# INLINE liftIO #-}
 
 instance (Functor f, MonadPlus m) => Alternative (FreeT f m) where
   empty = FreeT mzero
   FreeT ma <|> FreeT mb = FreeT (mplus ma mb)
+  {-# INLINE (<|>) #-}
 
 instance (Functor f, MonadPlus m) => MonadPlus (FreeT f m) where
   mzero = FreeT mzero
+  {-# INLINE mzero #-}
   mplus (FreeT ma) (FreeT mb) = FreeT (mplus ma mb)
+  {-# INLINE mplus #-}
 
 instance (Functor f, Monad m) => MonadFree f (FreeT f m) where
   wrap = FreeT . return . Free
+  {-# INLINE wrap #-}
 
 -- | FreeT is a functor from the category of functors to the category of monads.
 --
 -- This provides the mapping.
 liftF :: (Functor f, Monad m) => f a -> FreeT f m a
 liftF = wrap . fmap return
+{-# INLINE liftF #-}
 
 instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
   foldMap f (FreeT m) = foldMap (bifoldMap f (foldMap f)) m
 
 instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) where
   traverse f (FreeT m) = FreeT <$> traverse (bitraverse f (traverse f)) m
+
+-- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' f n@
+--
+-- @'hoistFreeT' :: ('Monad' m, 'Functor' f) => (m ~> n) -> 'FreeT' f m ~> 'FreeT' f n@
+hoistFreeT :: (Monad m, Functor f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
+hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
+
+-- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g n@
+transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
+transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
 
 #ifdef GHC_TYPEABLE
 

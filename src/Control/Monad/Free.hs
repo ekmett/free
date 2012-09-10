@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE Rank2Types #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free
@@ -22,6 +23,7 @@ module Control.Monad.Free
   , retract
   , liftF
   , iter
+  , hoistFree
   ) where
 
 import Control.Applicative
@@ -212,6 +214,12 @@ retract (Free as) = as >>= retract
 iter :: Functor f => (f a -> a) -> Free f a -> a
 iter _ (Pure a) = a
 iter phi (Free m) = phi (iter phi <$> m)
+
+-- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'FreeT' f@ to @'FreeT' g@.
+hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
+hoistFree _ (Pure a) = Pure a
+hoistFree f (Free as) = Free (hoistFree f <$> f as)
+{-# INLINE hoistFree #-}
 
 #ifdef GHC_TYPEABLE
 instance Typeable1 f => Typeable1 (Free f) where
