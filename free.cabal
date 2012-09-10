@@ -41,6 +41,7 @@ library
     FlexibleInstances
     UndecidableInstances
     Rank2Types
+    GADTs
 
   build-depends:
     base                 >= 4       && < 5,
@@ -60,6 +61,7 @@ library
   extensions: CPP
 
   exposed-modules:
+    Control.Applicative.Free
     Control.Monad.Free
     Control.Monad.Free.Class
     Control.Monad.Trans.Free
