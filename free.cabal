@@ -63,6 +63,7 @@ library
   exposed-modules:
     Control.Applicative.Free
     Control.Monad.Free
+    Control.Monad.Free.Church
     Control.Monad.Free.Class
     Control.Monad.Trans.Free
     Control.Comonad.Cofree
