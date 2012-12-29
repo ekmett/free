@@ -30,13 +30,13 @@ import Data.Semigroup
 import Data.Typeable
 #endif
 
--- | The free 'Applicative' for a 'Functor' @f@.
+-- | The free 'Alternative' for a 'Functor' @f@.
 data Alt f a where
   Pure :: a -> Alt f a
   Ap   :: f a -> Alt f (a -> b) -> Alt f b
   Alt  :: [Alt f a] -> Alt f a
 
--- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
+-- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Alt' f@ to @g@.
 runAlt :: Alternative g => (forall x. f x -> g x) -> Alt f a -> g a
 runAlt _ (Pure x) = pure x
 runAlt u (Ap f x) = flip id <$> u f <*> runAlt u x
@@ -89,7 +89,7 @@ liftAlt :: f a -> Alt f a
 liftAlt x = Ap x (Pure id)
 {-# INLINE liftAlt #-}
 
--- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @Ap f@ to @Ap g@.
+-- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @Alt f@ to @Alt g@.
 hoistAlt :: (forall a. f a -> g a) -> Alt f b -> Alt g b
 hoistAlt _ (Pure a) = Pure a
 hoistAlt f (Ap x y) = Ap (f x) (hoistAlt f y)
