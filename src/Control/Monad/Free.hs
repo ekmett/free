@@ -118,19 +118,24 @@ instance (Read (f (Free f a)), Read a) => Read (Free f a) where
              , (m, t) <- readsPrec 11 s]) r
 
 instance Functor f => Functor (Free f) where
-  fmap f (Pure a)  = Pure (f a)
-  fmap f (Free fa) = Free (fmap f <$> fa)
+  fmap f = go where
+    go (Pure a)  = Pure (f a)
+    go (Free fa) = Free (go <$> fa)
+  {-# INLINE go #-}
 
 instance Functor f => Apply (Free f) where
   Pure a  <.> Pure b = Pure (a b)
   Pure a  <.> Free fb = Free $ fmap a <$> fb
   Free fa <.> b = Free $ (<.> b) <$> fa
+  {-# INLINE (<.> #-}
 
 instance Functor f => Applicative (Free f) where
   pure = Pure
+  {-# INLINE pure #-}
   Pure a <*> Pure b = Pure $ a b
   Pure a <*> Free mb = Free $ fmap a <$> mb
   Free ma <*> b = Free $ (<*> b) <$> ma
+  {-# INLINE (<*>) #-}
 
 instance Functor f => Bind (Free f) where
   Pure a >>- f = f a
@@ -138,65 +143,91 @@ instance Functor f => Bind (Free f) where
 
 instance Functor f => Monad (Free f) where
   return = Pure
+  {-# INLINE return #-}
   Pure a >>= f = f a
   Free m >>= f = Free ((>>= f) <$> m)
 
 -- | This violates the Alternative laws, handle with care.
 instance Alternative v => Alternative (Free v) where
   empty = Free empty
+  {-# INLINE empty #-}
   a <|> b = Free (pure a <|> pure b)
+  {-# INLINE (<|>) #-}
 
 -- | This violates the MonadPlus laws, handle with care.
 instance (Functor v, MonadPlus v) => MonadPlus (Free v) where
   mzero = Free mzero
+  {-# INLINE mzero #-}
   a `mplus` b = Free (return a `mplus` return b)
+  {-# INLINE mplus #-}
 
 -- | This is not a true monad transformer. It is only a monad transformer \"up to 'retract'\".
 instance MonadTrans Free where
   lift = Free . liftM Pure
+  {-# INLINE lift #-}
 
 instance Foldable f => Foldable (Free f) where
-  foldMap f (Pure a) = f a
-  foldMap f (Free fa) = foldMap (foldMap f) fa
+  foldMap f = go where
+    go (Pure a) = f a
+    go (Free fa) = foldMap go fa
+  {-# INLINE foldMap #-}
 
 instance Foldable1 f => Foldable1 (Free f) where
-  foldMap1 f (Pure a) = f a
-  foldMap1 f (Free fa) = foldMap1 (foldMap1 f) fa
+  foldMap1 f = go where
+    go (Pure a) = f a
+    go (Free fa) = foldMap1 go fa
+  {-# INLINE foldMap1 #-}
 
 instance Traversable f => Traversable (Free f) where
-  traverse f (Pure a) = Pure <$> f a
-  traverse f (Free fa) = Free <$> traverse (traverse f) fa
+  traverse f = go where
+    go (Pure a) = Pure <$> f a
+    go (Free fa) = Free <$> traverse go fa
+  {-# INLINE traverse #-}
 
 instance Traversable1 f => Traversable1 (Free f) where
-  traverse1 f (Pure a) = Pure <$> f a
-  traverse1 f (Free fa) = Free <$> traverse1 (traverse1 f) fa
+  traverse1 f = go where
+    go (Pure a) = Pure <$> f a
+    go (Free fa) = Free <$> traverse1 go fa
+  {-# INLINE go #-}
 
 instance (Functor m, MonadWriter e m) => MonadWriter e (Free m) where
   tell = lift . tell
+  {-# INLINE tell #-}
   listen = lift . listen . retract
+  {-# INLINE listen #-}
   pass = lift . pass . retract
+  {-# INLINE pass #-}
 
 instance (Functor m, MonadReader e m) => MonadReader e (Free m) where
   ask = lift ask
+  {-# INLINE ask #-}
   local f = lift . local f . retract
+  {-# INLINE local #-}
 
 instance (Functor m, MonadState s m) => MonadState s (Free m) where
   get = lift get
+  {-# INLINE get #-}
   put s = lift (put s)
+  {-# INLINE put #-}
 
 instance (Functor m, MonadError e m) => MonadError e (Free m) where
   throwError = lift . throwError
+  {-# INLINE throwError #-}
   catchError as f = lift (catchError (retract as) (retract . f))
+  {-# INLINE catchError #-}
 
 instance (Functor m, MonadCont m) => MonadCont (Free m) where
   callCC f = lift (callCC (retract . f . liftM lift))
+  {-# INLINE callCC #-}
 
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftF :: Functor f => f a -> Free f a
 liftF = Free . fmap Pure
+{-# INLINE liftF #-}
 
 instance Functor f => MonadFree f (Free f) where
   wrap = Free
+  {-# INLINE wrap #-}
 
 -- |
 -- 'retract' is the left inverse of 'lift' and 'liftF'
@@ -216,9 +247,8 @@ iter phi (Free m) = phi (iter phi <$> m)
 
 -- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'FreeT' f@ to @'FreeT' g@.
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
-hoistFree _ (Pure a) = Pure a
+hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
-{-# INLINE hoistFree #-}
 
 #ifdef GHC_TYPEABLE
 instance Typeable1 f => Typeable1 (Free f) where
