@@ -120,10 +120,8 @@ instance ComonadTrans Cofree where
 
 instance Alternative f => Monad (Cofree f) where
   return x = x :< empty
-  m >>= k = joinC (fmap k m)
-
-joinC :: Alternative f => Cofree f (Cofree f a) -> Cofree f a
-joinC ((a :< n) :< m) = a :< (n <|> fmap joinC m)
+  (a :< m) >>= k = case k a of
+                     b :< n -> b :< (n <|> fmap (>>= k) m)
 
 -- |
 --
