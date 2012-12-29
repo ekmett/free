@@ -12,7 +12,8 @@
 -- Stability   :  provisional
 -- Portability :  GADTs, Rank2Types
 --
--- 'Alternative' functors for free, based on a design by Stijn van Drongelen.
+-- Left distributive 'Alternative' functors for free, based on a design
+-- by Stijn van Drongelen.
 ----------------------------------------------------------------------------
 module Control.Alternative.Free
   ( Alt(..)
@@ -49,13 +50,13 @@ instance Functor (Alt f) where
 instance Apply (Alt f) where
   Pure f <.> y = fmap f y
   Ap x y <.> z = Ap x (flip <$> y <.> z)
-  Alt as <.> z = Alt (map (<.> z) as)
+  Alt as <.> z = Alt (map (<.> z) as) -- This assumes 'left distribution'
 
 instance Applicative (Alt f) where
   pure = Pure
   Pure f <*> y = fmap f y
   Ap x y <*> z = Ap x (flip <$> y <*> z)
-  Alt as <*> z = Alt (map (<*> z) as)
+  Alt as <*> z = Alt (map (<*> z) as) -- This assumes 'left distribution'
 
 instance Alternative (Alt f) where
   empty = Alt []
