@@ -118,6 +118,11 @@ instance Functor f => Comonad (Cofree f) where
 instance ComonadTrans Cofree where
   lower (_ :< as) = fmap extract as
 
+instance Alternative f => Monad (Cofree f) where
+  return x = x :< empty
+  (a :< m) >>= k = case k a of
+                     b :< n -> b :< (n <|> fmap (>>= k) m)
+
 -- |
 --
 -- @'lower' . 'section' = 'id'@
