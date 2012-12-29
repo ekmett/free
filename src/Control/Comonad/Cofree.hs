@@ -97,6 +97,7 @@ unfold f c = case f c of
 
 instance Functor f => ComonadCofree f (Cofree f) where
   unwrap (_ :< as) = as
+  {-# INLINE unwrap #-}
 
 instance Distributive f => Distributive (Cofree f) where
   distribute w = fmap extract w :< fmap distribute (collect unwrap w)
@@ -107,19 +108,24 @@ instance Functor f => Functor (Cofree f) where
 
 instance Functor f => Extend (Cofree f) where
   extended = extend
+  {-# INLINE extended #-}
   duplicated = duplicate
+  {-# INLINE duplicated #-}
 
 instance Functor f => Comonad (Cofree f) where
   extend f w = f w :< fmap (extend f) (unwrap w)
   duplicate w = w :< fmap duplicate (unwrap w)
   extract (a :< _) = a
+  {-# INLINE extract #-}
 
 -- | This is not a true 'Comonad' transformer, but this instance is convenient.
 instance ComonadTrans Cofree where
   lower (_ :< as) = fmap extract as
+  {-# INLINE lower #-}
 
 instance Alternative f => Monad (Cofree f) where
   return x = x :< empty
+  {-# INLINE return #-}
   (a :< m) >>= k = case k a of
                      b :< n -> b :< (n <|> fmap (>>= k) m)
 
@@ -131,19 +137,28 @@ section as = extract as :< extend section as
 
 instance Apply f => Apply (Cofree f) where
   (f :< fs) <.> (a :< as) = f a :< ((<.>) <$> fs <.> as)
+  {-# INLINE (<.>) #-}
   (f :< fs) <.  (_ :< as) = f :< ((<. ) <$> fs <.> as)
+  {-# INLINE (<.) #-}
   (_ :< fs)  .> (a :< as) = a :< (( .>) <$> fs <.> as)
+  {-# INLINE (.>) #-}
 
 instance ComonadApply f => ComonadApply (Cofree f) where
   (f :< fs) <@> (a :< as) = f a :< ((<@>) <$> fs <@> as)
+  {-# INLINE (<@>) #-}
   (f :< fs) <@  (_ :< as) = f :< ((<@ ) <$> fs <@> as)
+  {-# INLINE (<@) #-}
   (_ :< fs)  @> (a :< as) = a :< (( @>) <$> fs <@> as)
+  {-# INLINE (@>) #-}
 
 instance Applicative f => Applicative (Cofree f) where
   pure a = as where as = a :< pure as
   (f :< fs) <*> (a :< as) = f a :< ((<*>) <$> fs <*> as)
+  {-# INLINE (<*>) #-}
   (f :< fs) <*  (_ :< as) = f :< ((<* ) <$> fs <*> as)
+  {-# INLINE (<*) #-}
   (_ :< fs)  *> (a :< as) = a :< (( *>) <$> fs <*> as)
+  {-# INLINE (*>) #-}
 
 instance (Show (f (Cofree f a)), Show a) => Show (Cofree f a) where
   showsPrec d (a :< as) = showParen (d > 5) $
@@ -166,16 +181,24 @@ instance (Ord (f (Cofree f a)), Ord a) => Ord (Cofree f a) where
     GT -> GT
 
 instance Foldable f => Foldable (Cofree f) where
-  foldMap f (a :< as) = f a `mappend` foldMap (foldMap f) as
+  foldMap f = go where
+    go (a :< as) = f a `mappend` foldMap go as
+  {-# INLINE foldMap #-}
 
 instance Foldable1 f => Foldable1 (Cofree f) where
-  foldMap1 f (a :< as) = f a <> foldMap1 (foldMap1 f) as
+  foldMap1 f = go where
+    go (a :< as) = f a <> foldMap1 go as
+  {-# INLINE foldMap1 #-}
 
 instance Traversable f => Traversable (Cofree f) where
-  traverse f (a :< as) = (:<) <$> f a <*> traverse (traverse f) as
+  traverse f = go where
+    go (a :< as) = (:<) <$> f a <*> traverse go as
+  {-# INLINE traverse #-}
 
 instance Traversable1 f => Traversable1 (Cofree f) where
-  traverse1 f (a :< as) = (:<) <$> f a <.> traverse1 (traverse1 f) as
+  traverse1 f = go where
+    go (a :< as) = (:<) <$> f a <.> traverse1 go as
+  {-# INLINE traverse1 #-}
 
 #ifdef GHC_TYPEABLE
 instance (Typeable1 f) => Typeable1 (Cofree f) where
@@ -219,43 +242,51 @@ cofreeDataType = mkDataType "Control.Comonad.Cofree.Cofree" [cofreeConstr]
 
 instance ComonadEnv e w => ComonadEnv e (Cofree w) where
   ask = ask . lower
+  {-# INLINE ask #-}
 
 instance ComonadStore s w => ComonadStore s (Cofree w) where
   pos (_ :< as) = Class.pos as
+  {-# INLINE pos #-}
   peek s (_ :< as) = extract (Class.peek s as)
+  {-# INLINE peek #-}
 
 instance ComonadTraced m w => ComonadTraced m (Cofree w) where
   trace m = trace m . lower
+  {-# INLINE trace #-}
 
 -- | This is a lens that can be used to read or write from the target of 'extract'.
 --
--- @foo ^. 'extracted' == 'extract' foo@
+-- Using (^.) from the @lens@ package:
 --
--- For more on lenses see the 'lens' package on hackage
+-- @foo ^. '_extract' == 'extract' foo@
 --
--- @extracted :: Simple Lens (Cofree g a) a@
-extracted :: Functor f => (a -> f a) -> Cofree g a -> f (Cofree g a)
-extracted f (a :< as) = (:< as) <$> f a
-{-# INLINE extracted #-}
+-- For more on lenses see the @lens@ package on hackage
+--
+-- @'_extract' :: Lens' ('Cofree' g a) a@
+_extract :: Functor f => (a -> f a) -> Cofree g a -> f (Cofree g a)
+_extract f (a :< as) = (:< as) <$> f a
+{-# INLINE _extract #-}
 
 -- | This is a lens that can be used to read or write to the tails of a 'Cofree' 'Comonad'.
 --
--- @foo ^. 'unwrapped' == 'unwrap' foo@
+-- Using (^.) from the @lens@ package:
 --
--- For more on lenses see the 'lens' package on hackage
+-- @foo ^. '_unwrap' == 'unwrap' foo@
 --
--- @unwrapped :: Simple Lens (Cofree g a) (g (Cofree g a))@
-unwrapped :: Functor f => (g (Cofree g a) -> f (g (Cofree g a))) -> Cofree g a -> f (Cofree g a)
-unwrapped  f (a :< as) = (a :<) <$> f as
-{-# INLINE unwrapped #-}
+-- For more on lenses see the @lens@ package on hackage
+--
+-- @'_unwrap' :: Lens' ('Cofree' g a) (g ('Cofree' g a))@
+_unwrap :: Functor f => (g (Cofree g a) -> f (g (Cofree g a))) -> Cofree g a -> f (Cofree g a)
+_unwrap  f (a :< as) = (a :<) <$> f as
+{-# INLINE _unwrap #-}
 
 -- | Construct a @Lens@ into a @'Cofree' f@ given a list of lenses into the base functor.
 --
 -- For more on lenses see the 'lens' package on hackage.
 --
--- @telescoped :: Functor g => [Rep g] -> Simple Lens (Cofree g a) a@
+-- @telescoped :: 'Functor' g => [Lens' ('Cofree' g a) (g ('Cofree' g a))] -> Lens' ('Cofree' g a) a@
 telescoped :: (Functor f, Functor g) =>
              [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
               (a -> f a) -> Cofree g a -> f (Cofree g a)
-telescoped [] = extracted
-telescoped (l:ls) = unwrapped . l . telescoped ls
+telescoped = foldr (\l r -> _unwrap . l . r) _extract
+{-# INLINE telescoped #-}
