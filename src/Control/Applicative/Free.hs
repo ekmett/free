@@ -60,7 +60,6 @@ liftAp x = Ap x (Pure id)
 hoistAp :: (forall a. f a -> g a) -> Ap f b -> Ap g b
 hoistAp _ (Pure a) = Pure a
 hoistAp f (Ap x y) = Ap (f x) (hoistAp f y)
-{-# INLINE hoistAp #-}
 
 #ifdef GHC_TYPEABLE
 instance Typeable1 f => Typeable1 (Ap f) where

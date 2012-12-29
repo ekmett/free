@@ -121,13 +121,12 @@ instance Functor f => Functor (Free f) where
   fmap f = go where
     go (Pure a)  = Pure (f a)
     go (Free fa) = Free (go <$> fa)
-  {-# INLINE go #-}
+  {-# INLINE fmap #-}
 
 instance Functor f => Apply (Free f) where
   Pure a  <.> Pure b = Pure (a b)
   Pure a  <.> Free fb = Free $ fmap a <$> fb
   Free fa <.> b = Free $ (<.> b) <$> fa
-  {-# INLINE (<.> #-}
 
 instance Functor f => Applicative (Free f) where
   pure = Pure
@@ -135,7 +134,6 @@ instance Functor f => Applicative (Free f) where
   Pure a <*> Pure b = Pure $ a b
   Pure a <*> Free mb = Free $ fmap a <$> mb
   Free ma <*> b = Free $ (<*> b) <$> ma
-  {-# INLINE (<*>) #-}
 
 instance Functor f => Bind (Free f) where
   Pure a >>- f = f a
@@ -188,7 +186,7 @@ instance Traversable1 f => Traversable1 (Free f) where
   traverse1 f = go where
     go (Pure a) = Pure <$> f a
     go (Free fa) = Free <$> traverse1 go fa
-  {-# INLINE go #-}
+  {-# INLINE traverse1 #-}
 
 instance (Functor m, MonadWriter e m) => MonadWriter e (Free m) where
   tell = lift . tell

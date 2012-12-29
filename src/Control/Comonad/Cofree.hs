@@ -23,8 +23,8 @@ module Control.Comonad.Cofree
   , coiter
   , unfold
   -- * Lenses into cofree comonads
-  , extracted
-  , unwrapped
+  , _extract
+  , _unwrap
   , telescoped
   ) where
 
@@ -288,5 +288,5 @@ _unwrap  f (a :< as) = (a :<) <$> f as
 telescoped :: (Functor f, Functor g) =>
              [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
               (a -> f a) -> Cofree g a -> f (Cofree g a)
-telescoped = foldr (\l r -> _unwrap . l . r) _extract
+telescoped = Prelude.foldr (\l r -> _unwrap . l . r) _extract
 {-# INLINE telescoped #-}
