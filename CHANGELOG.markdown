@@ -1,3 +1,7 @@
+3.4
+---
+* Added instance `MonadFree f (ContT r m)`
+
 3.3.1
 -----
 * Refactored build system
