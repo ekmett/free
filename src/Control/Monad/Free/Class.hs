@@ -26,6 +26,7 @@ import qualified Control.Monad.Trans.Writer.Strict as Strict
 import qualified Control.Monad.Trans.Writer.Lazy as Lazy
 import qualified Control.Monad.Trans.RWS.Strict as Strict
 import qualified Control.Monad.Trans.RWS.Lazy as Lazy
+import Control.Monad.Trans.Cont
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.List
 import Control.Monad.Trans.Error
@@ -88,6 +89,9 @@ instance (Functor f, MonadFree f m) => MonadFree f (Lazy.StateT s m) where
 
 instance (Functor f, MonadFree f m) => MonadFree f (Strict.StateT s m) where
   wrap fm = Strict.StateT $ \s -> wrap $ flip Strict.runStateT s <$> fm
+
+instance (Functor f, MonadFree f m) => MonadFree f (ContT r m) where
+  wrap t = ContT $ \h -> wrap (fmap (\p -> runContT p h) t)
 
 instance (Functor f, MonadFree f m, Monoid w) => MonadFree f (Lazy.WriterT w m) where
   wrap = Lazy.WriterT . wrap . fmap Lazy.runWriterT
