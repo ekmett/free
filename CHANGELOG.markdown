@@ -1,3 +1,7 @@
+3.4.1
+-----
+* Added support for GHC 7.7's polykinded `Typeable`
+
 3.4
 ---
 * Added instance `MonadFree f (ContT r m)`
