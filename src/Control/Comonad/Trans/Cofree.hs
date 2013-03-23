@@ -3,6 +3,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+#if __GLASGOW_HASKELL__ >= 707
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Trans.Cofree
@@ -36,7 +40,7 @@ import Data.Semigroup
 import Data.Traversable
 import Prelude hiding (id,(.))
 
-#ifdef GHC_TYPEABLE
+#if defined(GHC_TYPEABLE) || __GLASGOW_HASKELL__ >= 707
 import Data.Data
 #endif
 
@@ -44,7 +48,11 @@ infixr 5 :<
 
 -- | This is the base functor of the cofree comonad transformer.
 data CofreeF f a b = a :< f b
-  deriving (Eq,Ord,Show,Read)
+  deriving (Eq,Ord,Show,Read
+#if __GLASGOW_HASKELL__ >= 707
+           ,Typeable
+#endif
+           )
 
 -- | Extract the head of the base functor
 headF :: CofreeF f a b -> a
@@ -108,7 +116,7 @@ instance Eq (w (CofreeF f a (CofreeT f w a))) => Eq (CofreeT f w a) where
 instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
   compare (CofreeT a) (CofreeT b) = compare a b
 
-#ifdef GHC_TYPEABLE
+#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 
 instance Typeable1 f => Typeable2 (CofreeF f) where
   typeOf2 t = mkTyConApp cofreeFTyCon [typeOf1 (f t)] where
