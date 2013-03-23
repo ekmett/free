@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE GADTs #-}
+#if __GLASGOW_HASKELL__ >= 707
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 {-# OPTIONS_GHC -Wall #-}
 -----------------------------------------------------------------------------
 -- |
@@ -32,6 +35,9 @@ import Data.Typeable
 data Ap f a where
   Pure :: a -> Ap f a
   Ap   :: f a -> Ap f (a -> b) -> Ap f b
+#if __GLASGOW_HASKELL__ >= 707
+  deriving (Typeable)
+#endif
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
 runAp :: Applicative g => (forall x. f x -> g x) -> Ap f a -> g a
@@ -61,7 +67,7 @@ hoistAp :: (forall a. f a -> g a) -> Ap f b -> Ap g b
 hoistAp _ (Pure a) = Pure a
 hoistAp f (Ap x y) = Ap (f x) (hoistAp f y)
 
-#ifdef GHC_TYPEABLE
+#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Ap f) where
   typeOf1 t = mkTyConApp apTyCon [typeOf1 (f t)] where
     f :: Ap f a -> f a

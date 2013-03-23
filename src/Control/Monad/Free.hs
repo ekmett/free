@@ -4,6 +4,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
+#if __GLASGOW_HASKELL__ >= 707
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free
@@ -89,6 +92,9 @@ import Data.Data
 --
 -- * @'Free' 'Maybe'@ can be used to model a partiality monad where each layer represents running the computation for a while longer.
 data Free f a = Pure a | Free (f (Free f a))
+#if __GLASGOW_HASKELL__ >= 707
+  deriving (Typeable)
+#endif
 
 instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where
   Pure a == Pure b = a == b
@@ -248,7 +254,7 @@ hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
 hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
 
-#ifdef GHC_TYPEABLE
+#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Free f) where
   typeOf1 t = mkTyConApp freeTyCon [typeOf1 (f t)] where
     f :: Free f a -> f a

@@ -3,6 +3,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+#if __GLASGOW_HASKELL__ >= 707
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree
@@ -83,6 +86,9 @@ infixr 5 :<
 -- * @'Cofree' ((->) b)'@ describes a Moore machine with states labeled with values of type a, and transitions on edges of type b.
 --
 data Cofree f a = a :< f (Cofree f a)
+#if __GLASGOW_HASKELL__ >= 707
+  deriving (Typeable)
+#endif
 
 -- | Use coiteration to generate a cofree comonad from a seed.
 --
@@ -200,7 +206,7 @@ instance Traversable1 f => Traversable1 (Cofree f) where
     go (a :< as) = (:<) <$> f a <.> traverse1 go as
   {-# INLINE traverse1 #-}
 
-#ifdef GHC_TYPEABLE
+#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance (Typeable1 f) => Typeable1 (Cofree f) where
   typeOf1 dfa = mkTyConApp cofreeTyCon [typeOf1 (f dfa)]
     where
