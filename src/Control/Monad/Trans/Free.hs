@@ -4,6 +4,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
+#if __GLASGOW_HASKELL__ >= 707
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.Free
@@ -43,7 +46,11 @@ import Data.Data
 
 -- | The base functor for a free monad.
 data FreeF f a b = Pure a | Free (f b)
-  deriving (Eq,Ord,Show,Read)
+  deriving (Eq,Ord,Show,Read
+#if __GLASGOW_HASKELL__ >= 707
+           ,Typeable
+#endif
+           )
 
 instance Functor f => Functor (FreeF f a) where
   fmap _ (Pure a)  = Pure a
@@ -155,8 +162,7 @@ hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
 
-#ifdef GHC_TYPEABLE
-
+#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where
   typeOf2 t = mkTyConApp freeFTyCon [typeOf1 (f t)] where
     f :: FreeF f a b -> f a

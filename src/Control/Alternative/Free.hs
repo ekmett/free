@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE GADTs #-}
+#if __GLASGOW_HASKELL__ >= 707
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 {-# OPTIONS_GHC -Wall #-}
 -----------------------------------------------------------------------------
 -- |
@@ -35,6 +38,9 @@ data Alt f a where
   Pure :: a -> Alt f a
   Ap   :: f a -> Alt f (a -> b) -> Alt f b
   Alt  :: [Alt f a] -> Alt f a
+#if __GLASGOW_HASKELL__ >= 707
+  deriving (Typeable)
+#endif
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Alt' f@ to @g@.
 runAlt :: Alternative g => (forall x. f x -> g x) -> Alt f a -> g a
@@ -95,7 +101,7 @@ hoistAlt _ (Pure a) = Pure a
 hoistAlt f (Ap x y) = Ap (f x) (hoistAlt f y)
 hoistAlt f (Alt as) = Alt (map (hoistAlt f) as)
 
-#ifdef GHC_TYPEABLE
+#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Alt f) where
   typeOf1 t = mkTyConApp altTyCon [typeOf1 (f t)] where
     f :: Alt f a -> f a
