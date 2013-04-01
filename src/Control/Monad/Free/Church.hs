@@ -26,6 +26,7 @@ module Control.Monad.Free.Church
   , toF
   , liftF
   , retract
+  , hoistF
   ) where
 
 import Control.Applicative
@@ -118,6 +119,10 @@ toF :: Functor f => Free f a -> F f a
 toF xs = F (\kp kf -> go kp kf xs) where
   go kp _  (Pure a) = kp a
   go kp kf (Free fma) = kf (fmap (go kp kf) fma)
+
+-- | Lift a natural transformation from f to g into a natural transformation from F f to F g.
+hoistF :: (forall x. f x -> g x) -> F f a -> F g a
+hoistF t m = F $ \p f -> runF m p (\fr -> f (t fr))
 
 -- | Improve the asymptotic performance of code that builds a free monad with only binds and returns by using 'F' behind the scenes.
 --
