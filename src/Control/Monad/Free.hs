@@ -26,6 +26,7 @@ module Control.Monad.Free
   , liftF
   , iter
   , hoistFree
+  , _Pure, _Free
   ) where
 
 import Control.Applicative
@@ -39,6 +40,7 @@ import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind
 import Data.Foldable
+import Data.Profunctor
 import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
@@ -253,6 +255,39 @@ iter phi (Free m) = phi (iter phi <$> m)
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
 hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
+
+-- | This is @Prism' (Free f a) a@ in disguise
+--
+-- >>> preview _Pure (Pure 3)
+-- Just 3
+--
+-- >>> review _Pure 3 :: Free Maybe Int
+-- Pure 3
+_Pure :: forall f m a p. (Choice p, Applicative m)
+      => p a (m a) -> p (Free f a) (m (Free f a))
+_Pure = dimap impure (either pure (fmap Pure)) . right'
+ where
+  impure (Pure x) = Right x
+  impure x        = Left x
+  {-# INLINE impure #-}
+{-# INLINE _Pure #-}
+
+-- | This is @Prism' (Free f a) (f (Free f a))@ in disguise
+--
+-- >>> preview _Free (review _Free (Just (Pure 3)))
+-- Just (Just (Pure 3))
+--
+-- >>> review _Free (Just (Pure 3))
+-- Free (Just (Pure 3))
+_Free :: forall f m a p. (Choice p, Applicative m)
+      => p (f (Free f a)) (m (f (Free f a))) -> p (Free f a) (m (Free f a))
+_Free = dimap unfree (either pure (fmap Free)) . right'
+ where
+  unfree (Free x) = Right x
+  unfree x        = Left x
+  {-# INLINE unfree #-}
+{-# INLINE _Free #-}
+
 
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Free f) where
