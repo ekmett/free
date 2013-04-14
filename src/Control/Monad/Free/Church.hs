@@ -111,7 +111,7 @@ retract (F m) = m return Monad.join
 
 -- | Convert to another free monad representation.
 fromF :: MonadFree f m => F f a -> m a
-fromF (F m) = m return wrap
+fromF (F m) = m return wrap -- hoistF id?
 {-# INLINE fromF #-}
 
 -- | Generate a Church-encoded free monad from a 'Free' monad.
@@ -121,8 +121,9 @@ toF xs = F (\kp kf -> go kp kf xs) where
   go kp kf (Free fma) = kf (fmap (go kp kf) fma)
 
 -- | Lift a natural transformation from f to g into a natural transformation from F f to F g.
-hoistF :: (forall x. f x -> g x) -> F f a -> F g a
-hoistF t m = F $ \p f -> runF m p (\fr -> f (t fr))
+hoistF :: MonadFree g m => (f (m a) -> g (m a)) -> F f a -> m a
+hoistF t (F m) = m return (wrap . t)
+{-# INLINE hoistF #-}
 
 -- | Improve the asymptotic performance of code that builds a free monad with only binds and returns by using 'F' behind the scenes.
 --
