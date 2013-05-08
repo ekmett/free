@@ -25,6 +25,7 @@ module Control.Monad.Trans.Free
   , FreeT(..)
   , MonadFree(..)
   , liftF
+  , iterT
   , hoistFreeT
   , transFreeT
   ) where
@@ -145,6 +146,14 @@ instance (Functor f, Monad m) => MonadFree f (FreeT f m) where
 liftF :: (Functor f, Monad m) => f a -> FreeT f m a
 liftF = wrap . fmap return
 {-# INLINE liftF #-}
+
+-- | Tear down a free monad transformer using iteration.
+iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FreeT f m a -> m a
+iterT f (FreeT m) = do
+    val <- m
+    case fmap (iterT f) val of
+        Pure x -> return x
+        Free y -> f y
 
 instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
   foldMap f (FreeT m) = foldMap (bifoldMap f (foldMap f)) m
