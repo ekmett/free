@@ -25,6 +25,7 @@ module Control.Comonad.Trans.Cofree
   , ComonadCofree(..)
   , headF
   , tailF
+  , coiterT
   ) where
 
 import Control.Applicative
@@ -115,6 +116,9 @@ instance Eq (w (CofreeF f a (CofreeT f w a))) => Eq (CofreeT f w a) where
 
 instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
   compare (CofreeT a) (CofreeT b) = compare a b
+
+coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
+coiterT psi = CofreeT . (extend $ \w -> extract w :< fmap (coiterT psi) (psi w))
 
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 
