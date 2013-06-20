@@ -25,6 +25,7 @@ module Control.MonadPlus.Free
   , retract
   , liftF
   , iter
+  , iterM
   , hoistFree
   ) where
 
@@ -243,6 +244,13 @@ iter phi psi = go where
   go (Free as) = phi (go <$> as)
   go (Plus as) = psi (go <$> as)
 {-# INLINE iter #-}
+
+-- | Like iter for monadic values.
+iterM :: (Monad m, Functor f) => (f (m a) -> m a) -> ([m a] -> m a) -> Free f a -> m a
+iterM phi psi = go where
+  go (Pure a) = return a
+  go (Free as) = phi (go <$> as)
+  go (Plus as) = psi (go <$> as)
 
 -- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'FreeT' f@ to @'FreeT' g@.
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
