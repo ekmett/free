@@ -16,6 +16,7 @@
 ----------------------------------------------------------------------------
 module Control.Monad.Free.Class
   ( MonadFree(..)
+  , liftF
   ) where
 
 import Control.Applicative
@@ -116,3 +117,7 @@ instance (Functor f, MonadFree f m) => MonadFree f (ListT m) where
 
 instance (Functor f, MonadFree f m, Error e) => MonadFree f (ErrorT e m) where
   wrap = ErrorT . wrap . fmap runErrorT
+
+-- | A version of lift that can be used with just a Functor for f.
+liftF :: (Functor f, MonadFree f m) => f a -> m a
+liftF = wrap . fmap return

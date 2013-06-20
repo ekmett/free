@@ -224,11 +224,6 @@ instance (Functor m, MonadCont m) => MonadCont (Free m) where
   callCC f = lift (callCC (retract . f . liftM lift))
   {-# INLINE callCC #-}
 
--- | A version of 'lift' that can be used with just a 'Functor' for @f@.
-liftF :: Functor f => f a -> Free f a
-liftF = Free . fmap Pure
-{-# INLINE liftF #-}
-
 instance Functor f => MonadFree f (Free f) where
   wrap = Free
   {-# INLINE wrap #-}

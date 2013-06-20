@@ -139,13 +139,6 @@ instance (Functor f, Monad m) => MonadFree f (FreeT f m) where
   wrap = FreeT . return . Free
   {-# INLINE wrap #-}
 
--- | FreeT is a functor from the category of functors to the category of monads.
---
--- This provides the mapping.
-liftF :: (Functor f, Monad m) => f a -> FreeT f m a
-liftF = wrap . fmap return
-{-# INLINE liftF #-}
-
 instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
   foldMap f (FreeT m) = foldMap (bifoldMap f (foldMap f)) m
 
