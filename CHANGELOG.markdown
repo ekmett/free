@@ -1,6 +1,7 @@
 3.4.2
 -----
-* Generalized `liftF`
+* Generalized `liftF`.
+* Added `iterM`
 
 3.4.1
 -----
