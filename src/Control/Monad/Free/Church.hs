@@ -24,13 +24,14 @@ module Control.Monad.Free.Church
   , improve
   , fromF
   , toF
-  , liftF
   , retract
+  , MonadFree(..)
+  , liftF
   ) where
 
 import Control.Applicative
 import Control.Monad as Monad
-import Control.Monad.Free hiding (liftF, retract)
+import Control.Monad.Free hiding (retract)
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
 import Control.Monad.Cont.Class
@@ -91,11 +92,6 @@ instance MonadWriter w m => MonadWriter w (F m) where
 
 instance MonadCont m => MonadCont (F m) where
   callCC f = lift $ callCC (retract . f . fmap lift)
-
--- | A version of 'lift' that can be used with just a 'Functor' for @f@.
-liftF :: Functor f => f a -> F f a
-liftF f = F (\kp kf -> kf (fmap kp f))
-{-# INLINE liftF #-}
 
 -- |
 -- 'retract' is the left inverse of 'lift' and 'liftF'
