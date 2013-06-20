@@ -61,7 +61,8 @@ library
     comonad              >= 3,
     comonad-transformers >= 3,
     comonads-fd          >= 3,
-    semigroups           >= 0.8.3.1
+    semigroups           >= 0.8.3.1,
+    profunctors          >= 3.2     && < 4
 
   if impl(ghc)
     cpp-options: -DGHC_TYPEABLE
