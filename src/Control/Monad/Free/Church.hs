@@ -23,6 +23,7 @@ module Control.Monad.Free.Church
   ( F(..)
   , improve
   , fromF
+  , iterM
   , toF
   , retract
   , MonadFree(..)
@@ -31,7 +32,7 @@ module Control.Monad.Free.Church
 
 import Control.Applicative
 import Control.Monad as Monad
-import Control.Monad.Free hiding (retract)
+import Control.Monad.Free hiding (retract, iterM)
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
 import Control.Monad.Cont.Class
@@ -45,6 +46,10 @@ import Data.Functor.Bind
 --
 -- <http://comonad.com/reader/2011/free-monads-for-less-2/>
 newtype F f a = F { runF :: forall r. (a -> r) -> (f r -> r) -> r }
+
+-- | Like iter for monadic values.
+iterM :: (Monad m, Functor f) => (f (m a) -> m a) -> F f a -> m a
+iterM phi xs = runF xs return phi
 
 instance Functor (F f) where
   fmap f (F g) = F (\kp -> g (kp . f))
