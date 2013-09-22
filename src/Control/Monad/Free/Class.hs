@@ -17,6 +17,7 @@
 module Control.Monad.Free.Class
   ( MonadFree(..)
   , liftF
+  , wrapT
   ) where
 
 import Control.Applicative
@@ -27,6 +28,8 @@ import qualified Control.Monad.Trans.Writer.Strict as Strict
 import qualified Control.Monad.Trans.Writer.Lazy as Lazy
 import qualified Control.Monad.Trans.RWS.Strict as Strict
 import qualified Control.Monad.Trans.RWS.Lazy as Lazy
+import Control.Monad (join)
+import Control.Monad.Trans.Class
 import Control.Monad.Trans.Cont
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.List
@@ -121,3 +124,9 @@ instance (Functor f, MonadFree f m, Error e) => MonadFree f (ErrorT e m) where
 -- | A version of lift that can be used with just a Functor for f.
 liftF :: (Functor f, MonadFree f m) => f a -> m a
 liftF = wrap . fmap return
+
+-- | A version of wrap for monad transformers over free monad.
+-- Note that this could be made a default implementation for 'wrap' in
+-- @MonadFree f (t m)@.
+wrapT :: (Functor f, MonadFree f m, MonadTrans t, Monad (t m)) => f (t m a) -> t m a
+wrapT = join . lift . liftF
