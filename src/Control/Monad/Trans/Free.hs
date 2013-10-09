@@ -4,6 +4,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TypeFamilies #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
@@ -32,7 +33,9 @@ module Control.Monad.Trans.Free
 
 import Control.Applicative
 import Control.Monad (liftM, MonadPlus(..), ap)
+import Control.Monad.Base
 import Control.Monad.Trans.Class
+import Control.Monad.Trans.Control
 import Control.Monad.Free.Class
 import Control.Monad.IO.Class
 import Data.Monoid
@@ -124,6 +127,20 @@ instance MonadTrans (FreeT f) where
 instance (Functor f, MonadIO m) => MonadIO (FreeT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
+
+instance (MonadBase b m, Functor f) => MonadBase b (FreeT f m) where
+  liftBase = liftBaseDefault
+  {-# INLINE liftBase #-}
+
+instance (MonadBaseControl b m, Functor f)
+         => MonadBaseControl b (FreeT f m) where
+  newtype StM (FreeT f m) a = StMFreeT (StM m (FreeF f a (FreeT f m a)))
+  liftBaseWith f =
+    FreeT $ liftM Pure $ liftBaseWith $ \runInBase -> f $ \k ->
+      liftM StMFreeT $ runInBase $ runFreeT k
+  {-# INLINE liftBaseWith #-}
+  restoreM (StMFreeT m) = FreeT . restoreM $ m
+  {-# INLINE restoreM #-}
 
 instance (Functor f, MonadPlus m) => Alternative (FreeT f m) where
   empty = FreeT mzero
