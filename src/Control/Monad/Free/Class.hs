@@ -37,7 +37,7 @@ import Data.Monoid
 -- |
 -- Monads provide substitution ('fmap') and renormalization ('Control.Monad.join'):
 --
--- @m '>>=' f = 'Control.Monad.join' . 'fmap' f m@
+-- @m '>>=' f = 'Control.Monad.join' ('fmap' f m)@
 --
 -- A free 'Monad' is one that does no work during the normalization step beyond simply grafting the two monadic values together.
 --
