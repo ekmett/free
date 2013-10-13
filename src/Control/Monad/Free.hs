@@ -87,8 +87,8 @@ import Data.Data
 --
 -- This can be very useful for modeling domain specific languages, trees, or other constructs.
 --
--- This instance of 'MonadFree' is fairly naive about the encoding. For more efficient free monad implementations that require additional
--- extensions and thus aren't included here, you may want to look at the @kan-extensions@ package.
+-- This instance of 'MonadFree' is fairly naive about the encoding. For more efficient free monad implementation see "Control.Monad.Free.Church", in particular note the 'Control.Monad.Free.Church.improve' combinator.
+-- You may also want to take a look at the @kan-extensions@ package (<http://hackage.haskell.org/package/kan-extensions>).
 --
 -- A number of common monads arise as free monads,
 --

@@ -37,7 +37,7 @@ import Data.Monoid
 -- |
 -- Monads provide substitution ('fmap') and renormalization ('Control.Monad.join'):
 --
--- @m '>>=' f = 'Control.Monad.join' . 'fmap' f m@
+-- @m '>>=' f = 'Control.Monad.join' ('fmap' f m)@
 --
 -- A free 'Monad' is one that does no work during the normalization step beyond simply grafting the two monadic values together.
 --
@@ -72,9 +72,11 @@ import Data.Monoid
 -- Or we could choose to program with @'Control.Monad.Free.Free' Pair@ instead of 'Tree'
 -- and thereby avoid having to define our own 'Monad' instance.
 --
--- Moreover, the @kan-extensions@ package provides 'MonadFree' instances that can
--- improve the /asymptotic/ complexity of code that constructors free monads by
--- effectively reassociating the use of ('>>=').
+-- Moreover, "Control.Monad.Free.Church" provides a 'MonadFree'
+-- instance that can improve the /asymptotic/ complexity of code that
+-- constructs free monads by effectively reassociating the use of
+-- ('>>='). You may also want to take a look at the @kan-extensions@
+-- package (<http://hackage.haskell.org/package/kan-extensions>).
 --
 -- See 'Control.Monad.Free.Free' for a more formal definition of the free 'Monad'
 -- for a 'Functor'.
