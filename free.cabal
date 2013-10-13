@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       3.4.2
+version:       4.0
 license:       BSD3
 cabal-version: >= 1.10
 license-file:  LICENSE
@@ -52,17 +52,15 @@ library
     GADTs
 
   build-depends:
-    base                 >= 4       && < 5,
-    bifunctors           >= 3,
+    base                 == 4.*,
+    bifunctors           == 3.*,
+    comonad              == 4.*,
     distributive         >= 0.2.1,
-    transformers         >= 0.2.0   && < 0.4,
     mtl                  >= 2.0.1.0 && < 2.2,
-    semigroupoids        >= 3,
-    comonad              >= 3,
-    comonad-transformers >= 3,
-    comonads-fd          >= 3,
-    semigroups           >= 0.8.3.1,
-    profunctors          >= 3.2     && < 4
+    profunctors          == 4.*,
+    semigroupoids        == 4.*,
+    semigroups           >= 0.8.3.1 && < 1,
+    transformers         >= 0.2.0   && < 0.4
 
   if impl(ghc)
     cpp-options: -DGHC_TYPEABLE

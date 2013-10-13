@@ -1,3 +1,9 @@
+4.0
+---
+* Updated to work with `semigroupoids` and `comonad` 4.0
+* `instance ComonadCofree Maybe NonEmpty`
+* `instance ComonadCofree (Const b) ((,) b)`
+
 3.4.2
 -----
 * Generalized `liftF`.
