@@ -32,6 +32,7 @@ module Control.Monad.Free
 
 import Control.Applicative
 import Control.Monad (liftM, MonadPlus(..))
+import Control.Monad.Fix
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.Reader.Class
