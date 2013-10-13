@@ -154,6 +154,9 @@ instance Functor f => Monad (Free f) where
   Pure a >>= f = f a
   Free m >>= f = Free ((>>= f) <$> m)
 
+instance Functor f => MonadFix (Free f) where
+  mfix f = a where a = f (impure a); impure (Pure x) = x; impure (Free _) = error "mfix (Free f): Free"
+
 -- | This violates the Alternative laws, handle with care.
 instance Alternative v => Alternative (Free v) where
   empty = Free empty
