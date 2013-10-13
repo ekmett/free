@@ -22,12 +22,20 @@ import Control.Comonad.Trans.Env
 import Control.Comonad.Trans.Store
 import Control.Comonad.Trans.Traced
 import Control.Comonad.Trans.Identity
+import Data.List.NonEmpty
 import Data.Semigroup
 
 -- | Allows you to peel a layer off a cofree comonad.
 class (Functor f, Comonad w) => ComonadCofree f w | w -> f where
   -- | Remove a layer.
   unwrap :: w a -> f (w a)
+
+instance ComonadCofree Maybe NonEmpty where
+  unwrap (_ :| [])       = Nothing
+  unwrap (_ :| (a : as)) = Just (a :| as)
+
+instance ComonadCofree (Const b) ((,) b) where
+  unwrap = Const . fst
 
 instance ComonadCofree f w => ComonadCofree f (IdentityT w) where
   unwrap = fmap IdentityT . unwrap . runIdentityT
