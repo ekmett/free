@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       4.0
+version:       4.1
 license:       BSD3
 cabal-version: >= 1.10
 license-file:  LICENSE
@@ -53,7 +53,7 @@ library
 
   build-depends:
     base                 == 4.*,
-    bifunctors           == 3.*,
+    bifunctors           == 4.*,
     comonad              == 4.*,
     distributive         >= 0.2.1,
     mtl                  >= 2.0.1.0 && < 2.2,
