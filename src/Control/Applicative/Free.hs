@@ -22,6 +22,7 @@ module Control.Applicative.Free
   , runAp
   , liftAp
   , hoistAp
+  , retractAp
   ) where
 
 import Control.Applicative
@@ -66,6 +67,10 @@ liftAp x = Ap x (Pure id)
 hoistAp :: (forall a. f a -> g a) -> Ap f b -> Ap g b
 hoistAp _ (Pure a) = Pure a
 hoistAp f (Ap x y) = Ap (f x) (hoistAp f y)
+
+retractAp :: Applicative f => Ap f a -> f a
+retractAp (Pure a) = pure a
+retractAp (Ap x y) = x <**> retractAp y
 
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Ap f) where
