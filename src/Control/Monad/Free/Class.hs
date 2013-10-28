@@ -2,6 +2,10 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 704
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free.Class
@@ -20,6 +24,8 @@ module Control.Monad.Free.Class
   ) where
 
 import Control.Applicative
+import Control.Monad
+import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
 import qualified Control.Monad.Trans.State.Strict as Strict
 import qualified Control.Monad.Trans.State.Lazy as Lazy
@@ -82,7 +88,15 @@ import Data.Monoid
 -- for a 'Functor'.
 class Monad m => MonadFree f m | m -> f where
   -- | Add a layer.
+  --
+  -- @
+  -- wrap (fmap f x) ≡ wrap (fmap return x) >>= f
+  -- @
   wrap :: f (m a) -> m a
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 704
+  default wrap :: (m ~ t n, MonadTrans t, MonadFree f n, Functor f) => f (m a) -> m a
+  wrap = join . lift . wrap . fmap return
+#endif
 
 instance (Functor f, MonadFree f m) => MonadFree f (ReaderT e m) where
   wrap fm = ReaderT $ \e -> wrap $ flip runReaderT e <$> fm
