@@ -1,3 +1,7 @@
+4.1.1
+-----
+* Added a default signature to `wrap`, based on a construction by @fizruk.
+
 4.0
 ---
 * Updated to work with `semigroupoids` and `comonad` 4.0
