@@ -6,6 +6,11 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+
+#ifndef MIN_VERSION_MTL
+#define MIN_VERSION_MTL(x,y,z) 1
+#endif
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.Iter
@@ -36,6 +41,7 @@ import Control.Monad.Fix
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.State.Class
+import Control.Monad.Reader.Class
 import Data.Bifoldable
 import Data.Bifunctor
 import Data.Bitraversable
@@ -84,8 +90,11 @@ iterF f _ (Pure a) = f a
 iterF _ g (Iter b) = g b
 {-# INLINE iterF #-}
 
--- | The monad supporting iteration based on a base monad @m@.
-
+-- | The monad supporting iteration based over a base monad @m@.
+--
+-- @
+-- 'IterT' ~ 'FreeT' 'Identity'
+-- @
 data IterT m a = IterT { runIterT :: m (IterF a (IterT m a)) }
 #if __GLASGOW_HASKELL__ >= 707
   deriving (Typeable)
@@ -180,19 +189,23 @@ instance MonadWriter e m => MonadWriter e (IterT m) where
   {-# INLINE listen #-}
   pass = lift . pass . retract
   {-# INLINE pass #-}
+-}
 
-instance (Functor m, MonadReader e m) => MonadReader e (Free m) where
+instance (Functor m, MonadReader e m) => MonadReader e (IterT m) where
   ask = lift ask
   {-# INLINE ask #-}
-  local f = lift . local f . retract
+  local f = hoistIterT (local f)
   {-# INLINE local #-}
--}
 
 instance (Functor m, MonadState s m) => MonadState s (IterT m) where
   get = lift get
   {-# INLINE get #-}
   put s = lift (put s)
   {-# INLINE put #-}
+#if MIN_VERSION_mtl(2,1,1)
+  state f = lift (state f)
+  {-# INLINE state #-}
+#endif
 
 {-
 instance (Functor m, MonadError e m) => MonadError e (Free m) where
