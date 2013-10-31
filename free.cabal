@@ -68,14 +68,15 @@ library
   exposed-modules:
     Control.Applicative.Free
     Control.Alternative.Free
+    Control.Comonad.Cofree
+    Control.Comonad.Cofree.Class
+    Control.Comonad.Trans.Cofree
+    Control.Comonad.Trans.Coiter
     Control.Monad.Free
     Control.Monad.Free.Church
     Control.Monad.Free.Class
     Control.Monad.Trans.Free
     Control.Monad.Trans.Iter
     Control.MonadPlus.Free
-    Control.Comonad.Cofree
-    Control.Comonad.Cofree.Class
-    Control.Comonad.Trans.Cofree
 
   ghc-options: -Wall
