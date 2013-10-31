@@ -1,3 +1,7 @@
+4.1.2
+-----
+* Added `Control.Monad.Iter`
+
 4.1.1
 -----
 * Added a default signature to `wrap`, based on a construction by @fizruk.
