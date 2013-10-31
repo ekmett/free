@@ -39,6 +39,7 @@ import Data.Bifoldable
 import Data.Bifunctor
 import Data.Bitraversable
 import Data.Functor.Bind
+import Data.Functor.Identity
 import Data.Foldable
 import Data.Monoid
 import Data.Traversable
@@ -204,8 +205,8 @@ instance (Functor m, MonadCont m) => MonadCont (Free m) where
   {-# INLINE callCC #-}
 -}
 
-instance Monad m => MonadFree m (IterT m) where
-  wrap mi = IterT (mi >>= runIterT)
+instance Monad m => MonadFree Identity (IterT m) where
+  wrap = IterT . return . Iter . runIdentity
   {-# INLINE wrap #-}
 
 -- |
