@@ -24,6 +24,7 @@ module Control.Monad.Trans.Iter
   ( MonadFree(..)
   , IterF(..)
   , IterT(..)
+  , delay
   , retract
   , iter
   , hoistIterT
@@ -208,6 +209,10 @@ instance (Functor m, MonadCont m) => MonadCont (Free m) where
 instance Monad m => MonadFree Identity (IterT m) where
   wrap = IterT . return . Iter . runIdentity
   {-# INLINE wrap #-}
+
+delay :: (Monad f, MonadFree f m) => m a -> m a
+delay = wrap . return
+{-# INLINE delay #-}
 
 -- |
 -- 'retract' is the left inverse of 'lift'
