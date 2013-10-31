@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       4.1.1
+version:       4.1.2
 license:       BSD3
 cabal-version: >= 1.10
 license-file:  LICENSE
@@ -71,6 +71,7 @@ library
     Control.Monad.Free
     Control.Monad.Free.Church
     Control.Monad.Free.Class
+    Control.Monad.Iter
     Control.Monad.Trans.Free
     Control.MonadPlus.Free
     Control.Comonad.Cofree
