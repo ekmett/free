@@ -78,7 +78,7 @@ instance Eq (w (a, CoiterT w a)) => Eq (CoiterT w a) where
 instance Ord (w (a, CoiterT w a)) => Ord (CoiterT w a) where
   compare (CoiterT a) (CoiterT b) = compare a b
 
--- | Unfold a @CoiterT@ comonad transformer from a coalgebra and an initial comonad.
+-- | Unfold a @CoiterT@ comonad transformer from a cokleisli arrow and an initial comonadic seed.
 coiterT :: Comonad w => (w a -> a) -> w a -> CoiterT w a
 coiterT psi = CoiterT . extend (extract &&& coiterT psi . extend psi)
 
