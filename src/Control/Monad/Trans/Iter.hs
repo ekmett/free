@@ -26,12 +26,19 @@
 -- Unlike 'Free', this is a true monad transformer.
 ----------------------------------------------------------------------------
 module Control.Monad.Trans.Iter
-  ( MonadFree(..)
-  , IterT(..)
+  (
+  -- * The iterative monad transformer
+    IterT(..)
+  -- * Capretta's iterative monad
+  , Iter, iter, runIter
+  -- * Operations
   , delay
+  , hoistIterT
+  -- * Consuming iterative monads
   , retract
   , fold
-  , hoistIterT
+  -- * IterT ~ FreeT Identity
+  , MonadFree(..)
   ) where
 
 import Control.Applicative
@@ -64,6 +71,16 @@ newtype IterT m a = IterT { runIterT :: m (Either a (IterT m a)) }
 #if __GLASGOW_HASKELL__ >= 707
   deriving (Typeable)
 #endif
+
+type Iter = IterT Identity
+
+iter :: Either a (Iter a) -> Iter a
+iter = IterT . Identity
+{-# INLINE iter #-}
+
+runIter :: Iter a -> Either a (Iter a)
+runIter = runIdentity . runIterT
+{-# INLINE runIter #-}
 
 instance Eq (m (Either a (IterT m a))) => Eq (IterT m a) where
   IterT m == IterT n = m == n
