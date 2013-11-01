@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -85,11 +86,8 @@ transFreeF t (Free as) = Free (t as)
 -- | The \"free monad transformer\" for a functor @f@.
 newtype FreeT f m a = FreeT { runFreeT :: m (FreeF f a (FreeT f m a)) }
 
-instance Eq (m (FreeF f a (FreeT f m a))) => Eq (FreeT f m a) where
-  FreeT m == FreeT n = m == n
-
-instance Ord (m (FreeF f a (FreeT f m a))) => Ord (FreeT f m a) where
-  compare (FreeT m) (FreeT n) = compare m n
+deriving instance Eq (m (FreeF f a (FreeT f m a))) => Eq (FreeT f m a)
+deriving instance Ord (m (FreeF f a (FreeT f m a))) => Ord (FreeT f m a)
 
 instance Show (m (FreeF f a (FreeT f m a))) => Show (FreeT f m a) where
   showsPrec d (FreeT m) = showParen (d > 10) $
