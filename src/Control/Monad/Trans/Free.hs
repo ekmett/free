@@ -65,26 +65,32 @@ data FreeF f a b = Pure a | Free (f b)
 instance Functor f => Functor (FreeF f a) where
   fmap _ (Pure a)  = Pure a
   fmap f (Free as) = Free (fmap f as)
+  {-# INLINE fmap #-}
 
 instance Foldable f => Foldable (FreeF f a) where
   foldMap f (Free as) = foldMap f as
   foldMap _ _         = mempty
+  {-# INLINE foldMap #-}
 
 instance Traversable f => Traversable (FreeF f a) where
   traverse _ (Pure a)  = pure (Pure a)
   traverse f (Free as) = Free <$> traverse f as
+  {-# INLINE traverse #-}
 
 instance Functor f => Bifunctor (FreeF f) where
   bimap f _ (Pure a)  = Pure (f a)
   bimap _ g (Free as) = Free (fmap g as)
+  {-# INLINE bimap #-}
 
 instance Foldable f => Bifoldable (FreeF f) where
   bifoldMap f _ (Pure a)  = f a
   bifoldMap _ g (Free as) = foldMap g as
+  {-# INLINE bifoldMap #-}
 
 instance Traversable f => Bitraversable (FreeF f) where
   bitraverse f _ (Pure a)  = Pure <$> f a
   bitraverse _ g (Free as) = Free <$> traverse g as
+  {-# INLINE bitraverse #-}
 
 transFreeF :: (forall x. f x -> g x) -> FreeF f a b -> FreeF g a b
 transFreeF _ (Pure a) = Pure a
