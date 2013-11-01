@@ -37,6 +37,7 @@ module Control.Monad.Trans.Iter
   -- * Consuming iterative monads
   , retract
   , fold
+  , foldM
   -- * IterT ~ FreeT Identity
   , MonadFree(..)
   ) where
@@ -196,6 +197,10 @@ retract m = runIterT m >>= either return retract
 -- | Tear down a 'Free' 'Monad' using iteration.
 fold :: Monad m => (m a -> a) -> IterT m a -> a
 fold phi (IterT m) = phi (either id (fold phi) `liftM` m)
+
+-- | Like 'fold' with monadic result.
+foldM :: (Monad m, Monad n) => (m (n a) -> n a) -> IterT m a -> n a
+foldM phi (IterT m) = phi (either return (foldM phi) `liftM` m)
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a Monad homomorphism from @'IterT' m@ to @'IterT' n@.
 hoistIterT :: Monad n => (forall a. m a -> n a) -> IterT m b -> IterT n b
