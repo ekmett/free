@@ -60,7 +60,7 @@ import Data.Data
 -- @
 -- 'IterT' ~ 'FreeT' 'Identity'
 -- @
-data IterT m a = IterT { runIterT :: m (Either a (IterT m a)) }
+newtype IterT m a = IterT { runIterT :: m (Either a (IterT m a)) }
 #if __GLASGOW_HASKELL__ >= 707
   deriving (Typeable)
 #endif
