@@ -49,6 +49,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.State.Class
 import Control.Monad.Reader.Class
+import Control.Monad.IO.Class
 import Data.Bifunctor
 import Data.Bitraversable
 import Data.Functor.Bind
@@ -176,6 +177,9 @@ instance (Functor m, MonadState s m) => MonadState s (IterT m) where
   state f = lift (state f)
   {-# INLINE state #-}
 #endif
+
+instance (Functor m, MonadIO m) => MonadIO (IterT m) where
+  liftIO = lift . liftIO
 
 instance Monad m => MonadFree Identity (IterT m) where
   wrap = IterT . return . Right . runIdentity
