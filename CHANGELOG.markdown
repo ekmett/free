@@ -1,6 +1,6 @@
-4.1.2
+4.2
 -----
-* Added `Control.Monad.Trans.Iter`
+* Added `Control.Monad.Trans.Iter` and `Control.Comonad.Trans.Coiter`.
 
 4.1.1
 -----
