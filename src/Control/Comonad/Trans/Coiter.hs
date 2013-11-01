@@ -67,6 +67,7 @@ instance Functor w => Functor (CoiterT w) where
 
 instance Comonad w => Comonad (CoiterT w) where
   extract = fst . extract . runCoiterT
+  {-# INLINE extract #-}
   extend f = CoiterT . extend (\w -> (f (CoiterT w), extend f $ snd $ extract w)) . runCoiterT
 
 instance Foldable w => Foldable (CoiterT w) where
@@ -80,6 +81,7 @@ instance ComonadTrans CoiterT where
 
 instance Comonad w => ComonadCofree Identity (CoiterT w) where
   unwrap = Identity . snd . extract . runCoiterT
+  {-# INLINE unwrap #-}
 
 instance Show (w (a, CoiterT w a)) => Show (CoiterT w a) where
   showsPrec d w = showParen (d > 10) $
@@ -91,9 +93,11 @@ instance Read (w (a, CoiterT w a)) => Read (CoiterT w a) where
 
 instance Eq (w (a, CoiterT w a)) => Eq (CoiterT w a) where
   CoiterT a == CoiterT b = a == b
+  {-# INLINE (==) #-}
 
 instance Ord (w (a, CoiterT w a)) => Ord (CoiterT w a) where
   compare (CoiterT a) (CoiterT b) = compare a b
+  {-# INLINE compare #-}
 
 -- | Unfold a @CoiterT@ comonad transformer from a cokleisli arrow and an initial comonadic seed.
 unfold :: Comonad w => (w a -> a) -> w a -> CoiterT w a
