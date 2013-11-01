@@ -30,7 +30,7 @@ module Control.Monad.Trans.Iter
   , IterT(..)
   , delay
   , retract
-  , iter
+  , fold
   , hoistIterT
   ) where
 
@@ -45,7 +45,7 @@ import Data.Bifunctor
 import Data.Bitraversable
 import Data.Functor.Bind
 import Data.Functor.Identity
-import Data.Foldable
+import Data.Foldable hiding (fold)
 import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
@@ -178,8 +178,8 @@ retract :: Monad m => IterT m a -> m a
 retract m = runIterT m >>= either return retract
 
 -- | Tear down a 'Free' 'Monad' using iteration.
-iter :: Monad m => (m a -> a) -> IterT m a -> a
-iter phi (IterT m) = phi (either id (iter phi) `liftM` m)
+fold :: Monad m => (m a -> a) -> IterT m a -> a
+fold phi (IterT m) = phi (either id (fold phi) `liftM` m)
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a Monad homomorphism from @'IterT' m@ to @'IterT' n@.
 hoistIterT :: Monad n => (forall a. m a -> n a) -> IterT m b -> IterT n b
