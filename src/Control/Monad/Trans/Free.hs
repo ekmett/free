@@ -22,13 +22,20 @@
 --
 ----------------------------------------------------------------------------
 module Control.Monad.Trans.Free
-  ( FreeF(..)
+  (
+  -- * The base functor
+    FreeF(..)
+  -- * The free monad transformer
   , FreeT(..)
-  , MonadFree(..)
+  -- * The free monad
+  , Free, free, runFree
+  -- * Operations
   , liftF
   , iterT
   , hoistFreeT
   , transFreeT
+  -- * Free Monads With Class
+  , MonadFree(..)
   ) where
 
 import Control.Applicative
@@ -38,6 +45,7 @@ import Control.Monad.Free.Class
 import Control.Monad.IO.Class
 import Data.Monoid
 import Data.Foldable
+import Data.Functor.Identity
 import Data.Traversable
 import Data.Bifunctor
 import Data.Bifoldable
@@ -83,8 +91,19 @@ transFreeF _ (Pure a) = Pure a
 transFreeF t (Free as) = Free (t as)
 {-# INLINE transFreeF #-}
 
--- | The \"free monad transformer\" for a functor @f@.
+-- | The \"free monad transformer\" for a functor @f@
 newtype FreeT f m a = FreeT { runFreeT :: m (FreeF f a (FreeT f m a)) }
+
+-- | The \"free monad\" for a functor @f@.
+type Free f = FreeT f Identity
+
+runFree :: Free f a -> FreeF f a (Free f a)
+runFree = runIdentity . runFreeT
+{-# INLINE runFree #-}
+
+free :: FreeF f a (Free f a) -> Free f a
+free = FreeT . Identity
+{-# INLINE free #-}
 
 deriving instance Eq (m (FreeF f a (FreeT f m a))) => Eq (FreeT f m a)
 deriving instance Ord (m (FreeF f a (FreeT f m a))) => Ord (FreeT f m a)
