@@ -9,7 +9,7 @@ maintainer:    Edward A. Kmett <ekmett@gmail.com>
 stability:     provisional
 homepage:      http://github.com/ekmett/free/
 bug-reports:   http://github.com/ekmett/free/issues
-copyright:     Copyright (C) 2008-2012 Edward A. Kmett
+copyright:     Copyright (C) 2008-2013 Edward A. Kmett
 synopsis:      Monads for free
 description:
   Free monads are useful for many tree-like structures and domain specific languages.
