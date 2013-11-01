@@ -138,7 +138,6 @@ instance MonadPlus m => MonadPlus (IterT m) where
   IterT a `mplus` IterT b = IterT (mplus a b)
   {-# INLINE mplus #-}
 
--- | This is not a true monad transformer. It is only a monad transformer \"up to 'retract'\".
 instance MonadTrans IterT where
   lift = IterT . liftM Left
   {-# INLINE lift #-}
