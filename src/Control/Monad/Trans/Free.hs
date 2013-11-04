@@ -43,6 +43,8 @@ import Control.Monad (liftM, MonadPlus(..), ap)
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.IO.Class
+import Control.Monad.Reader.Class
+import Control.Monad.State.Class
 import Data.Monoid
 import Data.Foldable
 import Data.Functor.Identity
@@ -147,6 +149,22 @@ instance MonadTrans (FreeT f) where
 instance (Functor f, MonadIO m) => MonadIO (FreeT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
+
+instance (Functor f, MonadReader r m) => MonadReader r (FreeT f m) where
+  ask = lift ask
+  {-# INLINE ask #-}
+  local f = hoistFreeT (local f)
+  {-# INLINE local #-}
+
+instance (Functor f, MonadState s m) => MonadState s (FreeT f m) where
+  get = lift get
+  {-# INLINE get #-}
+  put = lift . put
+  {-# INLINE put #-}
+#if MIN_VERSION_mtl(2,1,1)
+  state f = lift (state f)
+  {-# INLINE state #-}
+#endif
 
 instance (Functor f, MonadPlus m) => Alternative (FreeT f m) where
   empty = FreeT mzero
