@@ -49,6 +49,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.State.Class
 import Control.Monad.Reader.Class
+import Control.Monad.Writer.Class
 import Control.Monad.IO.Class
 import Data.Bifunctor
 import Data.Bitraversable
@@ -56,6 +57,7 @@ import Data.Functor.Bind
 import Data.Functor.Identity
 import Data.Foldable hiding (fold)
 import Data.Traversable
+import Data.Monoid
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Typeable
@@ -167,6 +169,22 @@ instance (Functor m, MonadReader e m) => MonadReader e (IterT m) where
   {-# INLINE ask #-}
   local f = hoistIterT (local f)
   {-# INLINE local #-}
+
+instance (Functor m, MonadWriter w m) => MonadWriter w (IterT m) where
+  tell = lift . tell
+  {-# INLINE tell #-}
+  listen (IterT m) = IterT $ liftM concat' $ listen (fmap listen `liftM` m)
+    where
+      concat' (Left  x, w) = Left (x, w)
+      concat' (Right y, w) = Right $ second (w <>) <$> y
+  pass m = IterT . pass' . runIterT . hoistIterT clean $ listen m
+    where
+      clean = pass . fmap (\x -> (x, const mempty))
+      pass' = fmap (either (\((x, f), w) -> Right $ tell (f w) >> return x) (Right . IterT . pass' . runIterT))
+#if MIN_VERSION_mtl(2,1,1)
+  writer w = lift (writer w)
+  {-# INLINE writer #-}
+#endif
 
 instance (Functor m, MonadState s m) => MonadState s (IterT m) where
   get = lift get
