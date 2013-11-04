@@ -210,10 +210,9 @@ transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> F
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
 
 -- |
--- 'retract' is the left inverse of 'lift' and 'liftF'
+-- 'retract' is the left inverse of 'liftF'
 --
 -- @
--- 'retract' . 'lift' = 'id'
 -- 'retract' . 'liftF' = 'id'
 -- @
 retract :: Monad f => Free f a -> f a
