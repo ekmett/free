@@ -34,6 +34,10 @@ module Control.Monad.Trans.Free
   , iterT
   , hoistFreeT
   , transFreeT
+  -- * Operations of free monad
+  , retract
+  , iter
+  , iterM
   -- * Free Monads With Class
   , MonadFree(..)
   ) where
@@ -204,6 +208,26 @@ hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g n@
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
+
+-- |
+-- 'retract' is the left inverse of 'liftF'
+--
+-- @
+-- 'retract' . 'liftF' = 'id'
+-- @
+retract :: Monad f => Free f a -> f a
+retract m =
+  case runIdentity (runFreeT m) of
+    Pure a  -> return a
+    Free as -> as >>= retract
+
+-- | Tear down a 'Free' 'Monad' using iteration.
+iter :: Functor f => (f a -> a) -> Free f a -> a
+iter phi = runIdentity . iterT (Identity . phi . fmap runIdentity)
+
+-- | Like 'iter' for monadic values.
+iterM :: (Functor f, Monad m) => (f (m a) -> m a) -> Free f a -> m a
+iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where
