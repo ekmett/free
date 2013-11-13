@@ -2,7 +2,24 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Control.Monad.Trans.Free.Church where
+module Control.Monad.Trans.Free.Church
+  (
+  -- * The free monad transformer
+    FT(..)
+  -- * The free monad
+  , F, free, runF
+  -- * Operations
+  , foo, bar
+  , iterT
+  , hoistFT
+  , transFT
+  -- * Operations of free monad
+  , retract
+  , iter
+  , iterM
+  -- * Free Monads With Class
+  , MonadFree(..)
+  ) where
 
 import Control.Applicative
 import Control.Monad
@@ -84,6 +101,7 @@ foo (FreeT f) = FT $ \ka kfr -> do
 bar :: (Monad m, Functor f) => FT f m a -> FreeT f m a
 bar (FT k) = FreeT $ k (return . Pure) (runFreeT . wrap . fmap FreeT)
 
+-- | The \"free monad\" for a functor @f@.
 type F f = FT f Identity
 
 runF :: Functor f => F f a -> (forall r. (a -> r) -> (f r -> r) -> r)
