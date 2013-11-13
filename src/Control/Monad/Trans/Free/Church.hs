@@ -91,8 +91,13 @@ runF (FT m) = \kp kf -> runIdentity $ m (return . kp) (return . kf . fmap runIde
 free :: Functor f => (forall r. (a -> r) -> (f r -> r) -> r) -> F f a
 free f = FT (\kp kf -> return $ f (runIdentity . kp) (runIdentity . kf . fmap return))
 
+-- | Tear down a free monad transformer using iteration.
+iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FT f m a -> m a
+iterT phi (FT m) = m return phi
+
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FT' f m@ to @'FT' f n@
 --
 -- @'hoistFT' :: ('Monad' m, 'Monad' n, 'Functor' f) => (m ~> n) -> 'FT' f m ~> 'FT' f n@
 hoistFT :: (Monad m, Monad n, Functor f) => (forall a. m a -> n a) -> FT f m b -> FT f n b
 hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (return . kf . fmap (join . phi)))
+
