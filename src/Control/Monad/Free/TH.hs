@@ -52,11 +52,15 @@ findTypeOrFail s = lookupTypeName s >>= maybe (fail $ s ++ " is not in scope") r
 findValueOrFail :: String -> Q Name
 findValueOrFail s = lookupValueName s >>= maybe (fail $ s ++ "is not in scope") return
 
+-- | Pick a name for an operation.
+-- For normal constructors it lowers first letter.
+-- For infix ones it omits the first @:@.
 mkOpName :: String -> Q String
 mkOpName (':':name) = return name
 mkOpName ( c :name) = return $ toLower c : name
 mkOpName _ = fail "null constructor name"
 
+-- | Check if parameter is used in type.
 usesTV :: Name -> Type -> Bool
 usesTV n (VarT name)  = n == name
 usesTV n (AppT t1 t2) = any (usesTV n) [t1, t2]
@@ -64,11 +68,17 @@ usesTV n (SigT t  _ ) = usesTV n t
 usesTV n (ForallT bs _ t) = usesTV n t && n `notElem` map tyVarBndrName bs
 usesTV _ _ = False
 
+-- | Analyze constructor argument.
 mkArg :: Name -> Type -> Q Arg
 mkArg n t
   | usesTV n t =
       case t of
-        VarT _ -> return $ Captured (TupleT 0) (TupE []) -- () :: ()
+        -- if parameter is used as is, the return type should be ()
+        -- as well as the corresponding expression
+        VarT _ -> return $ Captured (TupleT 0) (TupE [])
+        -- if argument is of type (a1 -> ... -> aN -> param) then the
+        -- return type is N-tuple (a1, ..., aN) and the corresponding
+        -- expression is an N-tuple secion (,...,).
         AppT (AppT ArrowT _) _ -> do
           (ts, name) <- arrowsToTuple t
           when (name /= n) $ fail "return type is not the parameter"
@@ -84,10 +94,17 @@ mkArg n t
       return (t1:ts, name)
     arrowsToTuple _ = fail "return type is not a variable"
 
+-- | Apply transformation to the return value independently of how many
+-- parameters does @e@ have.
+-- E.g. @mapRet Just (\x y z -> x + y * z)@ goes to
+-- @\x y z -> Just (x + y * z)@
 mapRet :: (Exp -> Exp) -> Exp -> Exp
 mapRet f (LamE ps e) = LamE ps $ mapRet f e
 mapRet f e = f e
 
+-- | Unification of two types.
+-- @next@ with @a -> next@ gives @Maybe a@ return type
+-- @a -> next@ with @b -> next@ gives @Either a b@ return type
 unifyT :: (Type, Exp) -> (Type, Exp) -> Q (Type, [Exp])
 unifyT (TupleT 0, _) (TupleT 0, _) = fail "can't accept 2 mere parameters"
 unifyT (TupleT 0, _) (t, e) = do
@@ -102,6 +119,8 @@ unifyT (t1, e1) (t2, e2) = do
   right'  <- ConE <$> findValueOrFail "Right"
   return $ (AppT (AppT either' t1) t2, [mapRet (AppE left') e1, mapRet (AppE right') e2])
 
+-- | Unifying a list of types (possibly refining expressions).
+-- Name is used when the return type is supposed to be arbitrary.
 unifyCaptured :: Name -> [(Type, Exp)] -> Q (Type, [Exp])
 unifyCaptured a []       = return (VarT a, [])
 unifyCaptured _ [(t, e)] = return (t, [e])
@@ -110,20 +129,26 @@ unifyCaptured _ _ = fail "can't unify more than 2 arguments that use type parame
 
 liftCon' :: Type -> Name -> Name -> [Type] -> Q [Dec]
 liftCon' f n cn ts = do
+  -- prepare some names
   opName <- mkName <$> mkOpName (nameBase cn)
   m      <- newName "m"
   a      <- newName "a"
   monadFree <- findTypeOrFail  "MonadFree"
   liftF     <- findValueOrFail "liftF"
+  -- look at the constructor parameters
   args <- mapM (mkArg n) ts
-  let ps = params args
-      cs = captured args
+  let ps = params args    -- these are not using type parameter
+      cs = captured args  -- these capture it somehow
+  -- based on cs we get return type and refined expressions
+  -- (e.g. with Nothing/Just or Left/Right tags)
   (retType, es) <- unifyCaptured a cs
+  -- operation type is (a1 -> a2 -> ... -> aN -> m r)
   let opType  = foldr (AppT . AppT ArrowT) (AppT (VarT m) retType) ps
+  -- picking names for the implementation
   xs <- mapM (const $ newName "p") ps
-  let pat  = map VarP xs
-      exprs = zipExprs (map VarE xs) es args
-      fval = foldl AppE (ConE cn) exprs
+  let pat  = map VarP xs                      -- this is LHS
+      exprs = zipExprs (map VarE xs) es args  -- this is what ctor would be applied to
+      fval = foldl AppE (ConE cn) exprs       -- this is RHS without liftF
   return $
     [ SigD opName (ForallT [PlainTV m, PlainTV a] [ClassP monadFree [f, VarT m]] opType)
     , FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ]
@@ -134,7 +159,7 @@ liftCon f n (NormalC cName fields) = liftCon' f n cName $ map snd fields
 liftCon f n (RecC    cName fields) = liftCon' f n cName $ map (\(_, _, ty) -> ty) fields
 liftCon _ _ con = fail $ "liftCon: Don't know how to lift " ++ show con
 
--- | Provide free monadic actions for type declaration.
+-- | Provide free monadic actions for a type declaration.
 liftDec :: Dec -> Q [Dec]
 liftDec (DataD _ tyName tyVarBndrs cons _)
   | null tyVarBndrs = fail $ "Type " ++ show tyName ++ " needs at least one free variable"
