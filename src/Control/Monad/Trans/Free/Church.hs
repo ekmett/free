@@ -9,6 +9,8 @@ import Control.Monad
 import Control.Monad.Identity
 import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
+import Control.Monad.Reader.Class
+import Control.Monad.State.Class
 import Control.Monad.Trans.Free
 import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
@@ -54,6 +56,22 @@ instance (Foldable f, Foldable m, Monad m) => Foldable (FT f m) where
 instance (MonadIO m) => MonadIO (FT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
+
+instance (Functor f, MonadReader r m) => MonadReader r (FT f m) where
+  ask = lift ask
+  {-# INLINE ask #-}
+  local f = hoistFT (local f)
+  {-# INLINE local #-}
+
+instance (Functor f, MonadState s m) => MonadState s (FT f m) where
+  get = lift get
+  {-# INLINE get #-}
+  put = lift . put
+  {-# INLINE put #-}
+#if MIN_VERSION_mtl(2,1,1)
+  state f = lift (state f)
+  {-# INLINE state #-}
+#endif
 
 foo :: (Monad m, Functor f) => FreeT f m a -> FT f m a
 foo (FreeT f) = FT $ \ka kfr -> do
