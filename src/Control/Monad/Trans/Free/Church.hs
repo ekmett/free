@@ -9,7 +9,7 @@ module Control.Monad.Trans.Free.Church
   -- * The free monad
   , F, free, runF
   -- * Operations
-  , foo, bar
+  , toFT, fromFT
   , iterT
   , hoistFT
   , transFT
@@ -93,15 +93,15 @@ instance (Functor f, MonadState s m) => MonadState s (FT f m) where
   {-# INLINE state #-}
 #endif
 
-foo :: (Monad m, Functor f) => FreeT f m a -> FT f m a
-foo (FreeT f) = FT $ \ka kfr -> do
+toFT :: (Monad m, Functor f) => FreeT f m a -> FT f m a
+toFT (FreeT f) = FT $ \ka kfr -> do
   freef <- f
   case freef of
     Pure a -> ka a
-    Free fb -> kfr $ fmap (($ kfr) . ($ ka) . runFT . foo) fb
+    Free fb -> kfr $ fmap (($ kfr) . ($ ka) . runFT . toFT) fb
 
-bar :: (Monad m, Functor f) => FT f m a -> FreeT f m a
-bar (FT k) = FreeT $ k (return . Pure) (runFreeT . wrap . fmap FreeT)
+fromFT :: (Monad m, Functor f) => FT f m a -> FreeT f m a
+fromFT (FT k) = FreeT $ k (return . Pure) (runFreeT . wrap . fmap FreeT)
 
 -- | The \"free monad\" for a functor @f@.
 type F f = FT f Identity
@@ -149,7 +149,7 @@ fromF m = runF m return wrap
 
 -- | Generate a Church-encoded free monad from a 'Free' monad.
 toF :: (Functor f) => Free f a -> F f a
-toF = foo
+toF = toFT
 
 -- | Improve the asymptotic performance of code that builds a free monad with only binds and returns by using 'F' behind the scenes.
 --
