@@ -6,6 +6,7 @@ module Control.Monad.Trans.Free.Church where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Identity
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Free
 import Data.Foldable (Foldable)
@@ -59,7 +60,13 @@ foo (FreeT f) = FT $ \ka kfr -> do
 bar :: (Monad m, Functor f) => FT f m a -> FreeT f m a
 bar (FT k) = FreeT $ k (return . Pure) (runFreeT . wrap . fmap FreeT)
 
+type F f = FT f Identity
 
+runF :: Functor f => F f a -> (forall r. (a -> r) -> (f r -> r) -> r)
+runF (FT m) = \kp kf -> runIdentity $ m (return . kp) (return . kf . fmap runIdentity)
+
+free :: Functor f => (forall r. (a -> r) -> (f r -> r) -> r) -> F f a
+free f = FT (\kp kf -> return $ f (runIdentity . kp) (runIdentity . kf . fmap return))
 
 
 
