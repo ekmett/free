@@ -35,8 +35,8 @@ instance MonadPlus m => MonadPlus (FT f m) where
   mzero = FT (\_ _ -> mzero)
   mplus (FT k1) (FT k2) = FT $ \a fr -> k1 a fr `mplus` k2 a fr
 
-instance (Foldable f, Foldable m, Monad m) => Foldable (FT m a) where
-  foldMap f (FT k) = F.foldMap f $ k (return . F.foldMap f) (F.foldr (liftA2 mappend) mempty)
+instance (Foldable f, Foldable m, Monad m) => Foldable (FT f m) where
+  foldMap f (FT k) = F.fold $ k (return . f) (F.foldr (liftM2 mappend) (return mempty))
 
 foo :: (Monad m, Functor f) => FreeT f m a -> FT f m a
 foo (FreeT f) = FT $ \ka kfr -> do
