@@ -31,6 +31,10 @@ instance (Monad m, Functor f) => MonadFree f (FT f m) where
 instance MonadTrans (FT f) where
   lift m = FT (\a _ -> m >>= a)
 
+instance Alternative m => Alternative (FT f m) where
+  empty = FT (\_ _ -> empty)
+  FT k1 <|> FT k2 = FT $ \a fr -> k1 a fr <|> k2 a fr
+
 instance MonadPlus m => MonadPlus (FT f m) where
   mzero = FT (\_ _ -> mzero)
   mplus (FT k1) (FT k2) = FT $ \a fr -> k1 a fr `mplus` k2 a fr
