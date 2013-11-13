@@ -132,8 +132,9 @@ transFT phi (FT m) = FT (\kp kf -> m kp (kf . phi))
 -- @
 -- 'retract' . 'liftF' = 'id'
 -- @
-retract :: Monad f => F f a -> f a
-retract (FT m) = runIdentity $ m (return . return) (return . join . liftM runIdentity)
+retract :: (Functor f, Monad f) => F f a -> f a
+retract m = runF m return join
+{-# INLINE retract #-}
 
 -- | Tear down an 'F' 'Monad' using iteration.
 iter :: Functor f => (f a -> a) -> F f a -> a
@@ -146,10 +147,12 @@ iterM phi = iterT phi . hoistFT (return . runIdentity)
 -- | Convert to another free monad representation.
 fromF :: (Functor f, MonadFree f m) => F f a -> m a
 fromF m = runF m return wrap
+{-# INLINE fromF #-}
 
 -- | Generate a Church-encoded free monad from a 'Free' monad.
 toF :: (Functor f) => Free f a -> F f a
 toF = toFT
+{-# INLINE toF #-}
 
 -- | Improve the asymptotic performance of code that builds a free monad with only binds and returns by using 'F' behind the scenes.
 --
@@ -163,4 +166,5 @@ toF = toFT
 -- <http://www.iai.uni-bonn.de/~jv/mpc08.pdf>
 improve :: Functor f => (forall m. MonadFree f m => m a) -> Free f a
 improve m = fromF m
+{-# INLINE improve #-}
 
