@@ -11,21 +11,28 @@ import Control.Monad.Trans.Free
 import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
 import Data.Monoid
+import Data.Functor.Bind hiding (join)
 
 newtype FT f m a = FT {runFT :: forall r. (a -> m r) -> (f (m r) -> m r) -> m r}
 
 instance Functor (FT f m) where
   fmap f (FT k) = FT $ \a fr -> k (a . f) fr
 
+instance Apply (FT f m) where
+  (<.>) = (<*>)
+
 instance Applicative (FT f m) where
   pure a = FT $ \k _ -> k a
   FT fk <*> FT ak = FT $ \b fr -> ak (\d -> fk (\e -> b (e d)) fr) fr
+
+instance Bind (FT f m) where
+  (>>-) = (>>=)
 
 instance Monad (FT f m) where
   return = pure
   FT fk >>= f = FT $ \b fr -> fk (\d -> runFT (f d) b fr) fr
 
-instance (Monad m, Functor f) => MonadFree f (FT f m) where
+instance (Functor f) => MonadFree f (FT f m) where
   wrap f = FT (\kp kf -> kf (fmap (\(FT m) -> m kp kf) f))
 
 instance MonadTrans (FT f) where
