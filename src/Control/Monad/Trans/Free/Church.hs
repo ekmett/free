@@ -101,3 +101,7 @@ iterT phi (FT m) = m return phi
 hoistFT :: (Monad m, Monad n, Functor f) => (forall a. m a -> n a) -> FT f m b -> FT f n b
 hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (return . kf . fmap (join . phi)))
 
+-- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FT' f m@ to @'FT' g n@
+transFT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FT f m b -> FT g m b
+transFT phi (FT m) = FT (\kp kf -> m kp (kf . phi))
+
