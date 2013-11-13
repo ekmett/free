@@ -71,25 +71,25 @@ mkArg n t
         VarT _ -> return $ Captured (TupleT 0) (TupE []) -- () :: ()
         AppT (AppT ArrowT _) _ -> do
           (ts, name) <- arrowsToTuple t
-          when (name /= n) $ fail "mkArg: don't know how to make Arg"
+          when (name /= n) $ fail "return type is not the parameter"
           let tup = foldl AppT (TupleT $ length ts) ts
           xs <- mapM (const $ newName "x") ts
           return $ Captured tup (LamE (map VarP xs) (TupE (map VarE xs)))
-        _ -> fail "mkArg: don't know how to make Arg"
+        _ -> fail "don't know how to make Arg"
   | otherwise = return $ Param t
   where
     arrowsToTuple (AppT (AppT ArrowT t1) (VarT name)) = return ([t1], name)
     arrowsToTuple (AppT (AppT ArrowT t1) t2) = do
       (ts, name) <- arrowsToTuple t2
       return (t1:ts, name)
-    arrowsToTuple _ = fail "mkArg: not an arrow"
+    arrowsToTuple _ = fail "return type is not a variable"
 
 mapRet :: (Exp -> Exp) -> Exp -> Exp
 mapRet f (LamE ps e) = LamE ps $ mapRet f e
 mapRet f e = f e
 
 unifyT :: (Type, Exp) -> (Type, Exp) -> Q (Type, [Exp])
-unifyT (TupleT 0, _) (TupleT 0, _) = fail "can't unify"
+unifyT (TupleT 0, _) (TupleT 0, _) = fail "can't accept 2 mere parameters"
 unifyT (TupleT 0, _) (t, e) = do
   maybe'   <- ConT <$> findTypeOrFail  "Maybe"
   nothing' <- ConE <$> findValueOrFail "Nothing"
@@ -106,7 +106,7 @@ unifyCaptured :: Name -> [(Type, Exp)] -> Q (Type, [Exp])
 unifyCaptured a []       = return (VarT a, [])
 unifyCaptured _ [(t, e)] = return (t, [e])
 unifyCaptured _ [x, y]   = unifyT x y
-unifyCaptured _ _ = fail "unifyCaptured: can't unify more than 2 distinct types"
+unifyCaptured _ _ = fail "can't unify more than 2 arguments that use type parameter"
 
 liftCon' :: Type -> Name -> Name -> [Type] -> Q [Dec]
 liftCon' f n cn ts = do
