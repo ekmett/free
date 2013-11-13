@@ -93,6 +93,8 @@ instance (Functor f, MonadState s m) => MonadState s (FT f m) where
   {-# INLINE state #-}
 #endif
 
+-- | Generate a Church-encoded free monad transformer from a 'FreeT' monad
+-- transformer.
 toFT :: (Monad m, Functor f) => FreeT f m a -> FT f m a
 toFT (FreeT f) = FT $ \ka kfr -> do
   freef <- f
@@ -100,6 +102,7 @@ toFT (FreeT f) = FT $ \ka kfr -> do
     Pure a -> ka a
     Free fb -> kfr $ fmap (($ kfr) . ($ ka) . runFT . toFT) fb
 
+-- | Convert to a 'FreeT' free monad representation.
 fromFT :: (Monad m, Functor f) => FT f m a -> FreeT f m a
 fromFT (FT k) = FreeT $ k (return . Pure) (runFreeT . wrap . fmap FreeT)
 
