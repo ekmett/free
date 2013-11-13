@@ -14,6 +14,8 @@ module Control.Monad.Trans.Free.Church
   , hoistFT
   , transFT
   -- * Operations of free monad
+  , improve
+  , fromF, toF
   , retract
   , iter
   , iterM
@@ -29,7 +31,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.State.Class
 import Control.Monad.Free.Class
-import Control.Monad.Trans.Free (FreeT(..), FreeF(..))
+import Control.Monad.Trans.Free (FreeT(..), FreeF(..), Free)
 import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
 import Data.Monoid
@@ -140,4 +142,25 @@ iter phi = runIdentity . iterT (Identity . phi . fmap runIdentity)
 -- | Like 'iter' for monadic values.
 iterM :: (Functor f, Monad m) => (f (m a) -> m a) -> F f a -> m a
 iterM phi = iterT phi . hoistFT (return . runIdentity)
+
+-- | Convert to another free monad representation.
+fromF :: (Functor f, MonadFree f m) => F f a -> m a
+fromF m = runF m return wrap
+
+-- | Generate a Church-encoded free monad from a 'Free' monad.
+toF :: (Functor f) => Free f a -> F f a
+toF = foo
+
+-- | Improve the asymptotic performance of code that builds a free monad with only binds and returns by using 'F' behind the scenes.
+--
+-- This is based on the \"Free Monads for Less\" series of articles by Edward Kmett:
+--
+-- <http://comonad.com/reader/2011/free-monads-for-less/>
+-- <http://comonad.com/reader/2011/free-monads-for-less-2/>
+--
+-- and \"Asymptotic Improvement of Computations over Free Monads\" by Janis Voightländer:
+--
+-- <http://www.iai.uni-bonn.de/~jv/mpc08.pdf>
+improve :: Functor f => (forall m. MonadFree f m => m a) -> Free f a
+improve m = fromF m
 
