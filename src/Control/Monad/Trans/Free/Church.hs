@@ -11,7 +11,8 @@ import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.State.Class
-import Control.Monad.Trans.Free
+import Control.Monad.Free.Class
+import Control.Monad.Trans.Free (FreeT(..), FreeF(..))
 import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
 import Data.Monoid
@@ -104,4 +105,21 @@ hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (return . kf . f
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FT' f m@ to @'FT' g n@
 transFT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FT f m b -> FT g m b
 transFT phi (FT m) = FT (\kp kf -> m kp (kf . phi))
+
+-- |
+-- 'retract' is the left inverse of 'liftF'
+--
+-- @
+-- 'retract' . 'liftF' = 'id'
+-- @
+retract :: Monad f => F f a -> f a
+retract (FT m) = runIdentity $ m (return . return) (return . join . liftM runIdentity)
+
+-- | Tear down an 'F' 'Monad' using iteration.
+iter :: Functor f => (f a -> a) -> F f a -> a
+iter phi = runIdentity . iterT (Identity . phi . fmap runIdentity)
+
+-- | Like 'iter' for monadic values.
+iterM :: (Functor f, Monad m) => (f (m a) -> m a) -> F f a -> m a
+iterM phi = iterT phi . hoistFT (return . runIdentity)
 
