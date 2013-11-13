@@ -60,7 +60,8 @@ library
     profunctors          == 4.*,
     semigroupoids        == 4.*,
     semigroups           >= 0.8.3.1 && < 1,
-    transformers         >= 0.2.0   && < 0.4
+    transformers         >= 0.2.0   && < 0.4,
+    template-haskell     >= 2.7.0.0 && < 3
 
   if impl(ghc)
     cpp-options: -DGHC_TYPEABLE
@@ -75,6 +76,7 @@ library
     Control.Monad.Free
     Control.Monad.Free.Church
     Control.Monad.Free.Class
+    Control.Monad.Free.TH
     Control.Monad.Trans.Free
     Control.Monad.Trans.Iter
     Control.MonadPlus.Free
