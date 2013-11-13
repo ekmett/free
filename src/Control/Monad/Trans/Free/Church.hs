@@ -8,6 +8,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Identity
 import Control.Monad.Trans.Class
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Free
 import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
@@ -49,6 +50,10 @@ instance MonadPlus m => MonadPlus (FT f m) where
 
 instance (Foldable f, Foldable m, Monad m) => Foldable (FT f m) where
   foldMap f (FT k) = F.fold $ k (return . f) (F.foldr (liftM2 mappend) (return mempty))
+
+instance (MonadIO m) => MonadIO (FT f m) where
+  liftIO = lift . liftIO
+  {-# INLINE liftIO #-}
 
 foo :: (Monad m, Functor f) => FreeT f m a -> FT f m a
 foo (FreeT f) = FT $ \ka kfr -> do
