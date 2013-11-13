@@ -102,29 +102,30 @@ unifyT (t1, e1) (t2, e2) = do
   right'  <- ConE <$> findValueOrFail "Right"
   return $ (AppT (AppT either' t1) t2, [mapRet (AppE left') e1, mapRet (AppE right') e2])
 
-unifyCaptured :: [(Type, Exp)] -> Q (Type, [Exp])
-unifyCaptured [] = return (TupleT 0, []) -- FIXME: should be any 'a'
-unifyCaptured [(t, e)] = return (t, [e])
-unifyCaptured [x, y] = unifyT x y
-unifyCaptured _ = fail "unifyCaptured: can't unify more than 2 distinct types"
+unifyCaptured :: Name -> [(Type, Exp)] -> Q (Type, [Exp])
+unifyCaptured a []       = return (VarT a, [])
+unifyCaptured _ [(t, e)] = return (t, [e])
+unifyCaptured _ [x, y]   = unifyT x y
+unifyCaptured _ _ = fail "unifyCaptured: can't unify more than 2 distinct types"
 
 liftCon' :: Type -> Name -> Name -> [Type] -> Q [Dec]
 liftCon' f n cn ts = do
   opName <- mkName <$> mkOpName (nameBase cn)
   m      <- newName "m"
+  a      <- newName "a"
   monadFree <- findTypeOrFail  "MonadFree"
   liftF     <- findValueOrFail "liftF"
   args <- mapM (mkArg n) ts
   let ps = params args
       cs = captured args
-  (retType, es) <- unifyCaptured cs
+  (retType, es) <- unifyCaptured a cs
   let opType  = foldr (AppT . AppT ArrowT) (AppT (VarT m) retType) ps
   xs <- mapM (const $ newName "p") ps
   let pat  = map VarP xs
       exprs = zipExprs (map VarE xs) es args
       fval = foldl AppE (ConE cn) exprs
   return $
-    [ SigD opName (ForallT [PlainTV m] [ClassP monadFree [f, VarT m]] opType)
+    [ SigD opName (ForallT [PlainTV m, PlainTV a] [ClassP monadFree [f, VarT m]] opType)
     , FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ]
 
 -- | Provide free monadic actions for a single value constructor.
