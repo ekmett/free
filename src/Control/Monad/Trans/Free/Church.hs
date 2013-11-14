@@ -34,6 +34,8 @@ import Control.Monad.Free.Class
 import Control.Monad.Trans.Free (FreeT(..), FreeF(..), Free)
 import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
+import Data.Traversable (Traversable)
+import qualified Data.Traversable as T
 import Data.Monoid
 import Data.Functor.Bind hiding (join)
 
@@ -72,6 +74,12 @@ instance MonadPlus m => MonadPlus (FT f m) where
 
 instance (Foldable f, Foldable m, Monad m) => Foldable (FT f m) where
   foldMap f (FT k) = F.fold $ k (return . f) (F.foldr (liftM2 mappend) (return mempty))
+
+instance (Monad m, Traversable m, Traversable f) => Traversable (FT f m) where
+  traverse f (FT k) = fmap (join . lift) . T.sequenceA $ k traversePure traverseFree
+    where
+      traversePure = return . fmap return . f
+      traverseFree = return . fmap (wrap . fmap (join . lift)) . T.sequenceA . fmap T.sequenceA
 
 instance (MonadIO m) => MonadIO (FT f m) where
   liftIO = lift . liftIO
@@ -118,6 +126,7 @@ free f = FT (\kp kf -> return $ f (runIdentity . kp) (runIdentity . kf . fmap re
 -- | Tear down a free monad transformer using iteration.
 iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FT f m a -> m a
 iterT phi (FT m) = m return phi
+{-# INLINE iterT #-}
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FT' f m@ to @'FT' f n@
 --
@@ -142,6 +151,7 @@ retract m = runF m return join
 -- | Tear down an 'F' 'Monad' using iteration.
 iter :: Functor f => (f a -> a) -> F f a -> a
 iter phi = runIdentity . iterT (Identity . phi . fmap runIdentity)
+{-# INLINE iter #-}
 
 -- | Like 'iter' for monadic values.
 iterM :: (Functor f, Monad m) => (f (m a) -> m a) -> F f a -> m a
