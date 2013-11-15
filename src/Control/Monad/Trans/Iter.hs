@@ -43,7 +43,7 @@ module Control.Monad.Trans.Iter
   ) where
 
 import Control.Applicative
-import Control.Monad (ap, liftM, MonadPlus(..))
+import Control.Monad (ap, liftM, MonadPlus(..), join)
 import Control.Monad.Fix
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
@@ -53,7 +53,7 @@ import Control.Monad.Writer.Class
 import Control.Monad.IO.Class
 import Data.Bifunctor
 import Data.Bitraversable
-import Data.Functor.Bind
+import Data.Functor.Bind hiding (join)
 import Data.Functor.Identity
 import Data.Foldable hiding (fold)
 import Data.Traversable
@@ -180,7 +180,7 @@ instance (MonadWriter w m) => MonadWriter w (IterT m) where
   pass m = IterT . pass' . runIterT . hoistIterT clean $ listen m
     where
       clean = pass . liftM (\x -> (x, const mempty))
-      pass' = liftM (either (\((x, f), w) -> Right $ tell (f w) >> return x) (Right . IterT . pass' . runIterT))
+      pass' = join . liftM (either (\((x, f), w) -> tell (f w) >> return (Left x)) (return . Right . IterT . pass' . runIterT))
 #if MIN_VERSION_mtl(2,1,1)
   writer w = lift (writer w)
   {-# INLINE writer #-}
