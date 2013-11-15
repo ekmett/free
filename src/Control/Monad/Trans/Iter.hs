@@ -170,7 +170,7 @@ instance (Functor m, MonadReader e m) => MonadReader e (IterT m) where
   local f = hoistIterT (local f)
   {-# INLINE local #-}
 
-instance (Functor m, MonadWriter w m) => MonadWriter w (IterT m) where
+instance (MonadWriter w m) => MonadWriter w (IterT m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen (IterT m) = IterT $ liftM concat' $ listen (fmap listen `liftM` m)
@@ -179,8 +179,8 @@ instance (Functor m, MonadWriter w m) => MonadWriter w (IterT m) where
       concat' (Right y, w) = Right $ second (w <>) <$> y
   pass m = IterT . pass' . runIterT . hoistIterT clean $ listen m
     where
-      clean = pass . fmap (\x -> (x, const mempty))
-      pass' = fmap (either (\((x, f), w) -> Right $ tell (f w) >> return x) (Right . IterT . pass' . runIterT))
+      clean = pass . liftM (\x -> (x, const mempty))
+      pass' = liftM (either (\((x, f), w) -> Right $ tell (f w) >> return x) (Right . IterT . pass' . runIterT))
 #if MIN_VERSION_mtl(2,1,1)
   writer w = lift (writer w)
   {-# INLINE writer #-}
