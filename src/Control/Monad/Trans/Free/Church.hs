@@ -30,6 +30,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.State.Class
+import Control.Monad.Cont.Class
 import Control.Monad.Free.Class
 import Control.Monad.Trans.Free (FreeT(..), FreeF(..), Free)
 import Data.Foldable (Foldable)
@@ -92,6 +93,9 @@ instance (Monad m, Traversable m, Traversable f) => Traversable (FT f m) where
 instance (MonadIO m) => MonadIO (FT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
+
+instance (MonadCont m) => MonadCont (FT f m) where
+  callCC f = join . lift $ callCC (\k -> return $ f (lift . k . return))
 
 instance (Functor f, MonadReader r m) => MonadReader r (FT f m) where
   ask = lift ask
