@@ -49,6 +49,7 @@ import Control.Monad.Free.Class
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.State.Class
+import Control.Monad.Cont.Class
 import Data.Monoid
 import Data.Foldable
 import Data.Functor.Identity
@@ -169,6 +170,9 @@ instance (Functor f, MonadState s m) => MonadState s (FreeT f m) where
   state f = lift (state f)
   {-# INLINE state #-}
 #endif
+
+instance (Functor f, MonadCont m) => MonadCont (FreeT f m) where
+  callCC f = FreeT $ callCC (\k -> runFreeT $ f (lift . k . Pure))
 
 instance (Functor f, MonadPlus m) => Alternative (FreeT f m) where
   empty = FreeT mzero
