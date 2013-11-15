@@ -2,6 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Control.Monad.Trans.Free.Church
   (
   -- * The free monad transformer
@@ -38,8 +39,16 @@ import Data.Traversable (Traversable)
 import qualified Data.Traversable as T
 import Data.Monoid
 import Data.Functor.Bind hiding (join)
+import Data.Function
 
+-- | The \"free monad transformer\" for a functor @f@
 newtype FT f m a = FT {runFT :: forall r. (a -> m r) -> (f (m r) -> m r) -> m r}
+
+instance (Functor f, Monad m, Eq (FreeT f m a)) => Eq (FT f m a) where
+  (==) = (==) `on` fromFT
+
+instance (Functor f, Monad m, Ord (FreeT f m a)) => Ord (FT f m a) where
+  compare = compare `on` fromFT
 
 instance Functor (FT f m) where
   fmap f (FT k) = FT $ \a fr -> k (a . f) fr
