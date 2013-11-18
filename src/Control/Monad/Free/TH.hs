@@ -127,8 +127,8 @@ unifyCaptured _ [(t, e)] = return (t, [e])
 unifyCaptured _ [x, y]   = unifyT x y
 unifyCaptured _ _ = fail "can't unify more than 2 arguments that use type parameter"
 
-liftCon' :: Type -> Name -> Name -> [Type] -> Q [Dec]
-liftCon' f n cn ts = do
+liftCon' :: Type -> Name -> [Name] -> Name -> [Type] -> Q [Dec]
+liftCon' f n ns cn ts = do
   -- prepare some names
   opName <- mkName <$> mkOpName (nameBase cn)
   m      <- newName "m"
@@ -145,27 +145,32 @@ liftCon' f n cn ts = do
   -- operation type is (a1 -> a2 -> ... -> aN -> m r)
   let opType  = foldr (AppT . AppT ArrowT) (AppT (VarT m) retType) ps
   -- picking names for the implementation
-  xs <- mapM (const $ newName "p") ps
+  xs  <- mapM (const $ newName "p") ps
   let pat  = map VarP xs                      -- this is LHS
       exprs = zipExprs (map VarE xs) es args  -- this is what ctor would be applied to
       fval = foldl AppE (ConE cn) exprs       -- this is RHS without liftF
+      q = map PlainTV $ [m, a] ++ ns
+      f' = foldl AppT f (map VarT ns)
   return $
-    [ SigD opName (ForallT [PlainTV m, PlainTV a] [ClassP monadFree [f, VarT m]] opType)
+    [ SigD opName (ForallT q [ClassP monadFree [f', VarT m]] opType)
     , FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ]
 
 -- | Provide free monadic actions for a single value constructor.
-liftCon :: Type -> Name -> Con -> Q [Dec]
-liftCon f n (NormalC cName fields) = liftCon' f n cName $ map snd fields
-liftCon f n (RecC    cName fields) = liftCon' f n cName $ map (\(_, _, ty) -> ty) fields
-liftCon _ _ con = fail $ "liftCon: Don't know how to lift " ++ show con
+liftCon :: Type -> Name -> [Name] -> Con -> Q [Dec]
+liftCon f n ns con =
+  case con of
+    NormalC cName fields -> liftCon' f n ns cName $ map snd fields
+    RecC    cName fields -> liftCon' f n ns cName $ map (\(_, _, ty) -> ty) fields
+    _ -> fail $ "liftCon: Don't know how to lift " ++ show con
 
 -- | Provide free monadic actions for a type declaration.
 liftDec :: Dec -> Q [Dec]
 liftDec (DataD _ tyName tyVarBndrs cons _)
   | null tyVarBndrs = fail $ "Type " ++ show tyName ++ " needs at least one free variable"
-  | otherwise = concat <$> mapM (liftCon con nextTyName) cons
+  | otherwise = concat <$> mapM (liftCon con nextTyName (init tyNames)) cons
     where
-      nextTyName = tyVarBndrName $ last tyVarBndrs
+      tyNames    = map tyVarBndrName tyVarBndrs
+      nextTyName = last tyNames
       con        = ConT tyName
 liftDec dec = fail $ "liftDec: Don't know how to lift " ++ show dec
 
