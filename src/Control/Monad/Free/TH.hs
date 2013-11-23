@@ -149,7 +149,8 @@ liftCon' f n ns cn ts = do
   let pat  = map VarP xs                      -- this is LHS
       exprs = zipExprs (map VarE xs) es args  -- this is what ctor would be applied to
       fval = foldl AppE (ConE cn) exprs       -- this is RHS without liftF
-      q = map PlainTV $ [m, a] ++ ns
+      q = map PlainTV $ qa ++ m : ns
+      qa = case retType of VarT b | a == b -> [a]; _ -> []
       f' = foldl AppT f (map VarT ns)
   return $
     [ SigD opName (ForallT q [ClassP monadFree [f', VarT m]] opType)
