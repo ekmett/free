@@ -39,6 +39,7 @@ import Control.Comonad.Env.Class
 import Control.Comonad.Store.Class as Class
 import Control.Comonad.Traced.Class
 import Control.Category
+import Control.Monad.Zip
 import Data.Functor.Bind
 import Data.Functor.Extend
 import Data.Distributive
@@ -134,6 +135,9 @@ instance Alternative f => Monad (Cofree f) where
   {-# INLINE return #-}
   (a :< m) >>= k = case k a of
                      b :< n -> b :< (n <|> fmap (>>= k) m)
+
+instance (Alternative f, MonadZip f) => MonadZip (Cofree f) where
+  mzip (a :< as) (b :< bs) = (a, b) :< fmap (uncurry mzip) (mzip as bs)
 
 -- |
 --
