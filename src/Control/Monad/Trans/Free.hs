@@ -49,6 +49,7 @@ import Control.Monad.Free.Class
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.State.Class
+import Control.Monad.Error.Class
 import Data.Monoid
 import Data.Foldable
 import Data.Functor.Identity
@@ -169,6 +170,11 @@ instance (Functor f, MonadState s m) => MonadState s (FreeT f m) where
   state f = lift (state f)
   {-# INLINE state #-}
 #endif
+
+instance (Functor f, MonadError e m) => MonadError e (FreeT f m) where
+  throwError = lift . throwError
+  {-# INLINE throwError #-}
+  FreeT m `catchError` f = FreeT $ (liftM (fmap (`catchError` f)) m) `catchError` (runFreeT . f)
 
 instance (Functor f, MonadPlus m) => Alternative (FreeT f m) where
   empty = FreeT mzero
