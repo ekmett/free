@@ -48,6 +48,7 @@ import Control.Monad.Fix
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.State.Class
+import Control.Monad.Error.Class
 import Control.Monad.Reader.Class
 import Control.Monad.IO.Class
 import Data.Bifunctor
@@ -177,6 +178,11 @@ instance (Functor m, MonadState s m) => MonadState s (IterT m) where
   state f = lift (state f)
   {-# INLINE state #-}
 #endif
+
+instance (Functor m, MonadError e m) => MonadError e (IterT m) where
+  throwError = lift . throwError
+  {-# INLINE throwError #-}
+  IterT m `catchError` f = IterT $ (liftM (fmap (`catchError` f)) m) `catchError` (runIterT . f)
 
 instance (Functor m, MonadIO m) => MonadIO (IterT m) where
   liftIO = lift . liftIO
