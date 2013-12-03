@@ -39,6 +39,7 @@ import Control.Comonad.Env.Class
 import Control.Comonad.Store.Class as Class
 import Control.Comonad.Traced.Class
 import Control.Category
+import Control.Monad(ap)
 import Control.Monad.Zip
 import Data.Functor.Bind
 import Data.Functor.Extend
@@ -161,14 +162,11 @@ instance ComonadApply f => ComonadApply (Cofree f) where
   (_ :< fs)  @> (a :< as) = a :< (( @>) <$> fs <@> as)
   {-# INLINE (@>) #-}
 
-instance Applicative f => Applicative (Cofree f) where
-  pure a = as where as = a :< pure as
-  (f :< fs) <*> (a :< as) = f a :< ((<*>) <$> fs <*> as)
+instance Alternative f => Applicative (Cofree f) where
+  pure = return
+  {-# INLINE pure #-}
+  (<*>) = ap
   {-# INLINE (<*>) #-}
-  (f :< fs) <*  (_ :< as) = f :< ((<* ) <$> fs <*> as)
-  {-# INLINE (<*) #-}
-  (_ :< fs)  *> (a :< as) = a :< (( *>) <$> fs <*> as)
-  {-# INLINE (*>) #-}
 
 instance (Show (f (Cofree f a)), Show a) => Show (Cofree f a) where
   showsPrec d (a :< as) = showParen (d > 5) $
