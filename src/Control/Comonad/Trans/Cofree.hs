@@ -21,6 +21,7 @@
 ----------------------------------------------------------------------------
 module Control.Comonad.Trans.Cofree
   ( CofreeT(..)
+  , cofree, runCofree
   , CofreeF(..)
   , ComonadCofree(..)
   , headF
@@ -37,6 +38,7 @@ import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
 import Data.Foldable
+import Data.Functor.Identity
 import Data.Semigroup
 import Data.Traversable
 import Prelude hiding (id,(.))
@@ -83,6 +85,16 @@ instance Traversable f => Bitraversable (CofreeF f) where
 
 -- | This is a cofree comonad of some functor @f@, with a comonad @w@ threaded through it at each level.
 newtype CofreeT f w a = CofreeT { runCofreeT :: w (CofreeF f a (CofreeT f w a)) }
+
+type Cofree f = CofreeT f Identity
+
+cofree :: CofreeF f a (Cofree f a) -> Cofree f a
+cofree = CofreeT . Identity
+{-# INLINE cofree #-}
+
+runCofree :: Cofree f a -> CofreeF f a (Cofree f a)
+runCofree = runIdentity . runCofreeT
+{-# INLINE runCofree #-}
 
 instance (Functor f, Functor w) => Functor (CofreeT f w) where
   fmap f = CofreeT . fmap (bimap f (fmap f)) . runCofreeT
