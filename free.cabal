@@ -76,6 +76,7 @@ library
     Control.Monad.Free.Church
     Control.Monad.Free.Class
     Control.Monad.Trans.Free
+    Control.Monad.Trans.Free.Church
     Control.Monad.Trans.Iter
     Control.MonadPlus.Free
 

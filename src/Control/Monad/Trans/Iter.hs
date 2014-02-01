@@ -37,6 +37,7 @@ module Control.Monad.Trans.Iter
   -- * Consuming iterative monads
   , retract
   , fold
+  , foldM
   -- * IterT ~ FreeT Identity
   , MonadFree(..)
   ) where
@@ -47,7 +48,9 @@ import Control.Monad.Fix
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.State.Class
+import Control.Monad.Error.Class
 import Control.Monad.Reader.Class
+import Control.Monad.IO.Class
 import Data.Bifunctor
 import Data.Bitraversable
 import Data.Functor.Bind
@@ -176,6 +179,14 @@ instance (Functor m, MonadState s m) => MonadState s (IterT m) where
   {-# INLINE state #-}
 #endif
 
+instance (Functor m, MonadError e m) => MonadError e (IterT m) where
+  throwError = lift . throwError
+  {-# INLINE throwError #-}
+  IterT m `catchError` f = IterT $ (liftM (fmap (`catchError` f)) m) `catchError` (runIterT . f)
+
+instance (Functor m, MonadIO m) => MonadIO (IterT m) where
+  liftIO = lift . liftIO
+
 instance Monad m => MonadFree Identity (IterT m) where
   wrap = IterT . return . Right . runIdentity
   {-# INLINE wrap #-}
@@ -196,6 +207,10 @@ retract m = runIterT m >>= either return retract
 -- | Tear down a 'Free' 'Monad' using iteration.
 fold :: Monad m => (m a -> a) -> IterT m a -> a
 fold phi (IterT m) = phi (either id (fold phi) `liftM` m)
+
+-- | Like 'fold' with monadic result.
+foldM :: (Monad m, Monad n) => (m (n a) -> n a) -> IterT m a -> n a
+foldM phi (IterT m) = phi (either return (foldM phi) `liftM` m)
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a Monad homomorphism from @'IterT' m@ to @'IterT' n@.
 hoistIterT :: Monad n => (forall a. m a -> n a) -> IterT m b -> IterT n b
