@@ -72,6 +72,11 @@ instance Monad (F f) where
   return a = F (\kp _ -> kp a)
   F m >>= f = F (\kp kf -> m (\a -> runF (f a) kp kf) kf)
 
+instance MonadFix (F f) where
+  mfix f = a where
+    a = f (impure a)
+    impure (F x) = x id (error "MonadFix (F f): wrap")
+
 instance MonadPlus f => MonadPlus (F f) where
   mzero = F (\_ kf -> kf mzero)
   F f `mplus` F g = F (\kp kf -> kf (return (f kp kf) `mplus` return (g kp kf)))
