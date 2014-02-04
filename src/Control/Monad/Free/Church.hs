@@ -32,6 +32,7 @@ module Control.Monad.Free.Church
 
 import Control.Applicative
 import Control.Monad as Monad
+import Control.Monad.Fix
 import Control.Monad.Free hiding (retract, iterM)
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
