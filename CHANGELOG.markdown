@@ -1,3 +1,8 @@
+4.5
+-----
+* Added `Control.Monad.Free.TH` with `makeFree` to make it easier to write free monads.
+* Added missing instances for `MonadFix` and `MonadCont` where appropriate.
+
 4.2
 -----
 * Added `Control.Monad.Trans.Iter` and `Control.Comonad.Trans.Coiter`.
