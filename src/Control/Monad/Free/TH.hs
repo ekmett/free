@@ -12,9 +12,9 @@
 -- Automatic generation of free monadic actions.
 --
 ----------------------------------------------------------------------------
-module Control.Monad.Free.TH (
-  makeFree
-) where
+module Control.Monad.Free.TH
+  ( makeFree
+  ) where
 
 import Control.Arrow
 import Control.Applicative

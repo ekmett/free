@@ -50,6 +50,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.State.Class
 import Control.Monad.Error.Class
+import Control.Monad.Cont.Class
 import Data.Monoid
 import Data.Foldable
 import Data.Functor.Identity
@@ -175,6 +176,9 @@ instance (Functor f, MonadError e m) => MonadError e (FreeT f m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
   FreeT m `catchError` f = FreeT $ (liftM (fmap (`catchError` f)) m) `catchError` (runFreeT . f)
+
+instance (Functor f, MonadCont m) => MonadCont (FreeT f m) where
+  callCC f = FreeT $ callCC (\k -> runFreeT $ f (lift . k . Pure))
 
 instance (Functor f, MonadPlus m) => Alternative (FreeT f m) where
   empty = FreeT mzero

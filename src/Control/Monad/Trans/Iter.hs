@@ -50,6 +50,7 @@ import Control.Monad.Free.Class
 import Control.Monad.State.Class
 import Control.Monad.Error.Class
 import Control.Monad.Reader.Class
+import Control.Monad.Cont.Class
 import Control.Monad.IO.Class
 import Data.Bifunctor
 import Data.Bitraversable
@@ -186,6 +187,9 @@ instance (Functor m, MonadError e m) => MonadError e (IterT m) where
 
 instance (Functor m, MonadIO m) => MonadIO (IterT m) where
   liftIO = lift . liftIO
+
+instance (MonadCont m) => MonadCont (IterT m) where
+  callCC f = IterT $ callCC (\k -> runIterT $ f (lift . k . Left))
 
 instance Monad m => MonadFree Identity (IterT m) where
   wrap = IterT . return . Right . runIdentity
