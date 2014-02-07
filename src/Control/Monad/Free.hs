@@ -27,6 +27,7 @@ module Control.Monad.Free
   , iter
   , iterM
   , hoistFree
+  , toFreeT
   , _Pure, _Free
   ) where
 
@@ -34,6 +35,7 @@ import Control.Applicative
 import Control.Monad (liftM, MonadPlus(..))
 import Control.Monad.Fix
 import Control.Monad.Trans.Class
+import qualified Control.Monad.Trans.Free as FreeT
 import Control.Monad.Free.Class
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
@@ -260,6 +262,12 @@ iterM phi (Free f) = phi $ fmap (iterM phi) f
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
 hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
+
+-- | Convert a 'Free' monad from "Control.Monad.Free" to a 'FreeT.FreeT' monad
+-- from "Control.Monad.Trans.Free".
+toFreeT :: (Functor f, Monad m) => Free f a -> FreeT.FreeT f m a
+toFreeT (Pure a) = FreeT.FreeT (return (FreeT.Pure a))
+toFreeT (Free f) = FreeT.FreeT (return (FreeT.Free (fmap toFreeT f)))
 
 -- | This is @Prism' (Free f a) a@ in disguise
 --
