@@ -41,6 +41,8 @@ import Data.Foldable
 import Data.Functor.Identity
 import Data.Semigroup
 import Data.Traversable
+import Control.Monad (liftM)
+import Control.Monad.Trans
 import Prelude hiding (id,(.))
 
 #if defined(GHC_TYPEABLE) || __GLASGOW_HASKELL__ >= 707
@@ -128,6 +130,26 @@ instance Eq (w (CofreeF f a (CofreeT f w a))) => Eq (CofreeT f w a) where
 
 instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
   compare (CofreeT a) (CofreeT b) = compare a b
+
+instance (Alternative f, Monad w) => Monad (CofreeT f w) where
+  return = CofreeT . return . (:< empty)
+  {-# INLINE return #-}
+  (CofreeT cx) >>= f = CofreeT $ do
+    (a :< m) <- cx
+    (b :< n) <- runCofreeT $ f a
+    return $ b :< (n <|> fmap (>>= f) m)
+
+instance (Alternative f, Applicative w) => Applicative (CofreeT f w) where
+  pure = CofreeT . pure . (:< empty)
+  {-# INLINE pure #-}
+  (CofreeT wf) <*> aa@(CofreeT wa) = CofreeT $
+    ( \(f :< t) ->
+      \(a)      ->
+      let (b :< n) = bimap f (fmap f) a in
+      b :< (n <|> fmap (<*> aa) t)) <$> wf <*> wa
+
+instance (Alternative f) => MonadTrans (CofreeT f) where
+  lift = CofreeT . liftM (:< empty)
 
 -- | Unfold a @CofreeT@ comonad transformer from a coalgebra and an initial comonad.
 coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
