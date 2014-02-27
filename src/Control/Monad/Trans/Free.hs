@@ -32,6 +32,7 @@ module Control.Monad.Trans.Free
   -- * Operations
   , liftF
   , iterT
+  , iterTM
   , hoistFreeT
   , transFreeT
   -- * Operations of free monad
@@ -200,6 +201,14 @@ iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FreeT f m a -> m a
 iterT f (FreeT m) = do
     val <- m
     case fmap (iterT f) val of
+        Pure x -> return x
+        Free y -> f y
+
+-- | Tear down a free monad transformer using iteration over a transformer.
+iterTM :: (Functor f, Monad m, MonadTrans t, Monad (t m)) => (f (t m a) -> t m a) -> FreeT f m a -> t m a
+iterTM f (FreeT m) = do
+    val <- lift m
+    case fmap (iterTM f) val of
         Pure x -> return x
         Free y -> f y
 
