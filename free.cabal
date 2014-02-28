@@ -33,6 +33,8 @@ extra-source-files:
   .vim.custom
   README.markdown
   CHANGELOG.markdown
+  doc/proof/Control/Comonad/Cofree/*.md
+  doc/proof/Control/Comonad/Trans/Cofree/*.md
 
 source-repository head
   type: git
