@@ -11,6 +11,7 @@ module Control.Monad.Trans.Free.Church
   -- * Operations
   , toFT, fromFT
   , iterT
+  , iterTM
   , hoistFT
   , transFT
   -- * Operations of free monad
@@ -145,6 +146,10 @@ free f = FT (\kp kf -> return $ f (runIdentity . kp) (runIdentity . kf . fmap re
 iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FT f m a -> m a
 iterT phi (FT m) = m return phi
 {-# INLINE iterT #-}
+
+-- | Tear down a free monad transformer using iteration over a transformer.
+iterTM :: (Functor f, Monad m, MonadTrans t, Monad (t m)) => (f (t m a) -> t m a) -> FT f m a -> t m a
+iterTM f (FT m) = join . lift $ m (return . return) (return . f . fmap (join .lift))
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FT' f m@ to @'FT' f n@
 --
