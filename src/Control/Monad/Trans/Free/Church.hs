@@ -2,6 +2,19 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE UndecidableInstances #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Control.Monad.Trans.Free.Church
+-- Copyright   :  (C) 2008-2014 Edward Kmett
+-- License     :  BSD-style (see the file LICENSE)
+--
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  provisional
+-- Portability :  non-portable (rank-2 polymorphism, MTPCs)
+-- 
+-- Church-encoded free monad transformer.
+--
+-----------------------------------------------------------------------------
 module Control.Monad.Trans.Free.Church
   (
   -- * The free monad transformer
@@ -136,9 +149,11 @@ fromFT (FT k) = FreeT $ k (return . Pure) (runFreeT . wrap . fmap FreeT)
 -- | The \"free monad\" for a functor @f@.
 type F f = FT f Identity
 
+-- | Unwrap the 'Free' monad to obtain it's Church-encoded representation.
 runF :: Functor f => F f a -> (forall r. (a -> r) -> (f r -> r) -> r)
 runF (FT m) = \kp kf -> runIdentity $ m (return . kp) (return . kf . fmap runIdentity)
 
+-- | Wrap a Church-encoding of a \"free monad\" as the free monad for a functor.
 free :: Functor f => (forall r. (a -> r) -> (f r -> r) -> r) -> F f a
 free f = FT (\kp kf -> return $ f (runIdentity . kp) (runIdentity . kf . fmap return))
 

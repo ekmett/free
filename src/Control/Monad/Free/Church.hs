@@ -14,10 +14,38 @@
 --
 -- \"Free Monads for Less\"
 --
--- This is based on the \"Free Monads for Less\" series of articles:
+-- The most straightforward way of implementing free monads is as a recursive
+-- datatype that allows for arbitrarily deep nesting of the base functor. This is
+-- akin to a tree, with the leaves containing the values, and the nodes being a
+-- level of 'Functor' over subtrees.
+-- 
+-- For each time that the `fmap` or `>>=` operations is used, the old tree is
+-- traversed up to the leaves, a new set of nodes is allocated, and
+-- the old ones are garbage collected. Even if the Haskell runtime
+-- optimizes some of the overhead through laziness and generational garbage
+-- collection, the asymptotic runtime is still quadratic.
 --
--- <http://comonad.com/reader/2011/free-monads-for-less/>
--- <http://comonad.com/reader/2011/free-monads-for-less-2/>
+-- On the other hand, if the Church encoding is used, the tree only needs to be
+-- constructed once, because:
+--
+-- * All uses of `fmap` are collapsed into a single one, so that the values on the
+--   _leaves_ are transformed in one pass.
+-- 
+--   prop> fmap f . fmap g == fmap (f . g)
+-- 
+-- * All uses of `>>=` are right associated, so that every new subtree created
+--   is final.
+-- 
+--   prop> (m >>= f) >>= g == m >>= (\x -> f x >>= g)
+--
+-- Asymptotically, the Church encoding supports the monadic operations more
+-- efficiently than the naïve 'Free'.
+--
+-- This is based on the \"Free Monads for Less\" series of articles by Edward Kmett:
+--
+-- * <http://comonad.com/reader/2011/free-monads-for-less/   Free monads for less — Part 1>
+--
+-- * <http://comonad.com/reader/2011/free-monads-for-less-2/ Free monads for less — Part 2>
 ----------------------------------------------------------------------------
 module Control.Monad.Free.Church
   ( F(..)
@@ -42,9 +70,9 @@ import Control.Monad.State.Class
 import Data.Functor.Bind
 
 -- | The Church-encoded free monad for a functor @f@.
---
+-- 
 -- It is /asymptotically/ more efficient to use ('>>=') for 'F' than it is to ('>>=') with 'Free'.
---
+-- 
 -- <http://comonad.com/reader/2011/free-monads-for-less-2/>
 newtype F f a = F { runF :: forall r. (a -> r) -> (f r -> r) -> r }
 
@@ -127,15 +155,14 @@ toF xs = F (\kp kf -> go kp kf xs) where
   go kp kf (Free fma) = kf (fmap (go kp kf) fma)
 
 -- | Improve the asymptotic performance of code that builds a free monad with only binds and returns by using 'F' behind the scenes.
---
+-- 
 -- This is based on the \"Free Monads for Less\" series of articles by Edward Kmett:
---
--- <http://comonad.com/reader/2011/free-monads-for-less/>
--- <http://comonad.com/reader/2011/free-monads-for-less-2/>
---
--- and \"Asymptotic Improvement of Computations over Free Monads\" by Janis Voightländer:
---
--- <http://www.iai.uni-bonn.de/~jv/mpc08.pdf>
+-- 
+-- * <http://comonad.com/reader/2011/free-monads-for-less/   Free monads for less — Part 1>
+-- 
+-- * <http://comonad.com/reader/2011/free-monads-for-less-2/ Free monads for less — Part 2>
+--   
+-- and <http://www.iai.uni-bonn.de/~jv/mpc08.pdf \"Asymptotic Improvement of Computations over Free Monads\"> by Janis Voightländer.
 improve :: Functor f => (forall m. MonadFree f m => m a) -> Free f a
 improve m = fromF m
 {-# INLINE improve #-}
