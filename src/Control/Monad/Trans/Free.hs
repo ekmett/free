@@ -112,10 +112,12 @@ newtype FreeT f m a = FreeT { runFreeT :: m (FreeF f a (FreeT f m a)) }
 -- | The \"free monad\" for a functor @f@.
 type Free f = FreeT f Identity
 
+-- | Evaluates the first layer out of a free monad value.
 runFree :: Free f a -> FreeF f a (Free f a)
 runFree = runIdentity . runFreeT
 {-# INLINE runFree #-}
 
+-- | Pushes a layer into a free monad value.
 free :: FreeF f a (Free f a) -> Free f a
 free = FreeT . Identity
 {-# INLINE free #-}
