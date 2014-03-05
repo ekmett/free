@@ -13,7 +13,13 @@
 --
 ----------------------------------------------------------------------------
 module Control.Monad.Free.TH
-  ( makeFree
+  (
+   -- * Free monadic actions
+   makeFree
+   -- $doc
+
+   -- ** Example
+   -- $example
   ) where
 
 import Control.Arrow
@@ -184,3 +190,86 @@ makeFree tyCon = do
     TyConI dec -> liftDec dec
     _ -> fail "makeFree expects a type constructor"
 
+{- $doc
+ To generate free monadic actions from a @Type@, it must be a @data@
+ declaration with at least one free variable. For each constructor of the type, a
+ new function will be declared.
+ 
+ Consider the following generalized definition:
+
+ > data Type a1 a2 … aN param = …
+ >                            | FooBar t1 t2 t3 … tJ
+ >                            | (:+)   …
+ >                            | …
+ 
+ where each of the @t1 … tJ@ is either:
+   
+ 1. A type, perhaps depending on some of the @a1, …, aN@. Records are
+      interpreted as tuples.
+   
+ 2. A type dependent on @param@, of the form @s1 -> … -> sM -> param@, M ≥ 0.
+      At most 2 of the @t1, …, tJ@ may be of this form. And, out of these two,
+      at most 1 of them may have @M == 0@; that is, be of the form @param@.
+ 
+ For each constructor, a function will be generated. First, the name
+ of the function is derived from the name of the constructor:
+
+ * For prefix constructors, the name of the constructor with the first
+   letter in lowercase (e.g. @FooBar@ turns into @fooBar@).
+   
+ * For infix constructors, the name of the constructor with the first
+   character (a colon @:@), removed (e.g. @:+@ turns into @+@).
+  
+ Then, the type of the function is derived from the arguments to the constructor:
+
+ > …
+ > fooBar : (MonadFree Type m) => t1' -> … -> tK' -> m ret
+ > (+)    : (MonadFree Type m) => … -> m …
+ > …
+ 
+ The @t1', …, tK'@ are those @t1@ … @tJ@ that only depend on the
+ @a1, …, aN@.
+ 
+ The type @ret@ depends on those constructor arguments that reference the
+ @param@ type variable in the @data@ declaration:
+   
+     * If no arguments to the constructor depend on @param@, @ret ≡ a@, where
+       @a@ is a fresh type variable.
+
+     * If only one argument in the constructor depends on @param@, then
+       @ret ≡ (s1, …, sM)@. If @M == 0@, then @ret ≡ ()@.
+   
+     * If two arguments depend on @param@, (e.g. @u1 -> … -> uL -> param@ and
+       @v1 -> … -> vM -> param@, then @ret ≡ Either (u1, …, uL) (v1, …, vM)@.
+
+ Note that @Either a ()@ and @Either () a@ are both isomorphic to @Maybe a@.
+ Because of this, when @L@ or @M@ is 0 in the third case above, the type of
+ @ret@ is simplified:
+  
+     * @ret ≡ Either (u1, …, uL) ()@ is rewritten to @ret ≡ Maybe (u1, …, uL)@.
+
+     * @ret ≡ Either () (v1, …, vM)@ is rewritten to @ret ≡ Maybe (v1, …, vM)@.
+
+-}
+
+{- $example
+ Given the type:
+ 
+  > data Teletype r = Halt                                  -- Abort (ignore all following instructions)
+  >                 | GetChar (Char -> r)                   -- Get a character from the terminal
+  >                 | GetCharOrEOF (Char -> r) r            -- GetChar with error handling
+  >                 | GetCharOrError (Err -> r) (Char -> r) -- GetChar with error code
+  >                 | PutChar Char r                        -- Write a character to the terminal
+  >                 | String :% [String] r                  -- String interpolation
+  >                     
+  > makeFree ''Teletype
+ 
+ the following functions would be made available:
+  
+  > halt           :: (MonadFree Teletype m) => m a
+  > getChar        :: (MonadFree Teletype m) => m Char
+  > getCharOrEOF   :: (MonadFree Teletype m) => m (Maybe Char)
+  > getCharOrError :: (MonadFree Teletype m) => m (Either Err Char)
+  > putChar        :: (MonadFree Teletype m) => m ()
+  > (%)            :: (MonadFree Teletype m) => String -> String -> m ()
+-}
