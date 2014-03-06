@@ -21,7 +21,7 @@
 ----------------------------------------------------------------------------
 module Control.Comonad.Trans.Cofree
   ( CofreeT(..)
-  , cofree, runCofree
+  , Cofree, cofree, runCofree
   , CofreeF(..)
   , ComonadCofree(..)
   , headF
