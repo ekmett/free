@@ -32,8 +32,13 @@ module Control.Monad.Trans.Free
   -- * Operations
   , liftF
   , iterT
+  , iterTM
   , hoistFreeT
   , transFreeT
+  -- * Operations of free monad
+  , retract
+  , iter
+  , iterM
   -- * Free Monads With Class
   , MonadFree(..)
   ) where
@@ -46,6 +51,8 @@ import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
 import Control.Monad.State.Class
+import Control.Monad.Error.Class
+import Control.Monad.Cont.Class
 import Data.Monoid
 import Data.Foldable
 import Data.Functor.Identity
@@ -185,6 +192,14 @@ instance (Functor f, MonadState s m) => MonadState s (FreeT f m) where
   {-# INLINE state #-}
 #endif
 
+instance (Functor f, MonadError e m) => MonadError e (FreeT f m) where
+  throwError = lift . throwError
+  {-# INLINE throwError #-}
+  FreeT m `catchError` f = FreeT $ (liftM (fmap (`catchError` f)) m) `catchError` (runFreeT . f)
+
+instance (Functor f, MonadCont m) => MonadCont (FreeT f m) where
+  callCC f = FreeT $ callCC (\k -> runFreeT $ f (lift . k . Pure))
+
 instance (Functor f, MonadPlus m) => Alternative (FreeT f m) where
   empty = FreeT mzero
   FreeT ma <|> FreeT mb = FreeT (mplus ma mb)
@@ -208,6 +223,14 @@ iterT f (FreeT m) = do
         Pure x -> return x
         Free y -> f y
 
+-- | Tear down a free monad transformer using iteration over a transformer.
+iterTM :: (Functor f, Monad m, MonadTrans t, Monad (t m)) => (f (t m a) -> t m a) -> FreeT f m a -> t m a
+iterTM f (FreeT m) = do
+    val <- lift m
+    case fmap (iterTM f) val of
+        Pure x -> return x
+        Free y -> f y
+
 instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
   foldMap f (FreeT m) = foldMap (bifoldMap f (foldMap f)) m
 
@@ -223,6 +246,26 @@ hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g n@
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
+
+-- |
+-- 'retract' is the left inverse of 'liftF'
+--
+-- @
+-- 'retract' . 'liftF' = 'id'
+-- @
+retract :: Monad f => Free f a -> f a
+retract m =
+  case runIdentity (runFreeT m) of
+    Pure a  -> return a
+    Free as -> as >>= retract
+
+-- | Tear down a 'Free' 'Monad' using iteration.
+iter :: Functor f => (f a -> a) -> Free f a -> a
+iter phi = runIdentity . iterT (Identity . phi . fmap runIdentity)
+
+-- | Like 'iter' for monadic values.
+iterM :: (Functor f, Monad m) => (f (m a) -> m a) -> Free f a -> m a
+iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where

@@ -32,6 +32,7 @@ module Control.Monad.Free.Church
 
 import Control.Applicative
 import Control.Monad as Monad
+import Control.Monad.Fix
 import Control.Monad.Free hiding (retract, iterM)
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
@@ -71,6 +72,11 @@ instance Bind (F f) where
 instance Monad (F f) where
   return a = F (\kp _ -> kp a)
   F m >>= f = F (\kp kf -> m (\a -> runF (f a) kp kf) kf)
+
+instance MonadFix (F f) where
+  mfix f = a where
+    a = f (impure a)
+    impure (F x) = x id (error "MonadFix (F f): wrap")
 
 instance MonadPlus f => MonadPlus (F f) where
   mzero = F (\_ kf -> kf mzero)
