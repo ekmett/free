@@ -168,6 +168,7 @@ liftCon f n ns con =
   case con of
     NormalC cName fields -> liftCon' f n ns cName $ map snd fields
     RecC    cName fields -> liftCon' f n ns cName $ map (\(_, _, ty) -> ty) fields
+    InfixC  (_,t1) cName (_,t2) -> liftCon' f n ns cName [t1, t2]
     _ -> fail $ "liftCon: Don't know how to lift " ++ show con
 
 -- | Provide free monadic actions for a type declaration.
@@ -223,8 +224,8 @@ makeFree tyCon = do
  Then, the type of the function is derived from the arguments to the constructor:
 
  > …
- > fooBar : (MonadFree Type m) => t1' -> … -> tK' -> m ret
- > (+)    : (MonadFree Type m) => … -> m …
+ > fooBar :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
+ > (+)    :: (MonadFree Type m) => … -> m …
  > …
  
  The @t1', …, tK'@ are those @t1@ … @tJ@ that only depend on the
@@ -237,7 +238,8 @@ makeFree tyCon = do
        @a@ is a fresh type variable.
 
      * If only one argument in the constructor depends on @param@, then
-       @ret ≡ (s1, …, sM)@. If @M == 0@, then @ret ≡ ()@.
+       @ret ≡ (s1, …, sM)@. If @M == 0@, then @ret ≡ ()@; if @M == 1@,
+       @ret ≡ s1@.
    
      * If two arguments depend on @param@, (e.g. @u1 -> … -> uL -> param@ and
        @v1 -> … -> vM -> param@, then @ret ≡ Either (u1, …, uL) (v1, …, vM)@.
@@ -252,24 +254,116 @@ makeFree tyCon = do
 
 -}
 
+-- BEGIN Teletype.lhs
 {- $example
- Given the type:
+
+This is literate Haskell! To run this example, open the source of this
+module and copy the whole comment block into a file with '.lhs'
+extension. For example, @Teletype.lhs@.
+
+@\{\-\# LANGUAGE DeriveFunctor, TemplateHaskell, FlexibleContexts \#\-\}@
+
+> {-# LANGUAGE DeriveFunctor, TemplateHaskell, FlexibleContexts #-} --
+
+> import Control.Monad         (mfilter)
+> import Control.Monad.Loops   (unfoldM)
+> import Control.Monad.Free    (liftF, Free, iterM, MonadFree)
+> import Control.Monad.Free.TH (makeFree)
+> import Control.Applicative   ((<$>))
+> import System.IO             (isEOF)
+> import Control.Exception     (catch)
+> import System.IO.Error       (ioeGetErrorString)
+> import System.Exit           (exitSuccess)
+
+First, we define a data type with the primitive actions of a teleprinter. The
+@r@ will stand for the next action to execute.
+
+> type Error = String
+>
+> data Teletype r = Halt                                  -- Abort (ignore all following instructions)
+>                 | NL r                                  -- Newline
+>                 | Read (Char -> r)                      -- Get a character from the terminal
+>                 | ReadOrEOF r (Char -> r)               -- GetChar if not end of file
+>                 | ReadOrError (Error -> r) (Char -> r)  -- GetChar with error code
+>                 | r :\^^ String                         -- Write a message to the terminal
+>                 | (:%) r String [String]                -- String interpolation
+>                 deriving (Functor)
+
+By including a 'makeFree' declaration:
+
+> makeFree ''Teletype
+
+the following functions have been made available:
+
+@
+ halt        :: (MonadFree Teletype m) => m a
+ nL          :: (MonadFree Teletype m) => m ()
+ read        :: (MonadFree Teletype m) => m Char
+ readOrEOF   :: (MonadFree Teletype m) => m (Maybe Char)
+ readOrError :: (MonadFree Teletype m) => m (Either Error Char)
+ (\\^^)       :: (MonadFree Teletype m) => String -> m ()
+ (%)         :: (MonadFree Teletype m) => String -> [String] -> m ()
+@
+
+To make use of them, we need an instance of 'MonadFree Teletype'. Since 'Teletype' is a
+'Functor', we can use the one provided in the 'Control.Monad.Free' package.
+
+> type TeletypeM = Free Teletype
+
+Programs can be run in different ways. For example, we can use the
+system terminal through the @IO@ monad.
+
+> runTeletypeIO :: TeletypeM a -> IO a
+> runTeletypeIO = iterM run where
+>   run :: Teletype (IO a) -> IO a
+>   run Halt                      = do
+>     putStrLn "This conversation can serve no purpose anymore. Goodbye."
+>     exitSuccess
+> 
+>   run (Read f)                  = getChar >>= f 
+>   run (ReadOrEOF eof f)         = isEOF >>= \b -> if b then eof
+>                                                        else getChar >>= f
+>
+>   run (ReadOrError ferror f)    = catch (getChar >>= f) (ferror . ioeGetErrorString)
+>   run (NL rest)                 = putChar '\n' >> rest
+>   run (rest :\^^ str)           = putStr str >> rest
+>   run ((:%) rest format tokens) = ttFormat format tokens >> rest
+>
+>   ttFormat :: String -> [String] -> IO ()
+>   ttFormat []            _          = return ()
+>   ttFormat ('\\':'%':cs) tokens     = putChar '%'  >> ttFormat cs tokens
+>   ttFormat ('%':cs)      (t:tokens) = putStr t     >> ttFormat cs tokens
+>   ttFormat (c:cs)        tokens     = putChar c    >> ttFormat cs tokens
+
+Now, we can write some helper functions:
+
+> readLine :: TeletypeM String
+> readLine = unfoldM $ mfilter (/= '\n') <$> readOrEOF
  
-  > data Teletype r = Halt                                  -- Abort (ignore all following instructions)
-  >                 | GetChar (Char -> r)                   -- Get a character from the terminal
-  >                 | GetCharOrEOF (Char -> r) r            -- GetChar with error handling
-  >                 | GetCharOrError (Err -> r) (Char -> r) -- GetChar with error code
-  >                 | PutChar Char r                        -- Write a character to the terminal
-  >                 | String :% [String] r                  -- String interpolation
-  >                     
-  > makeFree ''Teletype
- 
- the following functions would be made available:
-  
-  > halt           :: (MonadFree Teletype m) => m a
-  > getChar        :: (MonadFree Teletype m) => m Char
-  > getCharOrEOF   :: (MonadFree Teletype m) => m (Maybe Char)
-  > getCharOrError :: (MonadFree Teletype m) => m (Either Err Char)
-  > putChar        :: (MonadFree Teletype m) => m ()
-  > (%)            :: (MonadFree Teletype m) => String -> String -> m ()
+And use them to interact with the user:
+
+> hello :: TeletypeM ()
+> hello = do
+>           (\^^) "Hello! What's your name?"; nL
+>           name <- readLine
+>           "Nice to meet you, %." % [name]; nL
+>           halt
+
+We can transform any @TeletypeM@ into an @IO@ action, and run it:
+
+> main :: IO ()
+> main = runTeletypeIO hello
+
+@
+ Hello! What's your name?
+ $ Dave
+ Nice to meet you, Dave.
+ This conversation can serve no purpose anymore. Goodbye.
+@
+
+When specifying DSLs in this way, we only need to define the semantics
+for each of the actions; the plumbing of values is taken care of by
+the generated monad instance.
+
 -}
+-- END Teletype.lhs
