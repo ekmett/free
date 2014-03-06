@@ -88,12 +88,32 @@ instance Traversable f => Bitraversable (CofreeF f) where
 -- | This is a cofree comonad of some functor @f@, with a comonad @w@ threaded through it at each level.
 newtype CofreeT f w a = CofreeT { runCofreeT :: w (CofreeF f a (CofreeT f w a)) }
 
+-- | The cofree `Comonad` of a functor @f@.
 type Cofree f = CofreeT f Identity
 
+{- |
+Wrap another layer around a cofree comonad value.
+
+@cofree@ is a right inverse of `runCofree`.
+
+@
+runCofree . cofree == id
+@
+-}
 cofree :: CofreeF f a (Cofree f a) -> Cofree f a
 cofree = CofreeT . Identity
 {-# INLINE cofree #-}
 
+
+{- |
+Unpeel the first layer off a cofree comonad value.
+
+@runCofree@ is a right inverse of `cofree`.
+
+@
+cofree . runCofree == id
+@
+-}
 runCofree :: Cofree f a -> CofreeF f a (Cofree f a)
 runCofree = runIdentity . runCofreeT
 {-# INLINE runCofree #-}
