@@ -196,22 +196,24 @@ makeFree tyCon = do
  declaration with at least one free variable. For each constructor of the type, a
  new function will be declared.
  
- Consider the following generalized definition:
+ Consider the following generalized definitions:
 
  > data Type a1 a2 … aN param = …
  >                            | FooBar t1 t2 t3 … tJ
- >                            | (:+)   …
+ >                            | (:+) t1 t2 t3 … tJ
+ >                            | t1 :* t2
+ >                            | t1 `Bar` t2
+ >                            | Baz { x :: t1, y :: t2, …, z :: tJ } 
  >                            | …
  
- where each of the @t1 … tJ@ is either:
+ where each of the constructor arguments @t1, …, tJ@ is either:
    
- 1. A type, perhaps depending on some of the @a1, …, aN@. Records are
-      interpreted as tuples.
+ 1. A type, perhaps depending on some of the @a1, …, aN@. 
    
  2. A type dependent on @param@, of the form @s1 -> … -> sM -> param@, M ≥ 0.
       At most 2 of the @t1, …, tJ@ may be of this form. And, out of these two,
       at most 1 of them may have @M == 0@; that is, be of the form @param@.
- 
+
  For each constructor, a function will be generated. First, the name
  of the function is derived from the name of the constructor:
 
@@ -225,27 +227,27 @@ makeFree tyCon = do
 
  > …
  > fooBar :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
- > (+)    :: (MonadFree Type m) => … -> m …
+ > (+)    :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
+ > baz    :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
  > …
  
  The @t1', …, tK'@ are those @t1@ … @tJ@ that only depend on the
  @a1, …, aN@.
  
  The type @ret@ depends on those constructor arguments that reference the
- @param@ type variable in the @data@ declaration:
+ @param@ type variable:
    
-     * If no arguments to the constructor depend on @param@, @ret ≡ a@, where
+     1. If no arguments to the constructor depend on @param@, @ret ≡ a@, where
        @a@ is a fresh type variable.
 
-     * If only one argument in the constructor depends on @param@, then
-       @ret ≡ (s1, …, sM)@. If @M == 0@, then @ret ≡ ()@; if @M == 1@,
-       @ret ≡ s1@.
+     2. If only one argument in the constructor depends on @param@, then
+       @ret ≡ (s1, …, sM)@. In particular, f @M == 0@, then @ret ≡ ()@; if @M == 1@, @ret ≡ s1@.
    
-     * If two arguments depend on @param@, (e.g. @u1 -> … -> uL -> param@ and
+     3. If two arguments depend on @param@, (e.g. @u1 -> … -> uL -> param@ and
        @v1 -> … -> vM -> param@, then @ret ≡ Either (u1, …, uL) (v1, …, vM)@.
 
  Note that @Either a ()@ and @Either () a@ are both isomorphic to @Maybe a@.
- Because of this, when @L@ or @M@ is 0 in the third case above, the type of
+ Because of this, when @L == 0@ or @M == 0@ in case 3., the type of
  @ret@ is simplified:
   
      * @ret ≡ Either (u1, …, uL) ()@ is rewritten to @ret ≡ Maybe (u1, …, uL)@.
@@ -276,17 +278,19 @@ extension. For example, @Teletype.lhs@.
 > import System.Exit           (exitSuccess)
 
 First, we define a data type with the primitive actions of a teleprinter. The
-@r@ will stand for the next action to execute.
+@param@ will stand for the next action to execute.
 
 > type Error = String
 >
-> data Teletype r = Halt                                  -- Abort (ignore all following instructions)
->                 | NL r                                  -- Newline
->                 | Read (Char -> r)                      -- Get a character from the terminal
->                 | ReadOrEOF r (Char -> r)               -- GetChar if not end of file
->                 | ReadOrError (Error -> r) (Char -> r)  -- GetChar with error code
->                 | r :\^^ String                         -- Write a message to the terminal
->                 | (:%) r String [String]                -- String interpolation
+> data Teletype param = Halt                                  -- Abort (ignore all following instructions)
+>                 | NL param                              -- Newline
+>                 | Read (Char -> param)                  -- Get a character from the terminal
+>                 | ReadOrEOF { onEOF  :: param,
+>                               onChar :: Char -> param } -- GetChar if not end of file
+>                 | ReadOrError (Error -> param)
+>                               (Char -> param)           -- GetChar with error code
+>                 | param :\^^ String                     -- Write a message to the terminal
+>                 | (:%) param String [String]            -- String interpolation
 >                 deriving (Functor)
 
 By including a 'makeFree' declaration:
