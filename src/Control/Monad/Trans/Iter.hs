@@ -180,7 +180,9 @@ instance (MonadWriter w m) => MonadWriter w (IterT m) where
   pass m = IterT . pass' . runIterT . hoistIterT clean $ listen m
     where
       clean = pass . liftM (\x -> (x, const mempty))
-      pass' = join . liftM (either (\((x, f), w) -> tell (f w) >> return (Left x)) (return . Right . IterT . pass' . runIterT))
+      pass' = join . liftM g
+      g (Left  ((x, f), w)) = tell (f w) >> return (Left x)
+      g (Right f)           = return . Right . IterT . pass' . runIterT $ f
 #if MIN_VERSION_mtl(2,1,1)
   writer w = lift (writer w)
   {-# INLINE writer #-}
