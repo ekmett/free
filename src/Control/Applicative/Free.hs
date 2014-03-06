@@ -18,7 +18,15 @@
 -- 'Applicative' functors for free
 ----------------------------------------------------------------------------
 module Control.Applicative.Free
-  ( Ap(..)
+  (
+  -- | Compared to the free monad, they are less expressive. However, they are also more
+  -- flexible to inspect and interpret, as the number of ways in which
+  -- the values can be nested is more limited.
+  --
+  -- See <http://paolocapriotti.com/assets/applicative.pdf Free Applicative Functors>,
+  -- by Paolo Capriotti and Ambrus Kaposi, for some applications.
+
+    Ap(..)
   , runAp
   , liftAp
   , hoistAp
@@ -41,6 +49,8 @@ data Ap f a where
 #endif
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
+--
+-- prop> runAp t == retractApp . hoistApp t
 runAp :: Applicative g => (forall x. f x -> g x) -> Ap f a -> g a
 runAp _ (Pure x) = pure x
 runAp u (Ap f x) = flip id <$> u f <*> runAp u x
@@ -68,6 +78,10 @@ hoistAp :: (forall a. f a -> g a) -> Ap f b -> Ap g b
 hoistAp _ (Pure a) = Pure a
 hoistAp f (Ap x y) = Ap (f x) (hoistAp f y)
 
+-- | Interprets the free applicative functor over f using the semantics for
+--   `pure` and `<*>` given by the Applicative instance for f.
+--
+--   prop> retractApp == runAp id
 retractAp :: Applicative f => Ap f a -> f a
 retractAp (Pure a) = pure a
 retractAp (Ap x y) = x <**> retractAp y
