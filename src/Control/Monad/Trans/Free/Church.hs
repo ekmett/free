@@ -30,6 +30,7 @@ import Control.Monad.Identity
 import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
+import Control.Monad.Writer.Class
 import Control.Monad.State.Class
 import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
@@ -109,6 +110,16 @@ instance (Functor f, MonadReader r m) => MonadReader r (FT f m) where
   {-# INLINE ask #-}
   local f = hoistFT (local f)
   {-# INLINE local #-}
+
+instance (Functor f, MonadWriter w m) => MonadWriter w (FT f m) where
+  tell = lift . tell
+  {-# INLINE tell #-}
+  listen = toFT . listen . fromFT
+  pass = toFT . pass . fromFT
+#if MIN_VERSION_mtl(2,1,1)
+  writer w = lift (writer w)
+  {-# INLINE writer #-}
+#endif
 
 instance (Functor f, MonadState s m) => MonadState s (FT f m) where
   get = lift get
