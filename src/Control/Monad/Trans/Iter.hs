@@ -46,10 +46,12 @@ module Control.Monad.Trans.Iter
     IterT(..)
   -- * Capretta's iterative monad
   , Iter, iter, runIter
-  -- * Operations
+  -- * Combinators
   , delay
   , hoistIterT
-  , toIterT
+  , liftIter
+  , cut
+  , never
   -- * Consuming iterative monads
   , retract
   , fold
@@ -253,8 +255,34 @@ hoistIterT :: Monad n => (forall a. m a -> n a) -> IterT m b -> IterT n b
 hoistIterT f (IterT as) = IterT (fmap (hoistIterT f) `liftM` f as)
 
 -- | Lifts a plain, non-terminating computation into a richer environment.
-toIterT :: (Monad m) => Iter a -> IterT m a
-toIterT = hoistIterT (return . runIdentity)
+-- 'liftIter' is a 'Monad' homomorphism.
+liftIter :: (Monad m) => Iter a -> IterT m a
+liftIter = hoistIterT (return . runIdentity)
+
+-- | A computation that never terminates
+never :: (Monad f, MonadFree f m) => m a
+never = delay never
+
+-- | Cuts off an iterative computation after a given number of
+-- steps. If the number of steps is 0 or less, no computation nor
+-- monadic effects will take place.
+--
+-- The step where the final value is produced also counts towards the limit.
+--
+-- Some examples (n ≥ 0):
+--
+-- prop> cut 0     _        == return Nothing
+-- prop> cut (n+1) . return == return . Just
+-- prop> cut (n+1) . lift   ==   lift . liftM Just
+-- prop> cut (n+1) . delay  ==  delay . cut n
+-- prop> cut n     never    == iterate delay (return Nothing) !! n
+--
+-- Calling 'retract . cut n' is always terminating, provided each of the
+-- steps in the iteration is terminating.
+cut :: (Monad m) => Integer -> IterT m a -> IterT m (Maybe a)
+cut n | n <= 0 = const $ return Nothing
+cut n          = IterT . liftM (either (Left . Just)
+                                       (Right . cut (n - 1))) . runIterT
 
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 m => Typeable1 (IterT m) where
@@ -367,7 +395,7 @@ computation.
 Any simple, non-terminating computation can be lifted into a richer environment.
 
 > escaped' :: Complex Double -> IterT (ReaderT Canvas IO) Int
-> escaped' = toIterT . escaped
+> escaped' = liftIter . escaped
 
 Then, to draw a point, we can just retrieve the number of iterations until it
 finishes, and draw it. The color will depend on the number of iterations.
@@ -431,10 +459,8 @@ To run this computation, we can just use @retract@, which will run indefinitely:
 Or, we can trade non-termination for getting an incomplete result,
 by cutting off after a certain number of steps.
 
-> cut :: (Monad m) => Integer -> IterT m a -> IterT m (Maybe a)
-> cut n | n < 0 = const $ return Nothing
-> cut n         = IterT . liftM (either (Left . Just)
->                                       (Right . cut (n - 1))) . runIterT
+> runFractalM' :: Integer -> Canvas -> FractalM a -> IO (Maybe a)
+> runFractalM' n canvas  = flip runReaderT canvas . retract . cut n
 
 Thanks to the 'IterT' transformer, we can separate timeout concerns from
 computational concerns.
@@ -446,7 +472,7 @@ computational concerns.
 >   runGraphics $ do
 >     w <- openWindowEx "Mandelbrot" Nothing (windowWidth, windowHeight) DoubleBuffered (Just 1)
 >     let canvas = Canvas windowWidth windowHeight w
->     runFractalM canvas . cut 100 $ drawMandelbrot
+>     runFractalM' 100 canvas drawMandelbrot
 >     putStrLn $ "Fin"
 
 -}
