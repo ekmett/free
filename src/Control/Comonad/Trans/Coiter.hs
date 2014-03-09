@@ -48,6 +48,7 @@ import Control.Arrow
 import Control.Comonad
 import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
+import Control.Comonad.Env.Class
 import Control.Category
 import Data.Bifunctor
 import Data.Bifoldable
@@ -101,6 +102,10 @@ instance ComonadTrans CoiterT where
 instance Comonad w => ComonadCofree Identity (CoiterT w) where
   unwrap = Identity . snd . extract . runCoiterT
   {-# INLINE unwrap #-}
+  
+instance ComonadEnv e w => ComonadEnv e (CoiterT w) where
+  ask (CoiterT w) = ask w
+  {-# INLINE ask #-}
 
 instance Show (w (a, CoiterT w a)) => Show (CoiterT w a) where
   showsPrec d w = showParen (d > 10) $
@@ -179,44 +184,54 @@ to find zeroes of a function is one such algorithm.
 > import Control.Applicative
 > import Data.Foldable (toList, find)
 
-> data Function = Function { function   :: Double -> Double,
->                            derivative :: Double -> Double
->                          }
+> data Function = Function {
+>   -- Function to find zeroes of
+>   function   :: Double -> Double,
+>   -- Derivative of the function
+>   derivative :: Double -> Double
+> }
 > 
-> data Result = Result { value  :: Double,
->                        xerror :: Double,
->                        ferror :: Double
->                        } deriving (Show)
+> data Result = Result {
+>   -- Estimated zero of the function
+>   value  :: Double,
+>   -- Estimated distance to the actual zero
+>   xerror :: Double,
+>   -- How far is value from being an actual zero; that is,
+>   -- the difference between @0@ and @f value@
+>   ferror :: Double
+> } deriving (Show)
 > 
 > data Outlook = Outlook { result :: Result,
+>                          -- Whether the result improves in future steps
 >                          progress :: Bool } deriving (Show)
-> 
 
 To make our lives easier, we will store the problem at hand using the Env
 environment comonad.
 
 > type Solution a = CoiterT (Env Function) a
 
-Accessing the environment when working with the stream is simple enough:
- 
-> instance ComonadEnv e w => ComonadEnv e (CoiterT w) where
->   ask (CoiterT w) = ask w
-
-We can express an iterative algorithm using unfold over a problem and
+Problems consist of a function and its derivative as the environment, and
 an initial value.
+
+> type Problem = Env Function Double
+
+We can express an iterative algorithm using unfold over an initial environment.
  
-> newton :: Env Function Double -> Solution Double
+> newton :: Problem -> Solution Double
 > newton = unfold (\wd ->
 >                     let  f  = asks function wd in
 >                     let df  = asks derivative wd in
 >                     let  x  = extract wd in
->                     x - (f x)/(df x))
+>                     x - f x / df x)
 > 
 > 
 
 To estimate the error, we look forward one position in the stream. The next value
 will be much more precise than the current one, so we can consider it as the
 actual result.
+
+We know that the exact value of a function at one of it's zeroes is 0. So,
+@ferror@ can be computed exactly as @abs (f a - f 0) == abs (f a)@
 
 > estimateError :: Solution Double -> Result
 > estimateError s =
@@ -233,11 +248,15 @@ future and check if the result improves at all.
 > estimateOutlook :: Int -> Solution Result -> Outlook
 > estimateOutlook sampleSize solution =
 >   let sample = map ferror $ take sampleSize $ tail $ toList solution in
->   Outlook { result = extract solution,
->             progress = (ferror (extract solution) > foldl1 min sample) } 
+>   let result = extract solution in
+>   Outlook { result = result,
+>             progress = ferror result > minimum sample } 
 
 To compute the square root of @c@, we solve the equation @x*x - c = 0@. We will
 stop whenever the accuracy of the result doesn't improve in the next 5 steps.
+
+The starting value for our algorithm is @c@ itself. One could compute a better
+estimate, but the algorithm converges fast enough that it's not really worth it.
 
 > squareRoot :: Double -> Maybe Result
 > squareRoot c = let problem = flip env c (Function { function = (\x -> x*x - c),
@@ -249,7 +268,7 @@ stop whenever the accuracy of the result doesn't improve in the next 5 steps.
 This program will output the result together with the error.
 
 > main :: IO ()
-> main = putStrLn $ show $ (squareRoot 4)
+> main = putStrLn $ show $ squareRoot 4
 
 -}
 -- END Coiter.lhs
