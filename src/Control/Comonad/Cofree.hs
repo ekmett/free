@@ -87,6 +87,16 @@ infixr 5 :<
 --
 -- * @'Cofree' ((->) b)'@ describes a Moore machine with states labeled with values of type a, and transitions on edges of type b.
 --
+-- Furthermore, if the functor @f@ forms a monoid (for example, by
+-- being an instance of 'Alternative'), the resulting 'Comonad' is
+-- also a 'Monad'. See
+-- <http://www.cs.appstate.edu/~johannp/jfp06-revised.pdf Monadic Augment and Generalised Shortcut Fusion> by Neil Ghani et al., Section 4.3
+-- for more details.
+--
+-- In particular, if @f a ≡ [a]@, the
+-- resulting data structure is a <https://en.wikipedia.org/wiki/Rose_tree Rose tree>.
+-- For a practical application, check 
+-- <https://personal.cis.strath.ac.uk/neil.ghani/papers/ghani-calco07 Higher Dimensional Trees, Algebraically> by Neil Ghani et al.
 data Cofree f a = a :< f (Cofree f a)
 #if __GLASGOW_HASKELL__ >= 707
   deriving (Typeable)
