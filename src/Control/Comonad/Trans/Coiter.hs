@@ -44,11 +44,14 @@ module Control.Comonad.Trans.Coiter
   -- $example
   ) where
 
-import Control.Arrow
+import Control.Arrow hiding (second)
 import Control.Comonad
-import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
 import Control.Comonad.Env.Class
+import Control.Comonad.Hoist.Class
+import Control.Comonad.Store.Class
+import Control.Comonad.Traced.Class
+import Control.Comonad.Trans.Class
 import Control.Category
 import Data.Bifunctor
 import Data.Bifoldable
@@ -104,8 +107,29 @@ instance Comonad w => ComonadCofree Identity (CoiterT w) where
   {-# INLINE unwrap #-}
   
 instance ComonadEnv e w => ComonadEnv e (CoiterT w) where
-  ask (CoiterT w) = ask w
+  ask = ask . lower
   {-# INLINE ask #-}
+  
+instance ComonadHoist CoiterT where
+  cohoist g = CoiterT . fmap (second (cohoist g)) . g . runCoiterT
+
+instance ComonadTraced m w => ComonadTraced m (CoiterT w) where
+  trace m = trace m . lower
+  {-# INLINE trace #-}
+
+instance ComonadStore s w => ComonadStore s (CoiterT w) where
+  pos = pos . lower
+  peek s = peek s . lower
+  peeks f = peeks f . lower
+  seek = seek
+  seeks = seeks
+  experiment f = experiment f . lower
+  {-# INLINE pos #-}
+  {-# INLINE peek #-}
+  {-# INLINE peeks #-}
+  {-# INLINE seek #-}
+  {-# INLINE seeks #-}
+  {-# INLINE experiment #-}
 
 instance Show (w (a, CoiterT w a)) => Show (CoiterT w a) where
   showsPrec d w = showParen (d > 10) $
