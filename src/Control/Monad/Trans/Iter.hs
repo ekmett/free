@@ -49,6 +49,7 @@ module Control.Monad.Trans.Iter
   -- * Operations
   , delay
   , hoistIterT
+  , toIterT
   -- * Consuming iterative monads
   , retract
   , fold
@@ -251,6 +252,10 @@ foldM phi (IterT m) = phi (either return (foldM phi) `liftM` m)
 hoistIterT :: Monad n => (forall a. m a -> n a) -> IterT m b -> IterT n b
 hoistIterT f (IterT as) = IterT (fmap (hoistIterT f) `liftM` f as)
 
+-- | Lifts a plain, non-terminating computation into a richer environment.
+toIterT :: (Monad m) => Iter a -> IterT m a
+toIterT = hoistIterT (return . runIdentity)
+
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 m => Typeable1 (IterT m) where
   typeOf1 t = mkTyConApp freeTyCon [typeOf1 (f t)] where
@@ -361,9 +366,6 @@ computation.
 
 Any simple, non-terminating computation can be lifted into a richer environment.
 
-> toIterT :: (Monad m) => Iter a -> IterT m a
-> toIterT = hoistIterT (return . runIdentity)
-> 
 > escaped' :: Complex Double -> IterT (ReaderT Canvas IO) Int
 > escaped' = toIterT . escaped
 
