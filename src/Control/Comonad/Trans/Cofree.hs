@@ -43,6 +43,7 @@ import Data.Semigroup
 import Data.Traversable
 import Control.Monad (liftM)
 import Control.Monad.Trans
+import Control.Monad.Zip
 import Prelude hiding (id,(.))
 
 #if defined(GHC_TYPEABLE) || __GLASGOW_HASKELL__ >= 707
@@ -170,6 +171,11 @@ instance (Alternative f, Applicative w) => Applicative (CofreeT f w) where
 
 instance (Alternative f) => MonadTrans (CofreeT f) where
   lift = CofreeT . liftM (:< empty)
+
+instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
+  mzip (CofreeT ma) (CofreeT mb) = CofreeT $ do
+                                     (a :< fa, b :< fb) <- mzip ma mb
+                                     return $ (a, b) :< (uncurry mzip <$> mzip fa fb)
 
 -- | Unfold a @CofreeT@ comonad transformer from a coalgebra and an initial comonad.
 coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
