@@ -44,11 +44,12 @@ module Control.Monad.Trans.Free
   ) where
 
 import Control.Applicative
-import Control.Monad (liftM, MonadPlus(..), ap)
+import Control.Monad (liftM, MonadPlus(..), ap, join)
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
+import Control.Monad.Writer.Class
 import Control.Monad.State.Class
 import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
@@ -164,6 +165,24 @@ instance (Functor f, MonadReader r m) => MonadReader r (FreeT f m) where
   {-# INLINE ask #-}
   local f = hoistFreeT (local f)
   {-# INLINE local #-}
+
+instance (Functor f, MonadWriter w m) => MonadWriter w (FreeT f m) where
+  tell = lift . tell
+  {-# INLINE tell #-}
+  listen (FreeT m) = FreeT $ liftM concat' $ listen (fmap listen `liftM` m)
+    where
+      concat' (Pure x, w) = Pure (x, w)
+      concat' (Free y, w) = Free $ fmap (second (w <>)) <$> y
+  pass m = FreeT . pass' . runFreeT . hoistFreeT clean $ listen m
+    where
+      clean = pass . liftM (\x -> (x, const mempty))
+      pass' = join . liftM g
+      g (Pure ((x, f), w)) = tell (f w) >> return (Pure x)
+      g (Free f)           = return . Free . fmap (FreeT . pass' . runFreeT) $ f
+#if MIN_VERSION_mtl(2,1,1)
+  writer w = lift (writer w)
+  {-# INLINE writer #-}
+#endif
 
 instance (Functor f, MonadState s m) => MonadState s (FreeT f m) where
   get = lift get
