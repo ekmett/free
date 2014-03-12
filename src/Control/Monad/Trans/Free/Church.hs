@@ -1,7 +1,13 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+#ifndef MIN_VERSION_mtl
+#define MIN_VERSION_mtl(x,y,z) 1
+#endif
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.Free.Church

@@ -7,8 +7,8 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
-#ifndef MIN_VERSION_MTL
-#define MIN_VERSION_MTL(x,y,z) 1
+#ifndef MIN_VERSION_mtl
+#define MIN_VERSION_mtl(x,y,z) 1
 #endif
 
 -----------------------------------------------------------------------------
