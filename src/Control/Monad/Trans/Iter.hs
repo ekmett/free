@@ -304,7 +304,9 @@ cutoff n | n <= 0 = const $ return Nothing
 cutoff n          = IterT . liftM (either (Left . Just)
                                        (Right . cutoff (n - 1))) . runIterT
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if defined(GHC_TYPEABLE)
+
+#if __GLASGOW_HASKELL__ < 707
 instance Typeable1 m => Typeable1 (IterT m) where
   typeOf1 t = mkTyConApp freeTyCon [typeOf1 (f t)] where
     f :: IterT m a -> m a
@@ -317,6 +319,12 @@ freeTyCon = mkTyCon "Control.Monad.Iter.IterT"
 freeTyCon = mkTyCon3 "free" "Control.Monad.Iter" "IterT"
 #endif
 {-# NOINLINE freeTyCon #-}
+
+#else
+
+#define Typeable1 Typeable
+
+#endif
 
 instance
   ( Typeable1 m, Typeable a
