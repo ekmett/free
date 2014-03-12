@@ -116,13 +116,13 @@ unifyT (TupleT 0, _) (t, e) = do
   maybe'   <- ConT <$> findTypeOrFail  "Maybe"
   nothing' <- ConE <$> findValueOrFail "Nothing"
   just'    <- ConE <$> findValueOrFail "Just"
-  return $ (AppT maybe' t, [nothing', mapRet (AppE just') e])
+  return (AppT maybe' t, [nothing', mapRet (AppE just') e])
 unifyT x y@(TupleT 0, _) = second reverse <$> unifyT y x
 unifyT (t1, e1) (t2, e2) = do
   either' <- ConT <$> findTypeOrFail  "Either"
   left'   <- ConE <$> findValueOrFail "Left"
   right'  <- ConE <$> findValueOrFail "Right"
-  return $ (AppT (AppT either' t1) t2, [mapRet (AppE left') e1, mapRet (AppE right') e2])
+  return (AppT (AppT either' t1) t2, [mapRet (AppE left') e1, mapRet (AppE right') e2])
 
 -- | Unifying a list of types (possibly refining expressions).
 -- Name is used when the return type is supposed to be arbitrary.
@@ -157,7 +157,7 @@ liftCon' f n ns cn ts = do
       q = map PlainTV $ qa ++ m : ns
       qa = case retType of VarT b | a == b -> [a]; _ -> []
       f' = foldl AppT f (map VarT ns)
-  return $
+  return
     [ SigD opName (ForallT q [ClassP monadFree [f', VarT m]] opType)
     , FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ]
 
