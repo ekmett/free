@@ -1,3 +1,10 @@
+4.6
+---
+* Víctor López Juan and Fabian Ruch added many documentation improvements and a whole host of proofs of correctness.
+* Improvements in the template haskell code generator.
+* Added instances for `MonadWriter` and `MonadCont` where appropriate, thanks to Nickolay Kudasov.
+* Added `cutoff`, `iterTM`, and `never`.
+
 4.5
 -----
 * Added `Control.Monad.Free.TH` with `makeFree` to make it easier to write free monads.
