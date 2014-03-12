@@ -8,6 +8,10 @@
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
+
+#ifndef MIN_VERSION_mtl
+#define MIN_VERSION_mtl(x,y,z) 1
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.Free
