@@ -155,19 +155,19 @@ instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
 instance (Alternative f, Monad w) => Monad (CofreeT f w) where
   return = CofreeT . return . (:< empty)
   {-# INLINE return #-}
-  (CofreeT cx) >>= f = CofreeT $ do
-    (a :< m) <- cx
-    (b :< n) <- runCofreeT $ f a
+  CofreeT cx >>= f = CofreeT $ do
+    a :< m <- cx
+    b :< n <- runCofreeT $ f a
     return $ b :< (n <|> fmap (>>= f) m)
+
 
 instance (Alternative f, Applicative w) => Applicative (CofreeT f w) where
   pure = CofreeT . pure . (:< empty)
   {-# INLINE pure #-}
-  (CofreeT wf) <*> aa@(CofreeT wa) = CofreeT $
-    ( \(f :< t) ->
-      \(a)      ->
-      let (b :< n) = bimap f (fmap f) a in
-      b :< (n <|> fmap (<*> aa) t)) <$> wf <*> wa
+  wf <*> wa = CofreeT $ go <$> runCofreeT wf <*> runCofreeT wa where
+    go (f :< t) a = case bimap f (fmap f) a of
+      b :< n -> b :< (n <|> fmap (<*> wa) t)
+  {-# INLINE (<*>) #-}
 
 instance (Alternative f) => MonadTrans (CofreeT f) where
   lift = CofreeT . liftM (:< empty)

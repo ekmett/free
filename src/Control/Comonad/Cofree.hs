@@ -190,7 +190,9 @@ instance (Read (f (Cofree f a)), Read a) => Read (Cofree f a) where
                                   (v, w) <- readsPrec 5 t]) r
 
 instance (Eq (f (Cofree f a)), Eq a) => Eq (Cofree f a) where
+#ifndef HLINT
   a :< as == b :< bs = a == b && as == bs
+#endif
 
 instance (Ord (f (Cofree f a)), Ord a) => Ord (Cofree f a) where
   compare (a :< as) (b :< bs) = case compare a b of
