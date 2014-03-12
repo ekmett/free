@@ -229,7 +229,7 @@ instance (Functor m, MonadState s m) => MonadState s (IterT m) where
 instance (Functor m, MonadError e m) => MonadError e (IterT m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
-  IterT m `catchError` f = IterT $ (liftM (fmap (`catchError` f)) m) `catchError` (runIterT . f)
+  IterT m `catchError` f = IterT $ liftM (fmap (`catchError` f)) m `catchError` (runIterT . f)
 
 instance (Functor m, MonadIO m) => MonadIO (IterT m) where
   liftIO = lift . liftIO
