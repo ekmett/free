@@ -88,7 +88,7 @@ instance Apply (F f) where
 
 instance Applicative (F f) where
   pure a = F (\kp _ -> kp a)
-  F f <*> F g = F (\kp kf -> f (\a -> g (\b -> kp (a b)) kf) kf)
+  F f <*> F g = F (\kp kf -> f (\a -> g (kp . a) kf) kf)
 
 instance Alternative f => Alternative (F f) where
   empty = F (\_ kf -> kf empty)
