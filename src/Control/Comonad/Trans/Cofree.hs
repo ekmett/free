@@ -88,6 +88,9 @@ instance Traversable f => Bitraversable (CofreeF f) where
 
 -- | This is a cofree comonad of some functor @f@, with a comonad @w@ threaded through it at each level.
 newtype CofreeT f w a = CofreeT { runCofreeT :: w (CofreeF f a (CofreeT f w a)) }
+#if __GLASGOW_HASKELL__ >= 707
+  deriving Typeable
+#endif
 
 -- | The cofree `Comonad` of a functor @f@.
 type Cofree f = CofreeT f Identity
@@ -181,7 +184,9 @@ instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
 coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
 coiterT psi = CofreeT . extend (\w -> extract w :< fmap (coiterT psi) (psi w))
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if defined(GHC_TYPEABLE) 
+
+#if __GLASGOW_HASKELL__ < 707
 
 instance Typeable1 f => Typeable2 (CofreeF f) where
   typeOf2 t = mkTyConApp cofreeFTyCon [typeOf1 (f t)] where
@@ -205,6 +210,10 @@ cofreeFTyCon = mkTyCon3 "free" "Control.Comonad.Trans.Cofree" "CofreeF"
 #endif
 {-# NOINLINE cofreeTTyCon #-}
 {-# NOINLINE cofreeFTyCon #-}
+
+#else
+#define Typeable1 Typeable
+#endif
 
 instance
   ( Typeable1 f, Typeable a, Typeable b
