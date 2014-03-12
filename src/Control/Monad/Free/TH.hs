@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.TH
