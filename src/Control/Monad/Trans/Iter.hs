@@ -36,7 +36,7 @@ module Control.Monad.Trans.Iter
   -- Some computations may perform side effects (@unsafePerformIO@), throw an
   -- exception (using @error@); or not terminate
   -- (@let infinity = 1 + infinity in infinity@).
-  -- 
+  --
   -- While the 'IO' monad encapsulates side-effects, and the 'Either'
   -- monad encapsulates errors, the 'Iter' monad encapsulates
   -- non-termination. The 'IterT' transformer generalizes non-termination to any monadic
@@ -50,7 +50,7 @@ module Control.Monad.Trans.Iter
   , delay
   , hoistIterT
   , liftIter
-  , cut
+  , cutoff
   , never
   -- * Consuming iterative monads
   , retract
@@ -102,7 +102,7 @@ newtype IterT m a = IterT { runIterT :: m (Either a (IterT m a)) }
 type Iter = IterT Identity
 
 -- | Builds an iterative computation from one first step.
--- 
+--
 -- prop> runIter . iter == id
 iter :: Either a (Iter a) -> Iter a
 iter = IterT . Identity
@@ -248,7 +248,7 @@ instance Monad m => MonadFree Identity (IterT m) where
 -- computation require one more step, without changing its final
 -- result.
 --
--- prop> runIter (delay ma) == Right ma 
+-- prop> runIter (delay ma) == Right ma
 delay :: (Monad f, MonadFree f m) => m a -> m a
 delay = wrap . return
 {-# INLINE delay #-}
@@ -291,18 +291,18 @@ never = delay never
 --
 -- Some examples (n ≥ 0):
 --
--- prop> cut 0     _        == return Nothing
--- prop> cut (n+1) . return == return . Just
--- prop> cut (n+1) . lift   ==   lift . liftM Just
--- prop> cut (n+1) . delay  ==  delay . cut n
--- prop> cut n     never    == iterate delay (return Nothing) !! n
+-- prop> cutoff 0     _        == return Nothing
+-- prop> cutoff (n+1) . return == return . Just
+-- prop> cutoff (n+1) . lift   ==   lift . liftM Just
+-- prop> cutoff (n+1) . delay  ==  delay . cutoff n
+-- prop> cutoff n     never    == iterate delay (return Nothing) !! n
 --
--- Calling 'retract . cut n' is always terminating, provided each of the
+-- Calling 'retract . cutoff n' is always terminating, provided each of the
 -- steps in the iteration is terminating.
-cut :: (Monad m) => Integer -> IterT m a -> IterT m (Maybe a)
-cut n | n <= 0 = const $ return Nothing
-cut n          = IterT . liftM (either (Left . Just)
-                                       (Right . cut (n - 1))) . runIterT
+cutoff :: (Monad m) => Integer -> IterT m a -> IterT m (Maybe a)
+cutoff n | n <= 0 = const $ return Nothing
+cutoff n          = IterT . liftM (either (Left . Just)
+                                       (Right . cutoff (n - 1))) . runIterT
 
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 instance Typeable1 m => Typeable1 (IterT m) where
@@ -359,7 +359,7 @@ For example: @ghc -o 'mandelbrot_iter' -O2 MandelbrotIter.lhs ; ./mandelbrot_ite
 > import "mtl" Control.Monad.List
 > import "mtl" Control.Monad.Identity
 > import Control.Monad.IO.Class
-> import Data.Complex 
+> import Data.Complex
 > import Graphics.HGL (runGraphics, Window, withPen,
 >                      line, RGB (RGB), RedrawMode (Unbuffered, DoubleBuffered), openWindowEx,
 >                      drawInWindow, mkPen, Style (Solid))
@@ -368,13 +368,13 @@ Some fractals can be defined by infinite sequences of complex numbers. For examp
 to render the <https://en.wikipedia.org/wiki/Mandelbrot_set Mandelbrot set>,
 the following sequence is generated for each point @c@ in the complex plane:
 
-  z₀ = c     
+  z₀ = c
 
-  z₁ = z₀² + c     
+  z₁ = z₀² + c
 
-  z₂ = z₁² + c     
+  z₂ = z₁² + c
 
-  …     
+  …
 
 If, after some iterations, |z_i| ≥ 2, the point is not in the set. We
 can compute if a point is not in the Mandelbrot set this way:
@@ -409,7 +409,7 @@ By using 'IterT', we can add all these behaviours to our non-terminating
 computation.
 
 > data Canvas = Canvas { width :: Int, height :: Int, window :: Window }
-> 
+>
 > type FractalM a = IterT (ReaderT Canvas IO) a
 
 Any simple, non-terminating computation can be lifted into a richer environment.
@@ -437,7 +437,7 @@ Im z = [-1,1], Re z = [-2,1].
 >   (w,h) <- asks $ (fromIntegral . width) &&& (fromIntegral . height)
 >   let (x,y) = (fromIntegral xi, fromIntegral yi)
 >   let im = (-y + h / 2     ) / (h/2)
->   let re = ( x - w * 2 / 3 ) / (h/2) 
+>   let re = ( x - w * 2 / 3 ) / (h/2)
 >   return $ re :+ im
 
 Drawing a point is equivalent to drawing a line of length one.
@@ -480,7 +480,7 @@ Or, we can trade non-termination for getting an incomplete result,
 by cutting off after a certain number of steps.
 
 > runFractalM' :: Integer -> Canvas -> FractalM a -> IO (Maybe a)
-> runFractalM' n canvas  = flip runReaderT canvas . retract . cut n
+> runFractalM' n canvas  = flip runReaderT canvas . retract . cutoff n
 
 Thanks to the 'IterT' transformer, we can separate timeout concerns from
 computational concerns.
