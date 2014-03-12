@@ -169,7 +169,7 @@ instance (Alternative f, Applicative w) => Applicative (CofreeT f w) where
       b :< n -> b :< (n <|> fmap (<*> wa) t)
   {-# INLINE (<*>) #-}
 
-instance (Alternative f) => MonadTrans (CofreeT f) where
+instance Alternative f => MonadTrans (CofreeT f) where
   lift = CofreeT . liftM (:< empty)
 
 instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
@@ -179,7 +179,7 @@ instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
 
 -- | Unfold a @CofreeT@ comonad transformer from a coalgebra and an initial comonad.
 coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
-coiterT psi = CofreeT . (extend $ \w -> extract w :< fmap (coiterT psi) (psi w))
+coiterT psi = CofreeT . extend (\w -> extract w :< fmap (coiterT psi) (psi w))
 
 #if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
 
