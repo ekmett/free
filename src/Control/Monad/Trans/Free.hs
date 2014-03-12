@@ -201,7 +201,7 @@ instance (Functor f, MonadState s m) => MonadState s (FreeT f m) where
 instance (Functor f, MonadError e m) => MonadError e (FreeT f m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
-  FreeT m `catchError` f = FreeT $ (liftM (fmap (`catchError` f)) m) `catchError` (runFreeT . f)
+  FreeT m `catchError` f = FreeT $ liftM (fmap (`catchError` f)) m `catchError` (runFreeT . f)
 
 instance (Functor f, MonadCont m) => MonadCont (FreeT f m) where
   callCC f = FreeT $ callCC (\k -> runFreeT $ f (lift . k . Pure))
