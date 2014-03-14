@@ -192,13 +192,13 @@ instance (Monad m, Traversable1 m) => Traversable1 (IterT m) where
     go (Right a) = Right <$> traverse1 f a
   {-# INLINE traverse1 #-}
 
-instance (Functor m, MonadReader e m) => MonadReader e (IterT m) where
+instance MonadReader e m => MonadReader e (IterT m) where
   ask = lift ask
   {-# INLINE ask #-}
   local f = hoistIterT (local f)
   {-# INLINE local #-}
 
-instance (MonadWriter w m) => MonadWriter w (IterT m) where
+instance MonadWriter w m => MonadWriter w (IterT m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen (IterT m) = IterT $ liftM concat' $ listen (fmap listen `liftM` m)
@@ -216,7 +216,7 @@ instance (MonadWriter w m) => MonadWriter w (IterT m) where
   {-# INLINE writer #-}
 #endif
 
-instance (Functor m, MonadState s m) => MonadState s (IterT m) where
+instance MonadState s m => MonadState s (IterT m) where
   get = lift get
   {-# INLINE get #-}
   put s = lift (put s)
@@ -226,15 +226,15 @@ instance (Functor m, MonadState s m) => MonadState s (IterT m) where
   {-# INLINE state #-}
 #endif
 
-instance (Functor m, MonadError e m) => MonadError e (IterT m) where
+instance MonadError e m => MonadError e (IterT m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
   IterT m `catchError` f = IterT $ liftM (fmap (`catchError` f)) m `catchError` (runIterT . f)
 
-instance (Functor m, MonadIO m) => MonadIO (IterT m) where
+instance MonadIO m => MonadIO (IterT m) where
   liftIO = lift . liftIO
 
-instance (MonadCont m) => MonadCont (IterT m) where
+instance MonadCont m => MonadCont (IterT m) where
   callCC f = IterT $ callCC (\k -> runIterT $ f (lift . k . Left))
 
 instance Monad m => MonadFree Identity (IterT m) where

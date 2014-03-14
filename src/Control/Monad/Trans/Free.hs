@@ -57,6 +57,7 @@ import Control.Monad.Writer.Class
 import Control.Monad.State.Class
 import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
+import Data.Functor.Bind hiding (join)
 import Data.Monoid
 import Data.Foldable
 import Data.Functor.Identity
@@ -148,6 +149,12 @@ instance (Functor f, Monad m) => Applicative (FreeT f m) where
   {-# INLINE pure #-}
   (<*>) = ap
   {-# INLINE (<*>) #-}
+
+instance (Functor f, Monad m) => Apply (FreeT f m) where
+  (<.>) = (<*>)
+
+instance (Functor f, Monad m) => Bind (FreeT f m) where
+  (>>-) = (>>=)
 
 instance (Functor f, Monad m) => Monad (FreeT f m) where
   return a = FreeT (return (Pure a))
