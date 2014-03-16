@@ -51,6 +51,7 @@ module Control.Monad.Trans.Iter
   , liftIter
   , cutoff
   , never
+  , interleave, interleave_
   -- * Consuming iterative monads
   , retract
   , fold
@@ -74,10 +75,11 @@ import Control.Monad.Cont.Class
 import Control.Monad.IO.Class
 import Data.Bifunctor
 import Data.Bitraversable
+import Data.Either
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Identity
 import Data.Foldable hiding (fold)
-import Data.Traversable
+import Data.Traversable hiding (mapM)
 import Data.Monoid
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
@@ -303,6 +305,61 @@ cutoff n | n <= 0 = const $ return Nothing
 cutoff n          = IterT . liftM (either (Left . Just)
                                        (Right . cutoff (n - 1))) . runIterT
 
+-- | Interleaves the steps of a finite list of iterative computations, and
+--   collects their results.
+--
+--   The resulting computation has as many steps as the longest computation
+--   in the list.
+interleave :: Monad m => [IterT m a] -> IterT m [a]
+interleave ms = IterT $ do
+  xs <- mapM runIterT ms
+  if null (rights xs)
+     then return . Left $ lefts xs
+     else return . Right . interleave $ map (either return id) xs
+{-# INLINE interleave #-}
+
+-- | Interleaves the steps of a finite list of computations, and discards their
+--   results.
+--
+--   The resulting computation has as many steps as the longest computation
+--   in the list.
+--
+--   Equivalent to @void . interleave@.
+interleave_ :: (Monad m) => [IterT m a] -> IterT m ()
+interleave_ [] = return ()
+interleave_ xs = IterT $ liftM (Right . interleave_ . rights) $ mapM runIterT xs
+{-# INLINE interleave_ #-}
+
+instance (Monad m, Monoid a) => Monoid (IterT m a) where
+  mempty = return mempty
+  x `mappend` y = IterT $ do
+    x' <- runIterT x
+    y' <- runIterT y
+    case (x', y') of
+      ( Left a, Left b)  -> return . Left  $ a `mappend` b
+      ( Left a, Right b) -> return . Right $ liftM (a `mappend`) b
+      (Right a, Left b)  -> return . Right $ liftM (`mappend` b) a
+      (Right a, Right b) -> return . Right $ a `mappend` b
+
+  mconcat = mconcat' . map Right
+    where
+      mconcat' :: (Monad m, Monoid a) => [Either a (IterT m a)] -> IterT m a
+      mconcat' ms = IterT $ do
+        xs <- mapM (either (return . Left) runIterT) ms
+        case compact xs of
+          [l@(Left _)] -> return l
+          xs' -> return . Right $ mconcat' xs'
+      {-# INLINE mconcat' #-}
+
+      compact :: (Monoid a) => [Either a b] -> [Either a b]
+      compact []               = []
+      compact (r@(Right _):xs) = r:(compact xs)
+      compact (   Left a  :xs)  = compact' a xs
+
+      compact' a []               = [Left a]
+      compact' a (r@(Right _):xs) = (Left a):(r:(compact xs))
+      compact' a (  (Left a'):xs) = compact' (a <> a') xs
+
 #if defined(GHC_TYPEABLE)
 
 #if __GLASGOW_HASKELL__ < 707
@@ -375,13 +432,15 @@ Some fractals can be defined by infinite sequences of complex numbers. For examp
 to render the <https://en.wikipedia.org/wiki/Mandelbrot_set Mandelbrot set>,
 the following sequence is generated for each point @c@ in the complex plane:
 
-  z₀ = c
+@
+z₀ = c      
 
-  z₁ = z₀² + c
+z₁ = z₀² + c       
 
-  z₂ = z₁² + c
+z₂ = z₁² + c        
 
-  …
+…
+@
 
 If, after some iterations, |z_i| ≥ 2, the point is not in the set. We
 can compute if a point is not in the Mandelbrot set this way:
@@ -455,28 +514,16 @@ Drawing a point is equivalent to drawing a line of length one.
 >   let point = line (x,y) (x+1, y+1)
 >   liftIO $ drawInWindow w $ mkPen Solid 1 color (flip withPen point)
 
-
 We may want to draw more than one point. However, if we just sequence the computations
 monadically, the first point that is not a member of the set will block the whole
-process. We need advance all the points at the same pace.
-
-> iterForM_ :: (Monad m) => [a] -> (a -> IterT m ()) -> IterT m ()
-> iterForM_ as f = exhaust $ map f as
->   where
->     exhaust :: (Monad m) => [IterT m ()] -> IterT m ()
->     exhaust [] = return ()
->     exhaust xs = IterT $ do
->       l <- mapM runIterT xs
->       return $ Right $ exhaust $ l >>= (either (const []) (:[]))
-
-With this combinator in place, drawing the complete set is just drawing each
-of the possible points:
+process. We need advance all the points at the same pace, by interleaving the
+computations.
 
 > drawMandelbrot :: FractalM ()
 > drawMandelbrot = do
 >   (w,h) <- asks $ width &&& height
->   let ps = [(x,y) | x <- [0 .. (w-1)], y <- [0 .. (h-1)]]
->   iterForM_ ps mandelbrotPoint
+>   let ps = [mandelbrotPoint (x,y) | x <- [0 .. (w-1)], y <- [0 .. (h-1)]]
+>   interleave_ ps
 
 To run this computation, we can just use @retract@, which will run indefinitely:
 
