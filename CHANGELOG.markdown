@@ -5,6 +5,7 @@
 * Added instances for `MonadWriter` and `MonadCont` where appropriate, thanks to Nickolay Kudasov.
 * Added `cutoff`, `iterTM`, and `never`.
 * Made modifications to some `Typeable` and `Data` instances to work correctly on both GHC 7.8.1rc1 and 7.8.1rc2.
+* Removed `Control.MonadPlus.Free`. Use `FreeT f []` instead.
 
 4.5
 -----
