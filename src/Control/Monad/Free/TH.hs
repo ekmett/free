@@ -194,7 +194,7 @@ makeFree tyCon = do
  To generate free monadic actions from a @Type@, it must be a @data@
  declaration with at least one free variable. For each constructor of the type, a
  new function will be declared.
- 
+
  Consider the following generalized definitions:
 
  > data Type a1 a2 … aN param = …
@@ -202,13 +202,13 @@ makeFree tyCon = do
  >                            | (:+) t1 t2 t3 … tJ
  >                            | t1 :* t2
  >                            | t1 `Bar` t2
- >                            | Baz { x :: t1, y :: t2, …, z :: tJ } 
+ >                            | Baz { x :: t1, y :: t2, …, z :: tJ }
  >                            | …
- 
+
  where each of the constructor arguments @t1, …, tJ@ is either:
-   
- 1. A type, perhaps depending on some of the @a1, …, aN@. 
-   
+
+ 1. A type, perhaps depending on some of the @a1, …, aN@.
+
  2. A type dependent on @param@, of the form @s1 -> … -> sM -> param@, M ≥ 0.
       At most 2 of the @t1, …, tJ@ may be of this form. And, out of these two,
       at most 1 of them may have @M == 0@; that is, be of the form @param@.
@@ -218,10 +218,10 @@ makeFree tyCon = do
 
  * For prefix constructors, the name of the constructor with the first
    letter in lowercase (e.g. @FooBar@ turns into @fooBar@).
-   
+
  * For infix constructors, the name of the constructor with the first
    character (a colon @:@), removed (e.g. @:+@ turns into @+@).
-  
+
  Then, the type of the function is derived from the arguments to the constructor:
 
  > …
@@ -229,26 +229,26 @@ makeFree tyCon = do
  > (+)    :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
  > baz    :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
  > …
- 
+
  The @t1', …, tK'@ are those @t1@ … @tJ@ that only depend on the
  @a1, …, aN@.
- 
+
  The type @ret@ depends on those constructor arguments that reference the
  @param@ type variable:
-   
+
      1. If no arguments to the constructor depend on @param@, @ret ≡ a@, where
        @a@ is a fresh type variable.
 
      2. If only one argument in the constructor depends on @param@, then
        @ret ≡ (s1, …, sM)@. In particular, f @M == 0@, then @ret ≡ ()@; if @M == 1@, @ret ≡ s1@.
-   
+
      3. If two arguments depend on @param@, (e.g. @u1 -> … -> uL -> param@ and
        @v1 -> … -> vM -> param@, then @ret ≡ Either (u1, …, uL) (v1, …, vM)@.
 
  Note that @Either a ()@ and @Either () a@ are both isomorphic to @Maybe a@.
  Because of this, when @L == 0@ or @M == 0@ in case 3., the type of
  @ret@ is simplified:
-  
+
      * @ret ≡ Either (u1, …, uL) ()@ is rewritten to @ret ≡ Maybe (u1, …, uL)@.
 
      * @ret ≡ Either () (v1, …, vM)@ is rewritten to @ret ≡ Maybe (v1, …, vM)@.
@@ -322,8 +322,8 @@ system terminal through the @IO@ monad.
 >   run Halt                      = do
 >     putStrLn "This conversation can serve no purpose anymore. Goodbye."
 >     exitSuccess
-> 
->   run (Read f)                  = getChar >>= f 
+>
+>   run (Read f)                  = getChar >>= f
 >   run (ReadOrEOF eof f)         = isEOF >>= \b -> if b then eof
 >                                                        else getChar >>= f
 >
@@ -342,7 +342,7 @@ Now, we can write some helper functions:
 
 > readLine :: TeletypeM String
 > readLine = unfoldM $ mfilter (/= '\n') <$> readOrEOF
- 
+
 And use them to interact with the user:
 
 > hello :: TeletypeM ()
