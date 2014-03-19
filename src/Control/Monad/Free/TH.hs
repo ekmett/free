@@ -158,7 +158,11 @@ liftCon' f n ns cn ts = do
       qa = case retType of VarT b | a == b -> [a]; _ -> []
       f' = foldl AppT f (map VarT ns)
   return
+#if __GLASGOW_HASKELL__ >= 709
+    [ SigD opName (ForallT q [ConT monadFree `AppT` f' `AppT` VarT m] opType)
+#else
     [ SigD opName (ForallT q [ClassP monadFree [f', VarT m]] opType)
+#endif
     , FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ]
 
 -- | Provide free monadic actions for a single value constructor.
