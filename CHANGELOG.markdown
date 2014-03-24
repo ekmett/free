@@ -1,3 +1,7 @@
+4.6.1
+-----
+* Added `hoistF`
+
 4.6
 ---
 * Víctor López Juan and Fabian Ruch added many documentation improvements and a whole host of proofs of correctness.
