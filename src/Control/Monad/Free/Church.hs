@@ -54,6 +54,7 @@ module Control.Monad.Free.Church
   , iterM
   , toF
   , retract
+  , hoistF
   , MonadFree(..)
   , liftF
   ) where
@@ -142,6 +143,10 @@ instance MonadCont m => MonadCont (F m) where
 retract :: Monad m => F m a -> m a
 retract (F m) = m return Monad.join
 {-# INLINE retract #-}
+
+-- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @F f@ to @F g@.
+hoistF :: (forall x. f x -> g x) -> F f a -> F g a
+hoistF t (F m) = F (\p f -> m p (f . t))
 
 -- | Convert to another free monad representation.
 fromF :: MonadFree f m => F f a -> m a
