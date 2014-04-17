@@ -33,6 +33,7 @@ module Control.Monad.Trans.Free.Church
   , iterTM
   , hoistFT
   , transFT
+  , cutoff
   -- * Operations of free monad
   , improve
   , fromF, toF
@@ -55,6 +56,7 @@ import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Control.Monad.Free.Class
 import Control.Monad.Trans.Free (FreeT(..), FreeF(..), Free)
+import qualified Control.Monad.Trans.Free as FreeT
 import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
 import Data.Traversable (Traversable)
@@ -192,6 +194,22 @@ hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (return . kf . f
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FT' f m@ to @'FT' g n@
 transFT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FT f m b -> FT g m b
 transFT phi (FT m) = FT (\kp kf -> m kp (kf . phi))
+
+-- | Cuts off a tree of computations at a given depth.
+-- If the depth is 0 or less, no computation nor
+-- monadic effects will take place.
+--
+-- Some examples (n ≥ 0):
+--
+-- prop> cutoff 0     _        == return Nothing
+-- prop> cutoff (n+1) . return == return . Just
+-- prop> cutoff (n+1) . lift   ==   lift . liftM Just
+-- prop> cutoff (n+1) . wrap   ==  wrap . fmap (cutoff n)
+--
+-- Calling 'retract . cutoff n' is always terminating, provided each of the
+-- steps in the iteration is terminating.
+cutoff :: (Functor f, Monad m) => Integer -> FT f m a -> FT f m (Maybe a)
+cutoff n = toFT . FreeT.cutoff n . fromFT
 
 -- |
 -- 'retract' is the left inverse of 'liftF'
