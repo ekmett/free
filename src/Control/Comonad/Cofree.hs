@@ -43,6 +43,7 @@ import Control.Monad(ap)
 import Control.Monad.Zip
 import Data.Functor.Bind
 import Data.Functor.Extend
+import Data.Data
 import Data.Distributive
 import Data.Foldable
 import Data.Semigroup
@@ -50,10 +51,8 @@ import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Prelude hiding (id,(.))
+import Prelude.Extras
 
-#ifdef GHC_TYPEABLE
-import Data.Data
-#endif
 
 infixr 5 :<
 
@@ -178,9 +177,20 @@ instance Alternative f => Applicative (Cofree f) where
   (<*>) = ap
   {-# INLINE (<*>) #-}
 
+instance (Functor f, Show1 f) => Show1 (Cofree f) where
+  showsPrec1 d (a :< as) = showParen (d > 5) $
+    showsPrec 6 a . showString " :< " . showsPrec1 5 (fmap Lift1 as)
+
 instance (Show (f (Cofree f a)), Show a) => Show (Cofree f a) where
   showsPrec d (a :< as) = showParen (d > 5) $
     showsPrec 6 a . showString " :< " . showsPrec 5 as
+
+instance (Functor f, Read1 f) => Read1 (Cofree f) where
+  readsPrec1 d r = readParen (d > 5)
+                          (\r' -> [(u :< fmap lower1 v,w) |
+                                  (u, s) <- readsPrec 6 r',
+                                  (":<", t) <- lex s,
+                                  (v, w) <- readsPrec1 5 t]) r
 
 instance (Read (f (Cofree f a)), Read a) => Read (Cofree f a) where
   readsPrec d r = readParen (d > 5)
@@ -194,10 +204,21 @@ instance (Eq (f (Cofree f a)), Eq a) => Eq (Cofree f a) where
   a :< as == b :< bs = a == b && as == bs
 #endif
 
+instance (Functor f, Eq1 f) => Eq1 (Cofree f) where
+#ifndef HLINT
+  a :< as ==# b :< bs = a == b && fmap Lift1 as ==# fmap Lift1 bs
+#endif
+
 instance (Ord (f (Cofree f a)), Ord a) => Ord (Cofree f a) where
   compare (a :< as) (b :< bs) = case compare a b of
     LT -> LT
     EQ -> compare as bs
+    GT -> GT
+
+instance (Functor f, Ord1 f) => Ord1 (Cofree f) where
+  compare1 (a :< as) (b :< bs) = case compare a b of
+    LT -> LT
+    EQ -> compare1 (fmap Lift1 as) (fmap Lift1 bs)
     GT -> GT
 
 instance Foldable f => Foldable (Cofree f) where
@@ -220,7 +241,7 @@ instance Traversable1 f => Traversable1 (Cofree f) where
     go (a :< as) = (:<) <$> f a <.> traverse1 go as
   {-# INLINE traverse1 #-}
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if __GLASGOW_HASKELL__ < 707
 instance (Typeable1 f) => Typeable1 (Cofree f) where
   typeOf1 dfa = mkTyConApp cofreeTyCon [typeOf1 (f dfa)]
     where
