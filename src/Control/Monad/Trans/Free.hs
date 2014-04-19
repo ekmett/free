@@ -65,9 +65,8 @@ import Data.Traversable
 import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
-#ifdef GHC_TYPEABLE
 import Data.Data
-#endif
+import Prelude.Extras
 
 -- | The base functor for a free monad.
 data FreeF f a b = Pure a | Free (f b)
@@ -76,6 +75,43 @@ data FreeF f a b = Pure a | Free (f b)
            ,Typeable
 #endif
            )
+
+instance Show1 f => Show2 (FreeF f) where
+  showsPrec2 d (Pure a)  = showParen (d > 10) $ showString "Pure " . showsPrec 11 a
+  showsPrec2 d (Free as) = showParen (d > 10) $ showString "Free " . showsPrec1 11 as
+
+instance (Show1 f, Show a) => Show1 (FreeF f a) where
+  showsPrec1 = showsPrec2
+
+instance Read1 f => Read2 (FreeF f) where
+  readsPrec2 d r = readParen (d > 10)
+      (\r' -> [ (Pure m, t)
+             | ("Pure", s) <- lex r'
+             , (m, t) <- readsPrec 11 s]) r
+    ++ readParen (d > 10)
+      (\r' -> [ (Free m, t)
+             | ("Free", s) <- lex r'
+             , (m, t) <- readsPrec1 11 s]) r
+
+instance (Read1 f, Read a) => Read1 (FreeF f a) where
+  readsPrec1 = readsPrec2
+
+instance Eq1 f => Eq2 (FreeF f) where
+  Pure a  ==## Pure b = a == b
+  Free as ==## Free bs = as ==# bs
+  _       ==## _ = False
+
+instance (Eq1 f, Eq a) => Eq1 (FreeF f a) where
+  (==#) = (==##)
+
+instance Ord1 f => Ord2 (FreeF f) where
+  Pure a `compare2` Pure b = a `compare` b
+  Pure _ `compare2` Free _ = LT
+  Free _ `compare2` Pure _ = GT
+  Free fa `compare2` Free fb = fa `compare1` fb
+
+instance (Ord1 f, Ord a) => Ord1 (FreeF f a) where
+  compare1 = compare2
 
 instance Functor f => Functor (FreeF f a) where
   fmap _ (Pure a)  = Pure a
@@ -280,7 +316,7 @@ iter phi = runIdentity . iterT (Identity . phi . fmap runIdentity)
 iterM :: (Functor f, Monad m) => (f (m a) -> m a) -> Free f a -> m a
 iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where
   typeOf2 t = mkTyConApp freeFTyCon [typeOf1 (f t)] where
     f :: FreeF f a b -> f a
