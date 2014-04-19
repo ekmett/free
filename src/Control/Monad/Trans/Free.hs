@@ -60,6 +60,7 @@ import Control.Monad.Cont.Class
 import Data.Functor.Bind hiding (join)
 import Data.Monoid
 import Data.Foldable
+import Data.Function (on)
 import Data.Functor.Identity
 import Data.Traversable
 import Data.Bifunctor
@@ -165,11 +166,26 @@ free = FreeT . Identity
 {-# INLINE free #-}
 
 deriving instance Eq (m (FreeF f a (FreeT f m a))) => Eq (FreeT f m a)
+
+instance (Functor f, Eq1 f, Functor m, Eq1 m) => Eq1 (FreeT f m) where
+  (==#) = on (==#) (fmap (Lift1 . fmap Lift1) . runFreeT)
+
 deriving instance Ord (m (FreeF f a (FreeT f m a))) => Ord (FreeT f m a)
+
+instance (Functor f, Ord1 f, Functor m, Ord1 m) => Ord1 (FreeT f m) where
+  compare1 = on compare1 (fmap (Lift1 . fmap Lift1) . runFreeT)
+
+instance (Functor f, Show1 f, Functor m, Show1 m) => Show1 (FreeT f m) where
+  showsPrec1 d (FreeT m) = showParen (d > 10) $
+    showString "FreeT " . showsPrec1 11 (Lift1 . fmap Lift1 <$> m)
 
 instance Show (m (FreeF f a (FreeT f m a))) => Show (FreeT f m a) where
   showsPrec d (FreeT m) = showParen (d > 10) $
     showString "FreeT " . showsPrec 11 m
+
+instance (Functor f, Read1 f, Functor m, Read1 m) => Read1 (FreeT f m) where
+  readsPrec1 d =  readParen (d > 10) $ \r ->
+    [ (FreeT (fmap lower1 . lower1 <$> m),t) | ("FreeT",s) <- lex r, (m,t) <- readsPrec1 11 s]
 
 instance Read (m (FreeF f a (FreeT f m a))) => Read (FreeT f m a) where
   readsPrec d =  readParen (d > 10) $ \r ->
