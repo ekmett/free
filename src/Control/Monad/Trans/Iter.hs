@@ -79,15 +79,14 @@ import Data.Either
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Identity
 import Data.Foldable hiding (fold)
+import Data.Function (on)
 import Data.Traversable hiding (mapM)
 import Data.Monoid
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Typeable
-
-#ifdef GHC_TYPEABLE
 import Data.Data
-#endif
+import Prelude.Extras
 
 -- | The monad supporting iteration based over a base monad @m@.
 --
@@ -116,15 +115,29 @@ runIter :: Iter a -> Either a (Iter a)
 runIter = runIdentity . runIterT
 {-# INLINE runIter #-}
 
+instance (Functor m, Eq1 m) => Eq1 (IterT m) where
+  (==#) = on (==#) (fmap (fmap Lift1) . runIterT)
+
 instance Eq (m (Either a (IterT m a))) => Eq (IterT m a) where
   IterT m == IterT n = m == n
+
+instance (Functor m, Ord1 m) => Ord1 (IterT m) where
+  compare1 = on compare1 (fmap (fmap Lift1) . runIterT)
 
 instance Ord (m (Either a (IterT m a))) => Ord (IterT m a) where
   compare (IterT m) (IterT n) = compare m n
 
+instance (Functor m, Show1 m) => Show1 (IterT m) where
+  showsPrec1 d (IterT m) = showParen (d > 10) $
+    showString "IterT " . showsPrec1 11 (fmap (fmap Lift1) m)
+
 instance Show (m (Either a (IterT m a))) => Show (IterT m a) where
   showsPrec d (IterT m) = showParen (d > 10) $
     showString "IterT " . showsPrec 11 m
+
+instance (Functor m, Read1 m) => Read1 (IterT m) where
+  readsPrec1 d =  readParen (d > 10) $ \r ->
+    [ (IterT (fmap (fmap lower1) m),t) | ("IterT",s) <- lex r, (m,t) <- readsPrec1 11 s]
 
 instance Read (m (Either a (IterT m a))) => Read (IterT m a) where
   readsPrec d =  readParen (d > 10) $ \r ->
@@ -360,8 +373,6 @@ instance (Monad m, Monoid a) => Monoid (IterT m a) where
       compact' a (r@(Right _):xs) = (Left a):(r:(compact xs))
       compact' a (  (Left a'):xs) = compact' (a <> a') xs
 
-#if defined(GHC_TYPEABLE)
-
 #if __GLASGOW_HASKELL__ < 707
 instance Typeable1 m => Typeable1 (IterT m) where
   typeOf1 t = mkTyConApp freeTyCon [typeOf1 (f t)] where
@@ -377,9 +388,7 @@ freeTyCon = mkTyCon3 "free" "Control.Monad.Iter" "IterT"
 {-# NOINLINE freeTyCon #-}
 
 #else
-
 #define Typeable1 Typeable
-
 #endif
 
 instance
@@ -402,8 +411,6 @@ iterConstr = mkConstr iterDataType "IterT" [] Prefix
 iterDataType :: DataType
 iterDataType = mkDataType "Control.Monad.Iter.IterT" [iterConstr]
 {-# NOINLINE iterDataType #-}
-
-#endif
 
 -- BEGIN MandelbrotIter.lhs
 {- $example
