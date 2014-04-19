@@ -1,3 +1,8 @@
+4.7
+---
+* Added `prelude-extras` support. This makes it possible to work without `UndecidableInstances` for most operations.
+* Removed the `GHC_TYPEABLE` flag.
+
 4.6.1
 -----
 * Added `hoistF`
