@@ -48,9 +48,7 @@ import Data.Profunctor
 import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
-#ifdef GHC_TYPEABLE
 import Data.Data
-#endif
 import Prelude.Extras
 
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
@@ -329,7 +327,7 @@ _Free = dimap unfree (either pure (fmap Free)) . right'
 {-# INLINE _Free #-}
 
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Free f) where
   typeOf1 t = mkTyConApp freeTyCon [typeOf1 (f t)] where
     f :: Free f a -> f a

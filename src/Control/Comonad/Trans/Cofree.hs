@@ -45,10 +45,7 @@ import Control.Monad (liftM)
 import Control.Monad.Trans
 import Control.Monad.Zip
 import Prelude hiding (id,(.))
-
-#if defined(GHC_TYPEABLE) || __GLASGOW_HASKELL__ >= 707
 import Data.Data
-#endif
 
 infixr 5 :<
 
@@ -184,8 +181,6 @@ instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
 coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
 coiterT psi = CofreeT . extend (\w -> extract w :< fmap (coiterT psi) (psi w))
 
-#if defined(GHC_TYPEABLE) 
-
 #if __GLASGOW_HASKELL__ < 707
 
 instance Typeable1 f => Typeable2 (CofreeF f) where
@@ -251,7 +246,6 @@ cofreeFDataType = mkDataType "Control.Comonad.Trans.Cofree.CofreeF" [cofreeFCons
 cofreeTDataType = mkDataType "Control.Comonad.Trans.Cofree.CofreeT" [cofreeTConstr]
 {-# NOINLINE cofreeFDataType #-}
 {-# NOINLINE cofreeTDataType #-}
-#endif
 
 -- lowerF :: (Functor f, Comonad w) => CofreeT f w a -> f a
 -- lowerF = fmap extract . unwrap

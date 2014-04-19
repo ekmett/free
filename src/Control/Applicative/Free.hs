@@ -35,17 +35,14 @@ module Control.Applicative.Free
 
 import Control.Applicative
 import Data.Functor.Apply
-
-#ifdef GHC_TYPEABLE
 import Data.Typeable
-#endif
 
 -- | The free 'Applicative' for a 'Functor' @f@.
 data Ap f a where
   Pure :: a -> Ap f a
   Ap   :: f a -> Ap f (a -> b) -> Ap f b
 #if __GLASGOW_HASKELL__ >= 707
-  deriving (Typeable)
+  deriving Typeable
 #endif
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
@@ -86,7 +83,7 @@ retractAp :: Applicative f => Ap f a -> f a
 retractAp (Pure a) = pure a
 retractAp (Ap x y) = x <**> retractAp y
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Ap f) where
   typeOf1 t = mkTyConApp apTyCon [typeOf1 (f t)] where
     f :: Ap f a -> f a

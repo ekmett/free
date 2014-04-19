@@ -30,10 +30,7 @@ module Control.Alternative.Free
 import Control.Applicative
 import Data.Functor.Apply
 import Data.Semigroup
-
-#ifdef GHC_TYPEABLE
 import Data.Typeable
-#endif
 
 infixl 3 `Ap`
 
@@ -129,7 +126,7 @@ hoistAlt :: (forall a. f a -> g a) -> Alt f b -> Alt g b
 hoistAlt f (Alt as) = Alt (map (hoistAltF f) as)
 {-# INLINE hoistAlt #-}
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Alt f) where
   typeOf1 t = mkTyConApp altTyCon [typeOf1 (f t)] where
     f :: Alt f a -> f a
