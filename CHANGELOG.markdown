@@ -1,3 +1,7 @@
+4.7.1
+-----
+* Added more versions of `cutoff`.
+
 4.7
 ---
 * Added `prelude-extras` support. This makes it possible to work without `UndecidableInstances` for most operations.
