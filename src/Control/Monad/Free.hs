@@ -28,6 +28,7 @@ module Control.Monad.Free
   , iterM
   , hoistFree
   , toFreeT
+  , cutoff
   , _Pure, _Free
   ) where
 
@@ -293,6 +294,24 @@ hoistFree f (Free as) = Free (hoistFree f <$> f as)
 toFreeT :: (Functor f, Monad m) => Free f a -> FreeT.FreeT f m a
 toFreeT (Pure a) = FreeT.FreeT (return (FreeT.Pure a))
 toFreeT (Free f) = FreeT.FreeT (return (FreeT.Free (fmap toFreeT f)))
+
+-- | Cuts off a tree of computations at a given depth.
+-- If the depth is 0 or less, no computation nor
+-- monadic effects will take place.
+--
+-- Some examples (n ≥ 0):
+--
+-- prop> cutoff 0     _        == return Nothing
+-- prop> cutoff (n+1) . return == return . Just
+-- prop> cutoff (n+1) . lift   ==   lift . liftM Just
+-- prop> cutoff (n+1) . wrap   ==  wrap . fmap (cutoff n)
+--
+-- Calling 'retract . cutoff n' is always terminating, provided each of the
+-- steps in the iteration is terminating.
+cutoff :: (Functor f) => Integer -> Free f a -> Free f (Maybe a)
+cutoff 0 _ = return Nothing
+cutoff n (Free f) = Free $ fmap (cutoff (n - 1)) f
+cutoff _ m = Just <$> m
 
 -- | This is @Prism' (Free f a) a@ in disguise
 --

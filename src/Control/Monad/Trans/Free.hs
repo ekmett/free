@@ -39,6 +39,7 @@ module Control.Monad.Trans.Free
   , iterTM
   , hoistFreeT
   , transFreeT
+  , cutoff
   -- * Operations of free monad
   , retract
   , iter
@@ -331,6 +332,25 @@ iter phi = runIdentity . iterT (Identity . phi . fmap runIdentity)
 -- | Like 'iter' for monadic values.
 iterM :: (Functor f, Monad m) => (f (m a) -> m a) -> Free f a -> m a
 iterM phi = iterT phi . hoistFreeT (return . runIdentity)
+
+-- | Cuts off a tree of computations at a given depth.
+-- If the depth is @0@ or less, no computation nor
+-- monadic effects will take place.
+--
+-- Some examples (@n ≥ 0@):
+--
+-- @
+-- 'cutoff' 0     _        ≡ 'return' 'Nothing'
+-- 'cutoff' (n+1) '.' 'return' ≡ 'return' '.' 'Just'
+-- 'cutoff' (n+1) '.' 'lift'   ≡ 'lift' '.' 'liftM' 'Just'
+-- 'cutoff' (n+1) '.' 'wrap'   ≡ 'wrap' '.' 'fmap' ('cutoff' n)
+-- @
+--
+-- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
+-- steps in the iteration is terminating.
+cutoff :: (Functor f, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
+cutoff 0 _ = return Nothing
+cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
 
 #if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where

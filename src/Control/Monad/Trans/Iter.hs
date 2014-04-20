@@ -303,15 +303,17 @@ never = delay never
 --
 -- The step where the final value is produced also counts towards the limit.
 --
--- Some examples (n ≥ 0):
+-- Some examples (@n ≥ 0@):
 --
--- prop> cutoff 0     _        == return Nothing
--- prop> cutoff (n+1) . return == return . Just
--- prop> cutoff (n+1) . lift   ==   lift . liftM Just
--- prop> cutoff (n+1) . delay  ==  delay . cutoff n
--- prop> cutoff n     never    == iterate delay (return Nothing) !! n
+-- @
+-- 'cutoff' 0     _        ≡ 'return' 'Nothing'
+-- 'cutoff' (n+1) '.' 'return' ≡ 'return' '.' 'Just'
+-- 'cutoff' (n+1) '.' 'lift'   ≡ 'lift' '.' 'liftM' 'Just'
+-- 'cutoff' (n+1) '.' 'delay'  ≡ 'delay' . 'cutoff' n
+-- 'cutoff' n     'never'    ≡ 'iterate' 'delay' ('return' 'Nothing') '!!' n
+-- @
 --
--- Calling 'retract . cutoff n' is always terminating, provided each of the
+-- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
 cutoff :: (Monad m) => Integer -> IterT m a -> IterT m (Maybe a)
 cutoff n | n <= 0 = const $ return Nothing
@@ -337,7 +339,7 @@ interleave ms = IterT $ do
 --   The resulting computation has as many steps as the longest computation
 --   in the list.
 --
---   Equivalent to @void . interleave@.
+--   Equivalent to @'void' '.' 'interleave'@.
 interleave_ :: (Monad m) => [IterT m a] -> IterT m ()
 interleave_ [] = return ()
 interleave_ xs = IterT $ liftM (Right . interleave_ . rights) $ mapM runIterT xs
