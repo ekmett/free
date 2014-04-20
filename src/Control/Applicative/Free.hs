@@ -28,6 +28,7 @@ module Control.Applicative.Free
 
     Ap(..)
   , runAp
+  , runAp_
   , liftAp
   , hoistAp
   , retractAp
@@ -36,6 +37,7 @@ module Control.Applicative.Free
 import Control.Applicative
 import Data.Functor.Apply
 import Data.Typeable
+import Data.Monoid
 
 -- | The free 'Applicative' for a 'Functor' @f@.
 data Ap f a where
@@ -51,6 +53,10 @@ data Ap f a where
 runAp :: Applicative g => (forall x. f x -> g x) -> Ap f a -> g a
 runAp _ (Pure x) = pure x
 runAp u (Ap f x) = flip id <$> u f <*> runAp u x
+
+-- | Perform a monoidal analysis over free applicative value.
+runAp_ :: Monoid m => (forall a. f a -> m) -> Ap f b -> m
+runAp_ f = getConst . runAp (Const . f)
 
 instance Functor (Ap f) where
   fmap f (Pure a)   = Pure (f a)
