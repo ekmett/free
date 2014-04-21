@@ -58,6 +58,8 @@ module Control.Monad.Trans.Iter
   , foldM
   -- * IterT ~ FreeT Identity
   , MonadFree(..)
+  -- * Examples
+  -- $examples
   ) where
 
 import Control.Applicative
@@ -412,3 +414,8 @@ iterDataType :: DataType
 iterDataType = mkDataType "Control.Monad.Iter.IterT" [iterConstr]
 {-# NOINLINE iterDataType #-}
 
+{- $examples
+
+<examples/MandelbrotIter.lhs Mandelbrot>
+
+-}
