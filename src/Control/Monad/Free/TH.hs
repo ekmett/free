@@ -16,6 +16,9 @@ module Control.Monad.Free.TH
    -- * Free monadic actions
    makeFree
    -- $doc
+
+   -- ** Examples
+   -- $examples
   ) where
 
 import Control.Arrow
@@ -256,3 +259,8 @@ makeFree tyCon = do
 
 -}
 
+{- $examples
+
+<examples/Teletype.lhs Teletype>
+
+-}
