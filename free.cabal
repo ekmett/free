@@ -44,6 +44,9 @@ extra-source-files:
   doc/proof/Control/Comonad/Trans/Cofree/*.md
   examples/*.hs
   examples/*.lhs
+extra-doc-files:
+  examples/*.hs
+  examples/*.lhs
 
 source-repository head
   type: git
