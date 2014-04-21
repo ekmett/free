@@ -42,6 +42,8 @@ extra-source-files:
   HLint.hs
   doc/proof/Control/Comonad/Cofree/*.md
   doc/proof/Control/Comonad/Trans/Cofree/*.md
+  examples/*.hs
+  examples/*.lhs
 
 source-repository head
   type: git
