@@ -32,6 +32,9 @@ module Control.Applicative.Free
   , liftAp
   , hoistAp
   , retractAp
+
+  -- * Examples
+  -- $examples
   ) where
 
 import Control.Applicative
@@ -111,3 +114,9 @@ apTyCon = mkTyCon3 "free" "Control.Applicative.Free" "Ap"
 {-# NOINLINE apTyCon #-}
 
 #endif
+
+{- $examples
+
+<examples/ValidationForm.hs Validation form>
+
+-}
