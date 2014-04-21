@@ -55,6 +55,13 @@ runAp _ (Pure x) = pure x
 runAp u (Ap f x) = flip id <$> u f <*> runAp u x
 
 -- | Perform a monoidal analysis over free applicative value.
+--
+-- Example:
+--
+-- @
+-- count :: Ap f a -> Int
+-- count = getSum . runAp_ (\\_ -> Sum 1)
+-- @
 runAp_ :: Monoid m => (forall a. f a -> m) -> Ap f b -> m
 runAp_ f = getConst . runAp (Const . f)
 
