@@ -40,8 +40,6 @@ module Control.Comonad.Trans.Coiter
   , unfold
   -- * Cofree comonads
   , ComonadCofree(..)
-  -- * Example
-  -- $example
   ) where
 
 import Control.Arrow hiding (second)
