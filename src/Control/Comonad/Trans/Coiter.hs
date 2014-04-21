@@ -40,6 +40,8 @@ module Control.Comonad.Trans.Coiter
   , unfold
   -- * Cofree comonads
   , ComonadCofree(..)
+  -- * Examples
+  -- $example
   ) where
 
 import Control.Arrow hiding (second)
@@ -205,3 +207,8 @@ coiterTDataType :: DataType
 coiterTDataType = mkDataType "Control.Comonad.Trans.Coiter.CoiterT" [coiterTConstr]
 {-# NOINLINE coiterTDataType #-}
 
+{- $example
+
+<examples/NewtonCoiter.lhs Newton's method>
+
+-}
