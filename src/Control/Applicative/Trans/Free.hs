@@ -1,0 +1,154 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE GADTs #-}
+#if __GLASGOW_HASKELL__ >= 707
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
+{-# OPTIONS_GHC -Wall #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Control.Applicative.Trans.Free
+-- Copyright   :  (C) 2012-2013 Edward Kmett
+-- License     :  BSD-style (see the file LICENSE)
+--
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  provisional
+-- Portability :  GADTs, Rank2Types
+--
+-- 'Applicative' functor transformers for free
+----------------------------------------------------------------------------
+module Control.Applicative.Trans.Free
+  (
+  -- | Compared to the free monad transformers, they are less expressive. However, they are also more
+  -- flexible to inspect and interpret, as the number of ways in which
+  -- the values can be nested is more limited.
+  --
+  -- See <http://paolocapriotti.com/assets/applicative.pdf Free Applicative Functors>,
+  -- by Paolo Capriotti and Ambrus Kaposi, for some applications.
+    ApT(..)
+  , ApF(..)
+  -- * Free Applicative
+  , runAp
+  , runAp_
+  , retractAp
+  -- * Free Alternative
+  , Alt
+  , runAlt
+  ) where
+
+import Control.Applicative
+import Data.Functor.Apply
+import Data.Functor.Identity
+import Data.Typeable
+import Data.Monoid
+import qualified Data.Foldable as F
+
+-- | The free 'Applicative' for a 'Functor' @f@.
+data ApF f g a where
+  Pure :: a -> ApF f g a
+  Ap   :: f a -> ApT f g (a -> b) -> ApF f g b
+#if __GLASGOW_HASKELL__ >= 707
+  deriving Typeable
+#endif
+
+-- | The free 'Applicative' transformer for a 'Functor' @f@ over
+-- 'Applicative' @g@.
+newtype ApT f g a = ApT { getApT :: g (ApF f g a) }
+#if __GLASGOW_HASKELL__ >= 707
+  deriving Typeable
+#endif
+
+instance (Functor f, Functor g) => Functor (ApF f g) where
+  fmap f (Pure a) = Pure (f a)
+  fmap f (Ap x g) = x `Ap` fmap (f .) g
+
+instance (Functor f, Functor g) => Functor (ApT f g) where
+  fmap f (ApT g) = ApT (fmap f <$> g)
+
+instance (Functor f, Applicative g) => Applicative (ApF f g) where
+  pure = Pure
+  {-# INLINE pure #-}
+  Pure f   <*> y       = fmap f y      -- fmap
+  y        <*> Pure a  = fmap ($ a) y  -- interchange
+  Ap a f   <*> b       = a `Ap` (flip <$> f <*> ApT (pure b))
+  {-# INLINE (<*>) #-}
+
+instance (Functor f, Applicative g) => Applicative (ApT f g) where
+  pure = ApT . pure . pure
+  {-# INLINE pure #-}
+  ApT xs <*> ApT ys = ApT ((<*>) <$> xs <*> ys)
+  {-# INLINE (<*>) #-}
+
+instance (Functor f, Applicative g) => Apply (ApF f g) where
+  (<.>) = (<*>)
+  {-# INLINE (<.>) #-}
+
+instance (Functor f, Applicative g) => Apply (ApT f g) where
+  (<.>) = (<*>)
+  {-# INLINE (<.>) #-}
+
+-- | The free 'Applicative' for a 'Functor' @f@.
+type Ap f = ApT f Identity
+
+-- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
+--
+-- prop> runAp t == retractApp . hoistApp t
+runAp :: Applicative g => (forall x. f x -> g x) -> Ap f a -> g a
+runAp f (ApT (Identity ap)) = runAp' ap
+  where
+    runAp' (Pure x) = pure x
+    runAp' (Ap x u) = f x <**> runAp f u
+
+-- | Perform a monoidal analysis over free applicative value.
+--
+-- Example:
+--
+-- @
+-- count :: Ap f a -> Int
+-- count = getSum . runAp_ (\\_ -> Sum 1)
+-- @
+runAp_ :: Monoid m => (forall x. f x -> m) -> Ap f a -> m
+runAp_ f = getConst . runAp (Const . f)
+
+-- | Interprets the free applicative functor over f using the semantics for
+--   `pure` and `<*>` given by the Applicative instance for f.
+--
+--   prop> retractApp == runAp id
+retractAp :: Applicative f => Ap f a -> f a
+retractAp (ApT (Identity ap)) = retractAp' ap
+  where
+    retractAp' (Pure a) = pure a
+    retractAp' (Ap x y) = x <**> retractAp y
+
+-- | The free 'Alternative' for a 'Functor' @f@.
+type Alt f = ApT f []
+
+-- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Alt' f@ to @g@.
+runAlt :: (Alternative g, F.Foldable t) => (forall x. f x -> g x) -> ApT f t a -> g a
+runAlt f (ApT xs) = F.foldr (\x acc -> h x <|> acc) empty xs
+  where
+    h (Pure x) = pure x
+    h (Ap x g) = f x <**> runAlt f g
+
+#if __GLASGOW_HASKELL__ < 707
+instance (Typeable1 f, Typeable1 g) => Typeable1 (ApT f g) where
+  typeOf1 t = mkTyConApp apTTyCon [typeOf1 (f t)] where
+    f :: ApT f g a -> g (f a)
+    f = undefined
+
+instance (Typeable1 f, Typeable1 g) => Typeable1 (ApF f g) where
+  typeOf1 t = mkTyConApp apFTyCon [typeOf1 (f t)] where
+    f :: ApF f g a -> g (f a)
+    f = undefined
+
+apTTyCon, apFTyCon :: TyCon
+#if __GLASGOW_HASKELL__ < 704
+apTTyCon = mkTyCon "Control.Applicative.Trans.Free.ApT"
+apFTyCon = mkTyCon "Control.Applicative.Trans.Free.ApF"
+#else
+apTTyCon = mkTyCon3 "free" "Control.Applicative.Trans.Free" "ApT"
+apFTyCon = mkTyCon3 "free" "Control.Applicative.Trans.Free" "ApF"
+#endif
+{-# NOINLINE apTTyCon #-}
+{-# NOINLINE apFTyCon #-}
+#endif
