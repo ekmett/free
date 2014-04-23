@@ -93,6 +93,12 @@ instance Applicative g => Apply (ApT f g) where
   (<.>) = (<*>)
   {-# INLINE (<.>) #-}
 
+instance Alternative g => Alternative (ApT f g) where
+  empty = ApT empty
+  {-# INLINE empty #-}
+  ApT g <|> ApT h = ApT (g <|> h)
+  {-# INLINE (<|>) #-}
+
 -- | The free 'Applicative' for a 'Functor' @f@.
 type Ap f = ApT f Identity
 
