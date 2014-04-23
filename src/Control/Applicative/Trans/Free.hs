@@ -28,6 +28,7 @@ module Control.Applicative.Trans.Free
     ApT(..)
   , ApF(..)
   -- * Free Applicative
+  , Ap
   , runAp
   , runAp_
   , retractAp
@@ -58,14 +59,14 @@ newtype ApT f g a = ApT { getApT :: g (ApF f g a) }
   deriving Typeable
 #endif
 
-instance (Functor f, Functor g) => Functor (ApF f g) where
+instance Functor g => Functor (ApF f g) where
   fmap f (Pure a) = Pure (f a)
   fmap f (Ap x g) = x `Ap` fmap (f .) g
 
-instance (Functor f, Functor g) => Functor (ApT f g) where
+instance Functor g => Functor (ApT f g) where
   fmap f (ApT g) = ApT (fmap f <$> g)
 
-instance (Functor f, Applicative g) => Applicative (ApF f g) where
+instance Applicative g => Applicative (ApF f g) where
   pure = Pure
   {-# INLINE pure #-}
   Pure f   <*> y       = fmap f y      -- fmap
@@ -73,17 +74,17 @@ instance (Functor f, Applicative g) => Applicative (ApF f g) where
   Ap a f   <*> b       = a `Ap` (flip <$> f <*> ApT (pure b))
   {-# INLINE (<*>) #-}
 
-instance (Functor f, Applicative g) => Applicative (ApT f g) where
+instance Applicative g => Applicative (ApT f g) where
   pure = ApT . pure . pure
   {-# INLINE pure #-}
   ApT xs <*> ApT ys = ApT ((<*>) <$> xs <*> ys)
   {-# INLINE (<*>) #-}
 
-instance (Functor f, Applicative g) => Apply (ApF f g) where
+instance Applicative g => Apply (ApF f g) where
   (<.>) = (<*>)
   {-# INLINE (<.>) #-}
 
-instance (Functor f, Applicative g) => Apply (ApT f g) where
+instance Applicative g => Apply (ApT f g) where
   (<.>) = (<*>)
   {-# INLINE (<.>) #-}
 
