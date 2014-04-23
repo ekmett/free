@@ -30,6 +30,8 @@ module Control.Applicative.Trans.Free
   , liftApT
   , hoistApT
   , hoistApF
+  , transApT
+  , transApF
   -- * Free Applicative
   , Ap
   , runAp
@@ -128,14 +130,23 @@ retractAp (ApT (Identity ap)) = retractAp' ap
 liftApT :: Applicative g => f a -> ApT f g a
 liftApT x = ApT (pure (Ap x (pure id)))
 
--- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @ApT f@ to @ApT g@.
+-- | Given a natural transformation from @f@ to @f'@ this gives a monoidal natural transformation from @ApF f g@ to @ApF f' g@.
 hoistApF :: Functor g => (forall a. f a -> f' a) -> ApF f g b -> ApF f' g b
 hoistApF _ (Pure x) = Pure x
 hoistApF f (Ap x y) = f x `Ap` hoistApT f y
 
--- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @ApT f@ to @ApT g@.
+-- | Given a natural transformation from @f@ to @f'@ this gives a monoidal natural transformation from @ApT f g@ to @ApT f' g@.
 hoistApT :: Functor g => (forall a. f a -> f' a) -> ApT f g b -> ApT f' g b
 hoistApT f (ApT g) = ApT (hoistApF f <$> g)
+
+-- | Given a natural transformation from @g@ to @g'@ this gives a monoidal natural transformation from @ApF f g@ to @ApF f g'@.
+transApF :: Functor g => (forall a. g a -> g' a) -> ApF f g b -> ApF f g' b
+transApF _ (Pure x) = Pure x
+transApF f (Ap x y) = x `Ap` transApT f y
+
+-- | Given a natural transformation from @g@ to @g'@ this gives a monoidal natural transformation from @ApT f g@ to @ApT f g'@.
+transApT :: Functor g => (forall a. g a -> g' a) -> ApT f g b -> ApT f g' b
+transApT f (ApT g) = ApT $ f (transApF f <$> g)
 
 -- | The free 'Alternative' for a 'Functor' @f@.
 type Alt f = ApT f []
