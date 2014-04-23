@@ -27,6 +27,9 @@ module Control.Applicative.Trans.Free
   -- by Paolo Capriotti and Ambrus Kaposi, for some applications.
     ApT(..)
   , ApF(..)
+  , liftApT
+  , hoistApT
+  , hoistApF
   -- * Free Applicative
   , Ap
   , runAp
@@ -120,6 +123,19 @@ retractAp (ApT (Identity ap)) = retractAp' ap
   where
     retractAp' (Pure a) = pure a
     retractAp' (Ap x y) = x <**> retractAp y
+
+-- | A version of 'lift' that can be used with just a 'Functor' for @f@.
+liftApT :: Applicative g => f a -> ApT f g a
+liftApT x = ApT (pure (Ap x (pure id)))
+
+-- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @ApT f@ to @ApT g@.
+hoistApF :: Functor g => (forall a. f a -> f' a) -> ApF f g b -> ApF f' g b
+hoistApF _ (Pure x) = Pure x
+hoistApF f (Ap x y) = f x `Ap` hoistApT f y
+
+-- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @ApT f@ to @ApT g@.
+hoistApT :: Functor g => (forall a. f a -> f' a) -> ApT f g b -> ApT f' g b
+hoistApT f (ApT g) = ApT (hoistApF f <$> g)
 
 -- | The free 'Alternative' for a 'Functor' @f@.
 type Alt f = ApT f []
