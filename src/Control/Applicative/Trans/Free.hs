@@ -28,6 +28,7 @@ module Control.Applicative.Trans.Free
     ApT(..)
   , ApF(..)
   , liftApT
+  , liftApO
   , runApT
   , runApF
   , runApT_
@@ -106,9 +107,9 @@ instance Alternative g => Alternative (ApT f g) where
 liftApT :: Applicative g => f a -> ApT f g a
 liftApT x = ApT (pure (Ap x (pure id)))
 
--- | Lift an action of the transformed 'Functor' @g a@ to @'ApT' f g a@.
-liftApI :: Functor g => g a -> ApT f g a
-liftApI g = ApT (Pure <$> g)
+-- | Lift an action of the \"outer\" 'Functor' @g a@ to @'ApT' f g a@.
+liftApO :: Functor g => g a -> ApT f g a
+liftApO g = ApT (Pure <$> g)
 
 -- | Given natural transformations @f ~> h@ and @g . h ~> h@ this gives
 -- a natural transformation @ApF f g ~> h@.
