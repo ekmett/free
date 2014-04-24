@@ -162,10 +162,7 @@ type Ap f = ApT f Identity
 --
 -- prop> runAp t == retractApp . hoistApp t
 runAp :: Applicative g => (forall x. f x -> g x) -> Ap f a -> g a
-runAp f (ApT (Identity ap)) = runAp' ap
-  where
-    runAp' (Pure x) = pure x
-    runAp' (Ap x u) = f x <**> runAp f u
+runAp f = runApT f runIdentity
 
 -- | Perform a monoidal analysis over free applicative value.
 --
@@ -176,17 +173,14 @@ runAp f (ApT (Identity ap)) = runAp' ap
 -- count = 'getSum' . runAp_ (\\_ -> 'Sum' 1)
 -- @
 runAp_ :: Monoid m => (forall x. f x -> m) -> Ap f a -> m
-runAp_ f = getConst . runAp (Const . f)
+runAp_ f = runApT_ f runIdentity
 
 -- | Interprets the free applicative functor over f using the semantics for
 --   `pure` and `<*>` given by the Applicative instance for f.
 --
 --   prop> retractApp == runAp id
 retractAp :: Applicative f => Ap f a -> f a
-retractAp (ApT (Identity ap)) = retractAp' ap
-  where
-    retractAp' (Pure a) = pure a
-    retractAp' (Ap x y) = x <**> retractAp y
+retractAp = runAp id
 
 -- | The free 'Alternative' for a 'Functor' @f@.
 type Alt f = ApT f []
