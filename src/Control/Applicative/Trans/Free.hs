@@ -102,9 +102,13 @@ instance Alternative g => Alternative (ApT f g) where
   ApT g <|> ApT h = ApT (g <|> h)
   {-# INLINE (<|>) #-}
 
--- | A version of 'lift' that can be used with just a 'Functor' for @f@.
+-- | A version of 'lift' that can be used with no constraint for @f@.
 liftApT :: Applicative g => f a -> ApT f g a
 liftApT x = ApT (pure (Ap x (pure id)))
+
+-- | Lift an action of the transformed 'Functor' @g a@ to @'ApT' f g a@.
+liftApI :: Functor g => g a -> ApT f g a
+liftApI g = ApT (Pure <$> g)
 
 -- | Given natural transformations @f ~> h@ and @g . h ~> h@ this gives
 -- a natural transformation @ApF f g ~> h@.
