@@ -30,6 +30,7 @@ module Control.Applicative.Trans.Free
   , liftApT
   , runApT
   , runApF
+  , runApT_
   , hoistApT
   , hoistApF
   , transApT
@@ -116,6 +117,20 @@ runApF f g (Ap x y) = f x <**> runApT f g y
 runApT :: (Applicative h, Functor g) => (forall a. f a -> h a) -> (forall a. g (h a) -> h a) -> ApT f g b -> h b
 runApT f g (ApT a) = g (runApF f g <$> a)
 
+-- | Perform a monoidal analysis over @'ApT' f g b@ value.
+--
+-- Examples:
+--
+-- @
+--height :: ('Functor' g, 'F.Foldable' g) => 'ApT' f g a -> 'Int'
+--height = 'getSum' . runApT_ (\_ -> 'Sum' 1) 'F.maximum'
+--
+--size :: ('Functor' g, 'F.Foldable' g) => 'ApT' f g a -> 'Int'
+--size = 'getSum' . runApT_ (\_ -> 'Sum' 1) 'F.fold'
+-- @
+runApT_ :: (Functor g, Monoid m) => (forall a. f a -> m) -> (g m -> m) -> ApT f g b -> m
+runApT_ f g = getConst . runApT (Const . f) (Const . g . fmap getConst)
+
 -- | Given a natural transformation from @f@ to @f'@ this gives a monoidal natural transformation from @ApF f g@ to @ApF f' g@.
 hoistApF :: Functor g => (forall a. f a -> f' a) -> ApF f g b -> ApF f' g b
 hoistApF _ (Pure x) = Pure x
@@ -151,8 +166,8 @@ runAp f (ApT (Identity ap)) = runAp' ap
 -- Example:
 --
 -- @
--- count :: Ap f a -> Int
--- count = getSum . runAp_ (\\_ -> Sum 1)
+-- count :: 'Ap' f a -> 'Int'
+-- count = 'getSum' . runAp_ (\\_ -> 'Sum' 1)
 -- @
 runAp_ :: Monoid m => (forall x. f x -> m) -> Ap f a -> m
 runAp_ f = getConst . runAp (Const . f)
