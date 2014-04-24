@@ -28,6 +28,8 @@ module Control.Applicative.Trans.Free
     ApT(..)
   , ApF(..)
   , liftApT
+  , runApT
+  , runApF
   , hoistApT
   , hoistApF
   , transApT
@@ -102,6 +104,17 @@ instance Alternative g => Alternative (ApT f g) where
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftApT :: Applicative g => f a -> ApT f g a
 liftApT x = ApT (pure (Ap x (pure id)))
+
+-- | Given natural transformations @f ~> h@ and @g . h ~> h@ this gives
+-- a natural transformation @ApF f g ~> h@.
+runApF :: (Applicative h, Functor g) => (forall a. f a -> h a) -> (forall a. g (h a) -> h a) -> ApF f g b -> h b
+runApF _ _ (Pure x) = pure x
+runApF f g (Ap x y) = f x <**> runApT f g y
+
+-- | Given natural transformations @f ~> h@ and @g . h ~> h@ this gives
+-- a natural transformation @ApT f g ~> h@.
+runApT :: (Applicative h, Functor g) => (forall a. f a -> h a) -> (forall a. g (h a) -> h a) -> ApT f g b -> h b
+runApT f g (ApT a) = g (runApF f g <$> a)
 
 -- | Given a natural transformation from @f@ to @f'@ this gives a monoidal natural transformation from @ApF f g@ to @ApF f' g@.
 hoistApF :: Functor g => (forall a. f a -> f' a) -> ApF f g b -> ApF f' g b
