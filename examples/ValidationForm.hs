@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 module Main where
 
 import Control.Applicative
@@ -26,7 +25,7 @@ data Field a = Field
   { fName     :: Name           -- ^ Name.
   , fValidate :: FieldReader a  -- ^ Pure validation function.
   , fHelp     :: Help           -- ^ Help message.
-  } deriving (Functor)
+  }
 
 -- | Validation form is just a free applicative over Field.
 type Form = Ap Field
