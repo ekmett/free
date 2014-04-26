@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 module Main where
 
 import Control.Applicative
@@ -26,7 +25,7 @@ data Field a = Field
   { fName     :: Name           -- ^ Name.
   , fValidate :: FieldReader a  -- ^ Pure validation function.
   , fHelp     :: Help           -- ^ Help message.
-  } deriving (Functor)
+  }
 
 -- | Validation form is just a free applicative over Field.
 type Form = Ap Field
@@ -52,7 +51,7 @@ int name = field name readEither "an integer value"
 
 -- | Generate help message for a form.
 help :: Form a -> String
-help = unlines . getConst . runAp (Const . pure . fieldHelp)
+help = unlines . runAp_ (\f -> [fieldHelp f])
 
 -- | Get help message for a field.
 fieldHelp :: Field a -> String
@@ -60,7 +59,7 @@ fieldHelp (Field name _ msg) = printf "  %-15s - %s" name msg
 
 -- | Count fields in a form.
 count :: Form a -> Int
-count = getSum . getConst . runAp (const $ Const (Sum 1))
+count = getSum . runAp_ (\_ -> Sum 1)
 
 -- | Interactive input of a form.
 -- Shows progress on each field.
