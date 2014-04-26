@@ -77,6 +77,7 @@ library
 
   exposed-modules:
     Control.Applicative.Free
+    Control.Applicative.Trans.Free
     Control.Alternative.Free
     Control.Comonad.Cofree
     Control.Comonad.Cofree.Class
