@@ -132,8 +132,8 @@ unifyCaptured _ [(t, e)] = return (t, [e])
 unifyCaptured _ [x, y]   = unifyT x y
 unifyCaptured _ _ = fail "can't unify more than 2 arguments that use type parameter"
 
-liftCon' :: Type -> Name -> [Name] -> Name -> [Type] -> Q [Dec]
-liftCon' f n ns cn ts = do
+liftCon' :: [TyVarBndr] -> Cxt -> Type -> Name -> [Name] -> Name -> [Type] -> Q [Dec]
+liftCon' tvbs cx f n ns cn ts = do
   -- prepare some names
   opName <- mkName <$> mkOpName (nameBase cn)
   m      <- newName "m"
@@ -154,31 +154,31 @@ liftCon' f n ns cn ts = do
   let pat  = map VarP xs                      -- this is LHS
       exprs = zipExprs (map VarE xs) es args  -- this is what ctor would be applied to
       fval = foldl AppE (ConE cn) exprs       -- this is RHS without liftF
-      q = map PlainTV $ qa ++ m : ns
+      q = tvbs ++ map PlainTV (qa ++ m : ns)
       qa = case retType of VarT b | a == b -> [a]; _ -> []
       f' = foldl AppT f (map VarT ns)
   return
 #if MIN_VERSION_template_haskell(2,10,0)
-    [ SigD opName (ForallT q [ConT monadFree `AppT` f' `AppT` VarT m] opType)
+    [ SigD opName (ForallT q (cx ++ [ConT monadFree `AppT` f' `AppT` VarT m]) opType)
 #else
-    [ SigD opName (ForallT q [ClassP monadFree [f', VarT m]] opType)
+    [ SigD opName (ForallT q (cx ++ [ClassP monadFree [f', VarT m]]) opType)
 #endif
     , FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ]
 
 -- | Provide free monadic actions for a single value constructor.
-liftCon :: Type -> Name -> [Name] -> Con -> Q [Dec]
-liftCon f n ns con =
+liftCon :: [TyVarBndr] -> Cxt -> Type -> Name -> [Name] -> Con -> Q [Dec]
+liftCon ts cx f n ns con =
   case con of
-    NormalC cName fields -> liftCon' f n ns cName $ map snd fields
-    RecC    cName fields -> liftCon' f n ns cName $ map (\(_, _, ty) -> ty) fields
-    InfixC  (_,t1) cName (_,t2) -> liftCon' f n ns cName [t1, t2]
-    _ -> fail $ "liftCon: Don't know how to lift " ++ show con
+    NormalC cName fields -> liftCon' ts cx f n ns cName $ map snd fields
+    RecC    cName fields -> liftCon' ts cx f n ns cName $ map (\(_, _, ty) -> ty) fields
+    InfixC  (_,t1) cName (_,t2) -> liftCon' ts cx f n ns cName [t1, t2]
+    ForallC ts' cx' con' -> liftCon (ts ++ ts') (cx ++ cx') f n ns con'
 
 -- | Provide free monadic actions for a type declaration.
 liftDec :: Dec -> Q [Dec]
 liftDec (DataD _ tyName tyVarBndrs cons _)
   | null tyVarBndrs = fail $ "Type " ++ show tyName ++ " needs at least one free variable"
-  | otherwise = concat <$> mapM (liftCon con nextTyName (init tyNames)) cons
+  | otherwise = concat <$> mapM (liftCon [] [] con nextTyName (init tyNames)) cons
     where
       tyNames    = map tyVarBndrName tyVarBndrs
       nextTyName = last tyNames
