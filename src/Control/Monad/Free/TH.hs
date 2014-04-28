@@ -265,4 +265,6 @@ makeFree tyCon = do
 
 <examples/Teletype.lhs Teletype> (regular data type declaration)
 
+<examples/RetryTH.hs Retry> (GADT declaration)
+
 -}
