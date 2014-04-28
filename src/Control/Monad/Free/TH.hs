@@ -196,7 +196,7 @@ makeFree tyCon = do
 
 {- $doc
  To generate free monadic actions from a @Type@, it must be a @data@
- declaration with at least one free variable. For each constructor of the type, a
+ declaration (maybe GADT) with at least one free variable. For each constructor of the type, a
  new function will be declared.
 
  Consider the following generalized definitions:
@@ -207,6 +207,7 @@ makeFree tyCon = do
  >                            | t1 :* t2
  >                            | t1 `Bar` t2
  >                            | Baz { x :: t1, y :: t2, …, z :: tJ }
+ >                            | forall b1 b2 … bN. cxt => Qux t1 t2 … tJ
  >                            | …
 
  where each of the constructor arguments @t1, …, tJ@ is either:
@@ -232,6 +233,7 @@ makeFree tyCon = do
  > fooBar :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
  > (+)    :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
  > baz    :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
+ > qux    :: (MonadFree Type m, cxt) => t1' -> … -> tK' -> m ret
  > …
 
  The @t1', …, tK'@ are those @t1@ … @tJ@ that only depend on the
@@ -261,6 +263,6 @@ makeFree tyCon = do
 
 {- $examples
 
-<examples/Teletype.lhs Teletype>
+<examples/Teletype.lhs Teletype> (regular data type declaration)
 
 -}
