@@ -232,6 +232,7 @@ makeFree tyCon = do
  > …
  > fooBar :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
  > (+)    :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
+ > bar    :: (MonadFree Type m) => t1  -> … -> tK' -> m ret
  > baz    :: (MonadFree Type m) => t1' -> … -> tK' -> m ret
  > qux    :: (MonadFree Type m, cxt) => t1' -> … -> tK' -> m ret
  > …
