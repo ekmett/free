@@ -40,6 +40,7 @@ module Control.Monad.Trans.Free
   , hoistFreeT
   , transFreeT
   , cutoff
+  , retractT
   -- * Operations of free monad
   , retract
   , iter
@@ -312,6 +313,10 @@ hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g n@
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
+
+-- | Tear down a free monad transformer using Monad instance for @t m@.
+retractT :: (Functor (t m), Monad (t m), MonadTrans t, Monad m) => FreeT (t m) m a -> t m a
+retractT = iterTM join
 
 -- |
 -- 'retract' is the left inverse of 'liftF'
