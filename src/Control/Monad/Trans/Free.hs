@@ -355,7 +355,7 @@ iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 -- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
 cutoff :: (Functor f, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
-cutoff 0 _ = return Nothing
+cutoff n _ | n <= 0 = return Nothing
 cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
 
 -- | @partialIterT n phi m@ interprets first @n@ layers of @m@ using @phi@.
