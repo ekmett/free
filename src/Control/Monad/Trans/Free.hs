@@ -41,6 +41,7 @@ module Control.Monad.Trans.Free
   , transFreeT
   , cutoff
   , partialIterT
+  , intersperseT
   , retractT
   -- * Operations of free monad
   , retract
@@ -377,6 +378,21 @@ partialIterT n phi m
       case val of
         Pure a -> return (Pure a)
         Free f -> phi f >>= runFreeT . partialIterT (n - 1) phi
+
+-- | @intersperseT f m@ inserts a layer @f@ between every two layers in
+-- @m@.
+--
+-- @
+-- 'intersperseT' f '.' 'return' ≡ 'return'
+-- 'intersperseT' f '.' 'lift'   ≡ 'lift'
+-- 'intersperseT' f '.' 'wrap'   ≡ 'wrap' '.' 'fmap' ('iterTM' ('wrap' '.' ('<$' f) '.' 'wrap'))
+-- @
+intersperseT :: (Monad m, Functor f) => f a -> FreeT f m b -> FreeT f m b
+intersperseT f (FreeT m) = FreeT $ do
+  val <- m
+  case val of
+    Pure x -> return $ Pure x
+    Free y -> return . Free $ fmap (iterTM (wrap . (<$ f) . wrap)) y
 
 #if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where
