@@ -57,12 +57,14 @@ module Control.Monad.Free.Church
   , hoistF
   , MonadFree(..)
   , liftF
+  , cutoff
   ) where
 
 import Control.Applicative
 import Control.Monad as Monad
 import Control.Monad.Fix
-import Control.Monad.Free hiding (retract, iterM)
+import Control.Monad.Free hiding (retract, iterM, cutoff)
+import qualified Control.Monad.Free as Free
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
 import Control.Monad.Cont.Class
@@ -171,3 +173,21 @@ toF xs = F (\kp kf -> go kp kf xs) where
 improve :: Functor f => (forall m. MonadFree f m => m a) -> Free f a
 improve m = fromF m
 {-# INLINE improve #-}
+
+
+-- | Cuts off a tree of computations at a given depth.
+-- If the depth is 0 or less, no computation nor
+-- monadic effects will take place.
+--
+-- Some examples (@n ≥ 0@):
+--
+-- prop> cutoff 0     _        == return Nothing
+-- prop> cutoff (n+1) . return == return . Just
+-- prop> cutoff (n+1) . lift   == lift . liftM Just
+-- prop> cutoff (n+1) . wrap   == wrap . fmap (cutoff n)
+--
+-- Calling @'retract' . 'cutoff' n@ is always terminating, provided each of the
+-- steps in the iteration is terminating.
+cutoff :: (Functor f) => Integer -> F f a -> F f (Maybe a)
+cutoff n = toF . Free.cutoff n . fromF
+
