@@ -40,6 +40,7 @@ module Control.Monad.Trans.Free
   , hoistFreeT
   , transFreeT
   , cutoff
+  , partialIterT
   , retractT
   -- * Operations of free monad
   , retract
@@ -356,6 +357,26 @@ iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 cutoff :: (Functor f, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
 cutoff 0 _ = return Nothing
 cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
+
+-- | @partialIterT n phi m@ interprets first @n@ layers of @m@ using @phi@.
+-- This is sort of the opposite for @'cutoff'@.
+--
+-- Some examples (@n ≥ 0@):
+--
+-- @
+-- 'partialIterT' 0 _ m              ≡ m
+-- 'partialIterT' (n+1) phi '.' 'return' ≡ 'return'
+-- 'partialIterT' (n+1) phi '.' 'lift'   ≡ 'lift'
+-- 'partialIterT' (n+1) phi '.' 'wrap'   ≡ 'join' . 'lift' . phi
+-- @
+partialIterT :: Monad m => Integer -> (forall a. f a -> m a) -> FreeT f m b -> FreeT f m b
+partialIterT n phi m
+  | n <= 0 = m
+  | otherwise = FreeT $ do
+      val <- runFreeT m
+      case val of
+        Pure a -> return (Pure a)
+        Free f -> phi f >>= runFreeT . partialIterT (n - 1) phi
 
 #if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where
