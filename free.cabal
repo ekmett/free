@@ -70,6 +70,7 @@ library
     bifunctors           == 4.*,
     comonad              == 4.*,
     distributive         >= 0.2.1,
+    either               >= 4.1.1,
     mtl                  >= 2.0.1.0 && < 2.2,
     prelude-extras       >= 0.4 && < 1,
     profunctors          == 4.*,

@@ -1,3 +1,7 @@
+4.7.2
+-----
+* Added a `MonadFree` instance for `EitherT` (frrom the `either` package).
+
 4.7.1
 -----
 * Added more versions of `cutoff`.
