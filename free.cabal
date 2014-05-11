@@ -70,12 +70,12 @@ library
     bifunctors           == 4.*,
     comonad              == 4.*,
     distributive         >= 0.2.1,
-    mtl                  >= 2.0.1.0 && < 2.2,
+    mtl                  >= 2.0.1.0 && < 2.3,
     prelude-extras       >= 0.4 && < 1,
     profunctors          == 4.*,
     semigroupoids        == 4.*,
     semigroups           >= 0.8.3.1 && < 1,
-    transformers         >= 0.2.0   && < 0.4,
+    transformers         >= 0.2.0   && < 0.5,
     template-haskell     >= 2.7.0.0 && < 3
 
   exposed-modules:
