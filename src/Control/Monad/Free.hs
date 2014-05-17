@@ -50,6 +50,7 @@ import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Data
+import Prelude hiding (foldr)
 import Prelude.Extras
 
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
@@ -210,6 +211,20 @@ instance Foldable f => Foldable (Free f) where
     go (Pure a) = f a
     go (Free fa) = foldMap go fa
   {-# INLINE foldMap #-}
+
+  foldr f = go where
+    go r free =
+      case free of
+        Pure a -> f a r
+        Free fa -> foldr (flip go) r fa
+  {-# INLINE foldr #-}
+
+  foldl' f = go where
+    go r free =
+      case free of
+        Pure a -> f r a
+        Free fa -> foldl' go r fa
+  {-# INLINE foldl' #-}
 
 instance Foldable1 f => Foldable1 (Free f) where
   foldMap1 f = go where
