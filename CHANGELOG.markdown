@@ -1,4 +1,4 @@
-4.7.2
+4.8
 -----
 * Added a `MonadFree` instance for `EitherT` (frrom the `either` package).
 * Support for `transformers` 0.4
