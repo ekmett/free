@@ -68,7 +68,9 @@ import Control.Monad.Writer.Class
 import Control.Monad.Cont.Class
 import Control.Monad.Trans.Class
 import Control.Monad.State.Class
+import Data.Foldable
 import Data.Functor.Bind
+import Prelude hiding (foldr)
 
 -- | The Church-encoded free monad for a functor @f@.
 -- 
@@ -106,6 +108,14 @@ instance MonadFix (F f) where
   mfix f = a where
     a = f (impure a)
     impure (F x) = x id (error "MonadFix (F f): wrap")
+
+instance (Foldable f, Functor f) => Foldable (F f) where
+    foldr f r xs = runF xs f (foldr (.) id) r
+    {-# INLINE foldr #-}
+
+    foldl' f r xs = runF xs (flip f) (foldr (!>>>) id) r
+      where (!>>>) f g = \r -> g $! f r
+    {-# INLINE foldl' #-}
 
 instance MonadPlus f => MonadPlus (F f) where
   mzero = F (\_ kf -> kf mzero)
