@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       4.8.0.1
+version:       4.9
 license:       BSD3
 cabal-version: >= 1.10
 license-file:  LICENSE
@@ -70,7 +70,6 @@ library
     bifunctors           == 4.*,
     comonad              == 4.*,
     distributive         >= 0.2.1,
-    either               >= 4.1.1,
     mtl                  >= 2.0.1.0 && < 2.3,
     prelude-extras       >= 0.4 && < 1,
     profunctors          == 4.*,
