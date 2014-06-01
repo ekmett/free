@@ -1,3 +1,7 @@
+4.8.0.1
+-------
+* Allow complation with older versions of `base`. (Foldable didn't add foldl' until base 4.6)
+
 4.8
 -----
 * Added a `MonadFree` instance for `EitherT` (frrom the `either` package).

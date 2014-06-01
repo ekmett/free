@@ -7,10 +7,13 @@
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free
--- Copyright   :  (C) 2008-2013 Edward Kmett
+-- Copyright   :  (C) 2008-2014 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -219,12 +222,14 @@ instance Foldable f => Foldable (Free f) where
         Free fa -> foldr (flip go) r fa
   {-# INLINE foldr #-}
 
+#if MIN_VERSION_base(4,6,0)
   foldl' f = go where
     go r free =
       case free of
         Pure a -> f r a
         Free fa -> foldl' go r fa
   {-# INLINE foldl' #-}
+#endif
 
 instance Foldable1 f => Foldable1 (Free f) where
   foldMap1 f = go where
