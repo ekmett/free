@@ -45,6 +45,7 @@ module Control.Monad.Trans.Free.Church
   ) where
 
 import Control.Applicative
+import Control.Category ((<<<), (>>>))
 import Control.Monad
 import Control.Monad.Identity
 import Control.Monad.Trans.Class
@@ -61,7 +62,6 @@ import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
 import Data.Traversable (Traversable)
 import qualified Data.Traversable as T
-import Data.Monoid
 import Data.Functor.Bind hiding (join)
 import Data.Function
 
@@ -106,7 +106,18 @@ instance MonadPlus m => MonadPlus (FT f m) where
   mplus (FT k1) (FT k2) = FT $ \a fr -> k1 a fr `mplus` k2 a fr
 
 instance (Foldable f, Foldable m, Monad m) => Foldable (FT f m) where
-  foldMap f (FT k) = F.fold $ k (return . f) (F.foldr (liftM2 mappend) (return mempty))
+  foldr f r xs = F.foldr (<<<) id inner r
+    where
+      inner = runFT xs (return . f) (F.foldr (liftM2 (<<<)) (return id))
+  {-# INLINE foldr #-}
+
+#if MIN_VERSION_base(4,6,0)
+  foldl' f z xs = F.foldl' (!>>>) id inner z
+    where
+      (!>>>) h g = \r -> g $! h r
+      inner = runFT xs (return . flip f) (F.foldr (liftM2 (>>>)) (return id))
+  {-# INLINE foldl' #-}
+#endif
 
 instance (Monad m, Traversable m, Traversable f) => Traversable (FT f m) where
   traverse f (FT k) = fmap (join . lift) . T.sequenceA $ k traversePure traverseFree
