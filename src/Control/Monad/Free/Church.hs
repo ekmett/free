@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -118,8 +119,7 @@ instance (Foldable f, Functor f) => Foldable (F f) where
     {-# INLINE foldr #-}
 
 #if MIN_VERSION_base(4,6,0)
-    foldl' f z xs = runF xs (flip f) (foldr (!>>>) id) z
-      where (!>>>) h g = \r -> g $! h r
+    foldl' f z xs = runF xs (\a !r -> f r a) (flip $ foldl' $ \r g -> g r) z
     {-# INLINE foldl' #-}
 #endif
 
