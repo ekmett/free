@@ -2,7 +2,7 @@
 module Ok where
 
 import Control.Category
-import Control.Applicative
+import Control.Applicative hiding (empty)
 import Prelude hiding ((.), id)
 
 class Catenated t where
@@ -42,4 +42,23 @@ instance Catenated Deque where
   foldCat k (Deep a b c) = foldCat k a . foldCat (foldCat k) b . foldCat k c
   traverseCat k (Shallow a) = Shallow <$> traverseCat k a
   traverseCat k (Deep a b c) = Deep <$> traverseCat k a <*> traverseCat (traverseCat k) b <*> traverseCat k c
+
+null :: Deque k a b -> Bool
+null (Shallow D0) = True
+null _ = False
+
+empty :: Deque k a a
+empty = Shallow D0
+
+(<|) :: k b c -> Deque k a b -> Deque k a c
+a <| Shallow (D3 b c d)  = Deep (D2 a b) empty (D2 c d)
+a <| Shallow (D2 b c)    = Shallow (D3 a b c)
+a <| Shallow (D1 b)      = Shallow (D2 a b)
+a <| Shallow D0          = Shallow (D1 a)
+a <| Deep (D3 b c d) m r = Deep (D2 a b) (Pair c d <| m) r
+a <| Deep (D2 b c) m r   = Deep (D3 a b c) m r
+a <| Deep (D1 b) m r     = Deep (D2 a b) m r
+a <| Deep D0 m r         = Deep (D1 a) m r
+
+-- (|>) :: Deque k b c -> k a b -> Deque k a c
 
