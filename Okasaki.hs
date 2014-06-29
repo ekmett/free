@@ -78,16 +78,29 @@ data View l r a c where
   Empty :: View l r a a
   (:|) :: l b c -> r a b -> View l r a c
 
+digit :: Digit r a b -> Deque r a b
+digit (D1 a)     = Q1 a
+digit (D2 a b)   = Q2 a b
+digit (D3 a b c) = Q3 a b c
+
 uncons :: Deque r a c -> View r (Deque r) a c
 uncons (Deep (D3 a b c) m r) = a :| Deep (D2 b c) m r
 uncons (Deep (D2 a b) m r)   = a :| Deep (D1 b) m r
-uncons (Deep (D1 a) m r) = a :| case uncons m of
-  Empty -> case r of
-    D1 b     -> Q1 b
-    D2 b c   -> Q2 b c
-    D3 b c d -> Q3 b c d
+uncons (Deep (D1 a) m r)     t= a :| case uncons m of
+  Empty          -> digit r
   Pair b c :| m' -> Deep (D2 b c) m' r
 uncons (Q3 a b c) = a :| Q2 b c
 uncons (Q2 a b)   = a :| Q1 b
 uncons (Q1 a)     = a :| Q0
 uncons Q0         = Empty
+
+unsnoc :: Deque r a c -> View (Deque r) r a c
+unsnoc (Deep l m (D3 c b a)) = Deep l m (D2 c b) :| a
+unsnoc (Deep l m (D2 b a))   = Deep l m (D1 b) :| a
+unsnoc (Deep l m (D1 a))     = (:| a) $ case unsnoc m of
+  Empty -> digit l
+  m' :| Pair b c -> Deep l m' (D2 b c)
+unsnoc (Q3 c b a) = Q2 c b  :| a
+unsnoc (Q2 b a)   = Q1 b :| a
+unsnoc (Q1 a)     = Q0 :| a
+unsnoc Q0         = Empty
