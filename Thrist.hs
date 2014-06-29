@@ -42,22 +42,21 @@ queue xs ys (Cons h t) = Queue xs ys t
 -- the free category over c as a queue
 data Path r x y where
   NilPath :: Path r x x
-  Path    :: r y z -> !(Queue (Path r) x y) -> Path k x z
+  Path    :: r y z -> !(Queue (Path r) x y) -> Path r x z
 
 instance Category (Path p) where
   id = NilPath
   NilPath              . ys      = ys
   xs                   . NilPath = xs
-  Path y (Queue f r a) . xs      = Path y _heh (queue f (Snoc r xs) a)
+  Path y (Queue f r a) . xs      = Path y (queue f (Snoc r xs) a)
 
-{-
 -- singleton :: c ~> Path c
 singleton :: c x y -> Path c x y
 singleton c = Path c (Queue id id id)
 
 data View c x z where
   Empty :: View c x x
-  (:|) :: c x y -> !(Path c y z) -> View c x z
+  (:|) :: c y z -> !(Path c x y) -> View c x z
 
 -- uncons :: Path ~> View
 uncons :: Path c x z -> View c x z
@@ -71,18 +70,12 @@ linkAll (Queue (Cons (Path h pt) t) f a) = Path h $ case linkAll (queue t f a) o
   ys      -> case pt of
     Queue f' r' a' -> queue f' (Snoc r' ys) a'
 
-cons :: c x y -> Path c y z -> Path c x z
-cons :: c x y -> Path c y z -> Path c x z
-cons x xs = singleton x >>> xs
+cons :: c y z -> Path c x y -> Path c x z
+cons x xs = singleton x . xs
 
-snoc :: Path c x y -> c y z -> Path c x z
-snoc xs x = xs >>> singleton x
+snoc :: Path c y z -> c x y -> Path c x z
+snoc xs x = xs . singleton x
 
 null :: Path c x y -> Bool
 null NilPath = True
 null _       = False
-
-folded :: Category c => (forall a b. c a b -> d a b) -> Path c x y -> d x y
-folded f NilPath = id
--}
-
