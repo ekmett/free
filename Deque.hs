@@ -1,5 +1,7 @@
 {-# LANGUAGE PolyKinds, RankNTypes, GADTs #-}
-module Ok where
+module Deque where
+
+-- deque by implicit recursive slowdown
 
 import Control.Category
 import Control.Applicative hiding (empty)
