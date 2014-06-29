@@ -10,18 +10,15 @@ class Catenated t where
   traverseCat :: Applicative m => (forall a b. r a b -> m (s a b)) -> t r a b -> m (t s a b)
 
 data Digit :: (i -> i -> *) -> i -> i -> * where
-  D0 :: Digit r a a
   D1 :: r a b -> Digit r a b
   D2 :: r b c -> r a b -> Digit r a c
   D3 :: r c d -> r b c -> r a b -> Digit r a d
 
 instance Catenated Digit where
-  foldCat _ D0             = id
   foldCat k (D1 a)         = k a
   foldCat k (D2 a b)       = k a . k b
   foldCat k (D3 a b c)     = k a . k b . k c
 
-  traverseCat _ D0         = pure D0
   traverseCat k (D1 a)     = D1 <$> k a
   traverseCat k (D2 a b)   = D2 <$> k a <*> k b
   traverseCat k (D3 a b c) = D3 <$> k a <*> k b <*> k c
@@ -34,31 +31,63 @@ instance Catenated Pair where
   traverseCat k (Pair a b) = Pair <$> k a <*> k b
 
 data Deque :: (i -> i -> *) -> i -> i -> * where
-  Shallow :: !(Digit r a b) -> Deque r a b
-  Deep    :: !(Digit r c d) -> Deque (Pair r) b c -> !(Digit r a b) -> Deque r a d
+  Q0   :: Deque r a a
+  Q1   :: r a b -> Deque r a b
+  Q2   :: r b c -> r a b -> Deque r a c
+  Q3   :: r c d -> r b c -> r a b -> Deque r a d
+  Deep :: !(Digit r c d) -> Deque (Pair r) b c -> !(Digit r a b) -> Deque r a d
 
 instance Catenated Deque where
-  foldCat k (Shallow a) = foldCat k a
+  foldCat _ Q0           = id
+  foldCat k (Q1 a)       = k a
+  foldCat k (Q2 a b)     = k a . k b
+  foldCat k (Q3 a b c)   = k a . k b . k c
   foldCat k (Deep a b c) = foldCat k a . foldCat (foldCat k) b . foldCat k c
-  traverseCat k (Shallow a) = Shallow <$> traverseCat k a
+  traverseCat _ Q0           = pure Q0
+  traverseCat k (Q1 a)       = Q1 <$> k a
+  traverseCat k (Q2 a b)     = Q2 <$> k a <*> k b
+  traverseCat k (Q3 a b c)   = Q3 <$> k a <*> k b <*> k c
   traverseCat k (Deep a b c) = Deep <$> traverseCat k a <*> traverseCat (traverseCat k) b <*> traverseCat k c
 
-null :: Deque k a b -> Bool
-null (Shallow D0) = True
+null :: Deque r a b -> Bool
+null Q0 = True
 null _ = False
 
-empty :: Deque k a a
-empty = Shallow D0
+empty :: Deque r a a
+empty = Q0
 
-(<|) :: k b c -> Deque k a b -> Deque k a c
-a <| Shallow (D3 b c d)  = Deep (D2 a b) empty (D2 c d)
-a <| Shallow (D2 b c)    = Shallow (D3 a b c)
-a <| Shallow (D1 b)      = Shallow (D2 a b)
-a <| Shallow D0          = Shallow (D1 a)
-a <| Deep (D3 b c d) m r = Deep (D2 a b) (Pair c d <| m) r
-a <| Deep (D2 b c) m r   = Deep (D3 a b c) m r
+(<|) :: r b c -> Deque r a b -> Deque r a c
+a <| Q0                  = Q1 a
+a <| Q1 b                = Q2 a b
+a <| Q2 b c              = Q3 a b c
+a <| Q3 b c d            = Deep (D2 a b) Q0 (D2 c d)
 a <| Deep (D1 b) m r     = Deep (D2 a b) m r
-a <| Deep D0 m r         = Deep (D1 a) m r
+a <| Deep (D2 b c) m r   = Deep (D3 a b c) m r
+a <| Deep (D3 b c d) m r = Deep (D2 a b) (Pair c d <| m) r
 
--- (|>) :: Deque k b c -> k a b -> Deque k a c
+(|>) :: Deque r b c -> r a b -> Deque r a c
+Q0 |> a                  = Q1 a
+Q1 b |> a                = Q2 b a
+Q2 c b |> a              = Q3 c b a
+Q3 d c b |> a            = Deep (D2 d c) Q0 (D2 b a)
+Deep l m (D1 b) |> a     = Deep l m (D2 b a)
+Deep l m (D2 c b) |> a   = Deep l m (D3 c b a)
+Deep l m (D3 d c b) |> a = Deep l (m |> Pair d c) (D2 b a)
 
+data View l r a c where
+  Empty :: View l r a a
+  (:|) :: l b c -> r a b -> View l r a c
+
+uncons :: Deque r a c -> View r (Deque r) a c
+uncons (Deep (D3 a b c) m r) = a :| Deep (D2 b c) m r
+uncons (Deep (D2 a b) m r)   = a :| Deep (D1 b) m r
+uncons (Deep (D1 a) m r) = a :| case uncons m of
+  Empty -> case r of
+    D1 b     -> Q1 b
+    D2 b c   -> Q2 b c
+    D3 b c d -> Q3 b c d
+  Pair b c :| m' -> Deep (D2 b c) m' r
+uncons (Q3 a b c) = a :| Q2 b c
+uncons (Q2 a b)   = a :| Q1 b
+uncons (Q1 a)     = a :| Q0
+uncons Q0         = Empty
