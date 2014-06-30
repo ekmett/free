@@ -45,15 +45,13 @@ null _ = False
 singleton :: r a b -> Cat r a b
 singleton = Shallow . D.Digit . D1
 
-infixr 5 <|
-(<|) :: r b c -> Cat r a b -> Cat r a c
-x <| Shallow q      = Shallow (x D.<| q)
-x <| Deep f a m b r = Deep (x D.<| f) a m b r
+instance Cons Cat where
+  x <| Shallow q      = Shallow (x D.<| q)
+  x <| Deep f a m b r = Deep (x D.<| f) a m b r
 
-infixl 5 |>
-(|>) :: Cat r b c -> r a b -> Cat r a c
-Shallow q      |> x = Shallow (q D.|> x)
-Deep f a m b r |> x = Deep f a m b (r D.|> x)
+instance Snoc Cat where
+  Shallow q      |> x = Shallow (q D.|> x)
+  Deep f a m b r |> x = Deep f a m b (r D.|> x)
 
 consDigit :: Digit r b c -> Cat r a b -> Cat r a c
 D1 x `consDigit` Shallow q          = Shallow (x D.<| q)

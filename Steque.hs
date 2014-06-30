@@ -13,54 +13,60 @@ import Control.Category
 import Catenated
 import View
 
-data Cons r a b where
-  NilCons :: Cons r a a
-  Cons    :: r b c -> Cons r a b -> Cons r a c
+data Consed r a b where
+  NilCons :: Consed r a a
+  Cons    :: r b c -> Consed r a b -> Consed r a c
 
-instance Catenated Cons where
+instance Catenated Consed where
   foldCat _ NilCons = id
   foldCat f (Cons a b) = f a . foldCat f b
   traverseCat _ NilCons = pure NilCons
   traverseCat f (Cons a b) = Cons <$> f a <*> traverseCat f b
 
-instance Category (Cons r) where
+instance Category (Consed r) where
   id = NilCons
   NilCons   . ys = ys
   Cons x xs . ys = Cons x (xs . ys)
 
-instance Uncons Cons where
+instance Uncons Consed where
   uncons (Cons a b) = a :| b
   uncons NilCons    = Empty
 
-data Snoc r a b where
-  NilSnoc :: Snoc r a a
-  Snoc    :: Snoc r b c -> r a b -> Snoc r a c
+instance Cons Consed where
+  (<|) = Cons
 
-instance Category (Snoc r) where
+data Snoced r a b where
+  NilSnoc :: Snoced r a a
+  Snoc    :: Snoced r b c -> r a b -> Snoced r a c
+
+instance Category (Snoced r) where
   id = NilSnoc
   xs . NilSnoc = xs
   xs . Snoc ys y = Snoc (xs . ys) y
 
-instance Catenated Snoc where
+instance Catenated Snoced where
   foldCat _ NilSnoc = id
   foldCat f (Snoc a b) = foldCat f a . f b
   traverseCat _ NilSnoc = pure NilSnoc
   traverseCat f (Snoc a b) = Snoc <$> traverseCat f a <*> f b
 
-instance Unsnoc Snoc where
+instance Unsnoc Snoced where
   unsnoc (Snoc a b) = a :| b
   unsnoc NilSnoc    = Empty
 
+instance Snoc Snoced where
+  (|>) = Snoc
+
 -- okasaki realtime queue
 data Queue r a b where
-  Queue :: !(Cons r b c) -> !(Snoc r a b) -> !(Cons r b x) -> Queue r a c
+  Queue :: !(Consed r b c) -> !(Snoced r a b) -> !(Consed r b x) -> Queue r a c
 
-rotate :: Cons r c d -> Snoc r b c -> Cons r a b -> Cons r a d
+rotate :: Consed r c d -> Snoced r b c -> Consed r a b -> Consed r a d
 rotate NilCons     (Snoc NilSnoc y) zs = Cons y zs
 rotate (Cons x xs) (Snoc ys y)      zs = Cons x (rotate xs ys (Cons y zs))
 rotate xs          ys               zs = error "Invariant |ys| = |xs| - (|zs| - 1) broken"
 
-queue :: Cons r b c -> Snoc r a b -> Cons r b x -> Queue r a c
+queue :: Consed r b c -> Snoced r a b -> Consed r b x -> Queue r a c
 queue xs ys NilCons    = Queue xs' NilSnoc xs' where xs' = rotate xs ys NilCons
 queue xs ys (Cons h t) = Queue xs ys t
 
@@ -94,8 +100,8 @@ null _         = False
 singleton :: c x y -> Steque c x y
 singleton c = Steque c (Queue id id id)
 
-(<|) :: c y z -> Steque c x y -> Steque c x z
-x <| xs = singleton x . xs
+instance Cons Steque where
+  x <| xs = singleton x . xs
 
-(|>) :: Steque c y z -> c x y -> Steque c x z
-xs |> x = xs . singleton x
+instance Snoc Steque where
+  xs |> x = xs . singleton x

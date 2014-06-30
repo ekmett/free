@@ -3,6 +3,8 @@ module View
   ( View(..)
   , Uncons(..)
   , Unsnoc(..)
+  , Cons(..)
+  , Snoc(..)
   ) where
 
 
@@ -16,3 +18,11 @@ class Uncons t where
 
 class Unsnoc t where
   unsnoc :: t r a b -> View (t r) r a b
+
+infixr 5 <|
+class Cons t where
+  (<|) :: r b c -> t r a b -> t r a c
+
+infixl 5 |>
+class Snoc t where
+  (|>) :: t r b c -> r a b -> t r a c

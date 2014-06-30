@@ -56,25 +56,23 @@ null _ = False
 empty :: Deque r a a
 empty = Id
 
-infixr 5 <|
-(<|) :: r b c -> Deque r a b -> Deque r a c
-a <| Id                   = Digit (D1 a)
-a <| Digit (D1 b)         = Digit (D2 a b)
-a <| Digit (D2 b c)       = Digit (D3 a b c)
-a <| Digit (D3 b c d)     = Deque (D2 a b) Id (D2 c d)
-a <| Deque (D1 b) m r     = Deque (D2 a b) m r
-a <| Deque (D2 b c) m r   = Deque (D3 a b c) m r
-a <| Deque (D3 b c d) m r = Deque (D2 a b) (Pair c d <| m) r
+instance Cons Deque where
+  a <| Id                   = Digit (D1 a)
+  a <| Digit (D1 b)         = Digit (D2 a b)
+  a <| Digit (D2 b c)       = Digit (D3 a b c)
+  a <| Digit (D3 b c d)     = Deque (D2 a b) Id (D2 c d)
+  a <| Deque (D1 b) m r     = Deque (D2 a b) m r
+  a <| Deque (D2 b c) m r   = Deque (D3 a b c) m r
+  a <| Deque (D3 b c d) m r = Deque (D2 a b) (Pair c d <| m) r
 
-infixl 5 |>
-(|>) :: Deque r b c -> r a b -> Deque r a c
-Id |> a                   = Digit (D1 a)
-Digit (D1 b) |> a         = Digit (D2 b a)
-Digit (D2 c b) |> a       = Digit (D3 c b a)
-Digit (D3 d c b) |> a     = Deque (D2 d c) Id (D2 b a)
-Deque l m (D1 b) |> a     = Deque l m (D2 b a)
-Deque l m (D2 c b) |> a   = Deque l m (D3 c b a)
-Deque l m (D3 d c b) |> a = Deque l (m |> Pair d c) (D2 b a)
+instance Snoc Deque where
+  Id |> a                   = Digit (D1 a)
+  Digit (D1 b) |> a         = Digit (D2 b a)
+  Digit (D2 c b) |> a       = Digit (D3 c b a)
+  Digit (D3 d c b) |> a     = Deque (D2 d c) Id (D2 b a)
+  Deque l m (D1 b) |> a     = Deque l m (D2 b a)
+  Deque l m (D2 c b) |> a   = Deque l m (D3 c b a)
+  Deque l m (D3 d c b) |> a = Deque l (m |> Pair d c) (D2 b a)
 
 instance Uncons Deque where
   uncons (Deque (D3 a b c) m r) = a :| Deque (D2 b c) m r
