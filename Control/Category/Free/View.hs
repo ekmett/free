@@ -1,12 +1,11 @@
 {-# LANGUAGE GADTs, PolyKinds #-}
-module View
+module Control.Category.Free.View
   ( View(..)
   , Uncons(..)
   , Unsnoc(..)
   , Cons(..)
   , Snoc(..)
   ) where
-
 
 infixr 5 :|
 data View l r a c where

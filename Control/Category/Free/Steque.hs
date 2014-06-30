@@ -7,11 +7,11 @@ module Steque
   , null
   ) where
 
-import Prelude hiding ((.),id,null)
 import Control.Applicative
 import Control.Category
-import Catenated
-import View
+import Control.Category.Free.Catenated
+import Control.Category.Free.View
+import Prelude hiding ((.),id,null)
 
 data Consed r a b where
   NilCons :: Consed r a a

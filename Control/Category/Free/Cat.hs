@@ -6,13 +6,13 @@ module Cat
   , (<|), (|>)
   ) where
 
-import Catenated
 import Control.Applicative
 import Control.Category
-import qualified Deque as D
-import Deque (Digit(..))
+import Control.Category.Free.Catenated
+import qualified Control.Category.Free.Deque as D
+import Control.Category.Free.Deque (Digit(..))
+import Control.Category.Free.View
 import Prelude hiding ((.),id,null)
-import View
 
 data Component r a b where
   Simple  :: !(D.Deque r a b) -> Component r a b

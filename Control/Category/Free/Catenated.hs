@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes, PolyKinds #-}
-module Catenated where
+module Control.Category.Free.Catenated where
 
 import Control.Applicative
 import Control.Category

@@ -9,11 +9,11 @@ module Deque
 
 -- deque by implicit recursive slowdown
 
-import Control.Category
 import Control.Applicative hiding (empty)
-import Catenated
+import Control.Category
+import Control.Category.Free.Catenated
+import Control.Category.Free.View
 import Prelude hiding ((.), id, null)
-import View
 
 data Digit :: (i -> i -> *) -> i -> i -> * where
   D1 :: r a b -> Digit r a b
