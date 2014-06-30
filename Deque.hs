@@ -3,8 +3,6 @@ module Deque
   ( Deque
   , null
   , empty
-  , View(..)
-  , uncons, unsnoc
   , (<|), (|>)
   ) where
 
@@ -12,11 +10,9 @@ module Deque
 
 import Control.Category
 import Control.Applicative hiding (empty)
+import Catenated
 import Prelude hiding ((.), id, null)
-
-class Catenated t where
-  foldCat     :: Category s => (forall a b. r a b -> s a b) -> t r a b -> s a b
-  traverseCat :: Applicative m => (forall a b. r a b -> m (s a b)) -> t r a b -> m (t s a b)
+import View
 
 data Digit :: (i -> i -> *) -> i -> i -> * where
   D1 :: r a b -> Digit r a b
@@ -83,33 +79,29 @@ Deep l m (D1 b) |> a     = Deep l m (D2 b a)
 Deep l m (D2 c b) |> a   = Deep l m (D3 c b a)
 Deep l m (D3 d c b) |> a = Deep l (m |> Pair d c) (D2 b a)
 
-data View l r a c where
-  Empty :: View l r a a
-  (:|) :: l b c -> r a b -> View l r a c
-
 digit :: Digit r a b -> Deque r a b
 digit (D1 a)     = Q1 a
 digit (D2 a b)   = Q2 a b
 digit (D3 a b c) = Q3 a b c
 
-uncons :: Deque r a c -> View r (Deque r) a c
-uncons (Deep (D3 a b c) m r) = a :| Deep (D2 b c) m r
-uncons (Deep (D2 a b) m r)   = a :| Deep (D1 b) m r
-uncons (Deep (D1 a) m r)     = a :| case uncons m of
-  Empty          -> digit r
-  Pair b c :| m' -> Deep (D2 b c) m' r
-uncons (Q3 a b c) = a :| Q2 b c
-uncons (Q2 a b)   = a :| Q1 b
-uncons (Q1 a)     = a :| Q0
-uncons Q0         = Empty
+instance Uncons Deque where
+  uncons (Deep (D3 a b c) m r) = a :| Deep (D2 b c) m r
+  uncons (Deep (D2 a b) m r)   = a :| Deep (D1 b) m r
+  uncons (Deep (D1 a) m r)     = a :| case uncons m of
+    Empty          -> digit r
+    Pair b c :| m' -> Deep (D2 b c) m' r
+  uncons (Q3 a b c) = a :| Q2 b c
+  uncons (Q2 a b)   = a :| Q1 b
+  uncons (Q1 a)     = a :| Q0
+  uncons Q0         = Empty
 
-unsnoc :: Deque r a c -> View (Deque r) r a c
-unsnoc (Deep l m (D3 c b a)) = Deep l m (D2 c b) :| a
-unsnoc (Deep l m (D2 b a))   = Deep l m (D1 b) :| a
-unsnoc (Deep l m (D1 a))     = (:| a) $ case unsnoc m of
-  Empty -> digit l
-  m' :| Pair b c -> Deep l m' (D2 b c)
-unsnoc (Q3 c b a) = Q2 c b  :| a
-unsnoc (Q2 b a)   = Q1 b :| a
-unsnoc (Q1 a)     = Q0 :| a
-unsnoc Q0         = Empty
+instance Unsnoc Deque where
+  unsnoc (Deep l m (D3 c b a)) = Deep l m (D2 c b) :| a
+  unsnoc (Deep l m (D2 b a))   = Deep l m (D1 b) :| a
+  unsnoc (Deep l m (D1 a))     = (:| a) $ case unsnoc m of
+    Empty -> digit l
+    m' :| Pair b c -> Deep l m' (D2 b c)
+  unsnoc (Q3 c b a) = Q2 c b  :| a
+  unsnoc (Q2 b a)   = Q1 b :| a
+  unsnoc (Q1 a)     = Q0 :| a
+  unsnoc Q0         = Empty
