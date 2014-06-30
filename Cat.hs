@@ -120,3 +120,35 @@ instance Uncons Cat where
           D1 x     -> x :| Shallow m . Shallow r
           D2 x y   -> x :| Shallow (y D.<| m) . Shallow r
           D3 x y z -> x :| Shallow (y D.<| z D.<| m) . Shallow r
+
+instance Unsnoc Cat where
+  unsnoc (Shallow d) = case unsnoc d of
+    Empty -> Empty
+    d' :| x -> Shallow d' :| x
+  unsnoc (Deep f a m b r) = case r of
+    D.Id -> impossible
+    D.Deque{} -> case unsnoc r of
+      Empty -> impossible
+      r' :| x -> Deep f a m b r' :| x
+    D.Digit rd -> case unsnoc b of
+      b' :| Simple d -> case rd of
+        D1 x     -> Deep f a m b' d                 :| x
+        D2 y x   -> Deep f a m b' (d D.|> y)        :| x
+        D3 z y x -> Deep f a m b' (d D.|> z D.|> y) :| x
+      b'' :| Complex f' b' r' -> case rd of
+        D1 x     -> Deep f a m ((b'' |> Simple f') . b') r'                 :| x
+        D2 y x   -> Deep f a m ((b'' |> Simple f') . b') (r' D.|> y)        :| x
+        D3 z y x -> Deep f a m ((b'' |> Simple f') . b') (r' D.|> z D.|> y) :| x
+      Empty -> case unsnoc a of
+        a' :| Simple d -> case rd of
+          D1 x     -> Deep f a' d id m                 :| x
+          D2 y x   -> Deep f a' d id (m D.|> y)        :| x
+          D3 z y x -> Deep f a' d id (m D.|> z D.|> y) :| x
+        a'' :| Complex f' a' r' -> case rd of
+          D1 x     -> Deep f a'' f' (a' |> Simple r') m                 :| x
+          D2 y x   -> Deep f a'' f' (a' |> Simple r') (m D.|> y)        :| x
+          D3 z y x -> Deep f a'' f' (a' |> Simple r') (m D.|> z D.|> y) :| x
+        Empty -> case rd of
+          D1 x -> Shallow f . Shallow m :| x
+          D2 y x -> Shallow f . Shallow (m D.|> y) :| x
+          D3 z y x -> Shallow f . Shallow (m D.|> z D.|> y) :| x
