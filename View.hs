@@ -5,6 +5,8 @@ module View
   , Unsnoc(..)
   ) where
 
+
+infixr 5 :|
 data View l r a c where
   Empty :: View l r a a
   (:|) :: l b c -> r a b -> View l r a c
