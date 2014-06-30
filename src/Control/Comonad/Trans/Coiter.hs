@@ -10,7 +10,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Trans.Coiter
--- Copyright   :  (C) 2008-2013 Edward Kmett
+-- Copyright   :  (C) 2008-2014 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -27,7 +27,7 @@ module Control.Comonad.Trans.Coiter
   -- They are the dual notion of iterative monads. While iterative computations
   -- produce no values or eventually terminate with one, coiterative
   -- computations constantly produce values and they never terminate.
-  -- 
+  --
   -- It's simpler form, 'Coiter', is an infinite stream of data. 'CoiterT'
   -- extends this so that each step of the computation can be performed in
   -- a comonadic context.
@@ -121,11 +121,11 @@ instance ComonadTrans CoiterT where
 instance Comonad w => ComonadCofree Identity (CoiterT w) where
   unwrap = Identity . snd . extract . runCoiterT
   {-# INLINE unwrap #-}
-  
+
 instance ComonadEnv e w => ComonadEnv e (CoiterT w) where
   ask = ask . lower
   {-# INLINE ask #-}
-  
+
 instance ComonadHoist CoiterT where
   cohoist g = CoiterT . fmap (second (cohoist g)) . g . runCoiterT
 

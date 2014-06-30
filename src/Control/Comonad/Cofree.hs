@@ -9,7 +9,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree
--- Copyright   :  (C) 2008-2013 Edward Kmett
+-- Copyright   :  (C) 2008-2014 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -94,7 +94,7 @@ infixr 5 :<
 --
 -- In particular, if @f a ≡ [a]@, the
 -- resulting data structure is a <https://en.wikipedia.org/wiki/Rose_tree Rose tree>.
--- For a practical application, check 
+-- For a practical application, check
 -- <https://personal.cis.strath.ac.uk/neil.ghani/papers/ghani-calco07 Higher Dimensional Trees, Algebraically> by Neil Ghani et al.
 data Cofree f a = a :< f (Cofree f a)
 #if __GLASGOW_HASKELL__ >= 707

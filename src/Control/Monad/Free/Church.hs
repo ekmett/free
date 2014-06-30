@@ -10,7 +10,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free.Church
--- Copyright   :  (C) 2011-2012 Edward Kmett
+-- Copyright   :  (C) 2011-2014 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
