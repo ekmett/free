@@ -9,10 +9,7 @@ import Control.Applicative
 import Control.Category
 import Control.Category.Free.Catenated
 import Control.Category.Free.View
-import Data.Monoid
-import Data.Functor.Identity
-import Data.Traversable
-import Prelude hiding ((.),id)
+import Prelude hiding ((.),id,null)
 
 data Seq r a b where
   Id     :: Seq r a a
@@ -32,7 +29,7 @@ data Node r a b where
   N2 ::          r b c -> r a b -> Node r a c
   N3 :: r c d -> r b c -> r a b -> Node r a d
 
-instance Catenated where
+instance Catenated Node where
   foldCat f (N2 a b)       = f a . f b
   foldCat f (N3 a b c)     = f a . f b . f c
   traverseCat f (N2 a b)   = N2 <$> f a <*> f b
@@ -44,7 +41,7 @@ data Digit r a b where
   D3 ::          r c d -> r b c -> r a b -> Digit r a d
   D4 :: r d e -> r c d -> r b c -> r a b -> Digit r a e
 
-instance Categorical Digit where
+instance Catenated Digit where
   foldCat f (D1 a)       = f a
   foldCat f (D2 a b)     = f a . f b
   foldCat f (D3 a b c)   = f a . f b . f c

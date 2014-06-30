@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs, TypeFamilies, PolyKinds, RankNTypes #-}
-module Steque
+module Control.Category.Free.Steque
   ( Steque
   , singleton
   , (<|)

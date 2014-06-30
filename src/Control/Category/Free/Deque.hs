@@ -1,5 +1,5 @@
 {-# LANGUAGE PolyKinds, RankNTypes, GADTs #-}
-module Deque
+module Control.Category.Free.Deque
   ( Deque(..)
   , Digit(..)
   , null

@@ -10,7 +10,7 @@ stability:     provisional
 homepage:      http://github.com/ekmett/free/
 bug-reports:   http://github.com/ekmett/free/issues
 copyright:     Copyright (C) 2008-2013 Edward A. Kmett
-synopsis:      Monads for free
+synopsis:      Monads and categories for free
 description:
   Free monads are useful for many tree-like structures and domain specific languages.
   .
@@ -82,6 +82,12 @@ library
     Control.Applicative.Free
     Control.Applicative.Trans.Free
     Control.Alternative.Free
+    Control.Category.Free.Cat
+    Control.Category.Free.Catenated
+    Control.Category.Free.Deque
+    Control.Category.Free.Seq
+    Control.Category.Free.Steque
+    Control.Category.Free.View
     Control.Comonad.Cofree
     Control.Comonad.Cofree.Class
     Control.Comonad.Trans.Cofree

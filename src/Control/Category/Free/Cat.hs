@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes, BangPatterns, PolyKinds, GADTs #-}
-module Cat
+module Control.Category.Free.Cat
   ( Cat
   , null
   , singleton
@@ -24,6 +24,8 @@ instance Catenated Component where
 
   traverseCat k (Simple a)      = Simple <$> traverseCat k a
   traverseCat k (Complex a b c) = Complex <$> traverseCat k a <*> traverseCat (traverseCat k) b <*> traverseCat k c
+
+-- Chris Okasaki's Implicit Recursive Catenable Deque
 
 data Cat r a c where
   Shallow :: !(D.Deque r a b) -> Cat r a b
@@ -147,6 +149,6 @@ instance Unsnoc Cat where
           D2 y x   -> Deep f a'' f' (a' |> Simple r') (m D.|> y)        :| x
           D3 z y x -> Deep f a'' f' (a' |> Simple r') (m D.|> z D.|> y) :| x
         Empty -> case rd of
-          D1 x -> Shallow f . Shallow m :| x
-          D2 y x -> Shallow f . Shallow (m D.|> y) :| x
+          D1 x     -> Shallow f . Shallow m :| x
+          D2 y x   -> Shallow f . Shallow (m D.|> y) :| x
           D3 z y x -> Shallow f . Shallow (m D.|> z D.|> y) :| x
