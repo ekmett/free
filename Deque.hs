@@ -88,7 +88,7 @@ digit (D3 a b c) = Q3 a b c
 uncons :: Deque r a c -> View r (Deque r) a c
 uncons (Deep (D3 a b c) m r) = a :| Deep (D2 b c) m r
 uncons (Deep (D2 a b) m r)   = a :| Deep (D1 b) m r
-uncons (Deep (D1 a) m r)     t= a :| case uncons m of
+uncons (Deep (D1 a) m r)     = a :| case uncons m of
   Empty          -> digit r
   Pair b c :| m' -> Deep (D2 b c) m' r
 uncons (Q3 a b c) = a :| Q2 b c
