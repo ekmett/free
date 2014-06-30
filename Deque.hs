@@ -1,11 +1,18 @@
 {-# LANGUAGE PolyKinds, RankNTypes, GADTs #-}
-module Deque where
+module Deque
+  ( Deque
+  , null
+  , empty
+  , View(..)
+  , uncons, unsnoc
+  , (<|), (|>)
+  ) where
 
 -- deque by implicit recursive slowdown
 
 import Control.Category
 import Control.Applicative hiding (empty)
-import Prelude hiding ((.), id)
+import Prelude hiding ((.), id, null)
 
 class Catenated t where
   foldCat     :: Category s => (forall a b. r a b -> s a b) -> t r a b -> s a b
