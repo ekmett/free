@@ -1,6 +1,7 @@
 {-# LANGUAGE RankNTypes, BangPatterns, PolyKinds, GADTs #-}
 module Cat
   ( Cat
+  , null
   , singleton
   , (<|), (|>)
   ) where
@@ -10,7 +11,7 @@ import Control.Applicative
 import Control.Category
 import qualified Deque as D
 import Deque (Digit(..))
-import Prelude hiding ((.),id)
+import Prelude hiding ((.),id,null)
 import View
 
 data Component r a b where
@@ -36,6 +37,10 @@ instance Catenated Cat where
   traverseCat k (Deep a b c d e) = Deep <$> traverseCat k a <*> traverseCat (traverseCat k) b
                                         <*> traverseCat k c <*> traverseCat (traverseCat k) d
                                         <*> traverseCat k e
+
+null :: Cat r a b -> Bool
+null (Shallow r) = D.null r
+null _ = False
 
 singleton :: r a b -> Cat r a b
 singleton = Shallow . D.Digit . D1
@@ -80,3 +85,38 @@ instance Category (Cat r) where
   Deep f1 a1 m1 b1 r1 . Deep f2 a2 m2 b2 r2 = case unsnoc r1 of
     i :| l -> case uncons f2 of
       h :| t -> Deep f1 (a1 |> Complex m1 b1 i) (D.Digit (D.D2 l h)) (Complex t a2 m2 <| b2) r2
+
+impossible :: a
+impossible = error "the impossible happened"
+
+instance Uncons Cat where
+  uncons (Shallow d) = case uncons d of
+    Empty   -> Empty
+    x :| d' -> x :| Shallow d'
+  uncons (Deep f a m b r) = case f of
+    D.Id -> impossible
+    D.Deque{} -> case uncons f of
+      Empty -> impossible
+      x :| f' -> x :| Deep f' a m b r
+    D.Digit fd -> case uncons a of
+      Simple d :| a' -> case fd of
+        D1 x     -> x :| Deep                 d a' m b r
+        D2 x y   -> x :| Deep        (y D.<| d) a' m b r
+        D3 x y z -> x :| Deep (y D.<| z D.<| d) a' m b r
+      Complex f' a' r' :| a'' -> case fd of
+        D1 x     -> x :| Deep                 f' (a' . (Simple r' <| a'')) m b r
+        D2 x y   -> x :| Deep        (y D.<| f') (a' . (Simple r' <| a'')) m b r
+        D3 x y z -> x :| Deep (y D.<| z D.<| f') (a' . (Simple r' <| a'')) m b r
+      Empty -> case uncons b of
+        Simple d :| b' -> case fd of
+          D1 x     -> x :| Deep                 m id d b' r
+          D2 x y   -> x :| Deep        (y D.<| m) id d b' r
+          D3 x y z -> x :| Deep (y D.<| z D.<| m) id d b' r
+        Complex f' a' r' :| b'' -> case fd of
+          D1 x     -> x :| Deep m (Simple f' <| a') r' b'' r
+          D2 x y   -> x :| Deep (y D.<| m) (Simple f' <| a') r' b'' r
+          D3 x y z -> x :| Deep (y D.<| z D.<| m) (Simple f' <| a') r' b'' r
+        Empty -> case fd of
+          D1 x     -> x :| Shallow m . Shallow r
+          D2 x y   -> x :| Shallow (y D.<| m) . Shallow r
+          D3 x y z -> x :| Shallow (y D.<| z D.<| m) . Shallow r
