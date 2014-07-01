@@ -95,6 +95,7 @@ library
     Control.Monad.Free
     Control.Monad.Free.Church
     Control.Monad.Free.Class
+    Control.Monad.Free.Reflection
     Control.Monad.Free.TH
     Control.Monad.Trans.Free
     Control.Monad.Trans.Free.Church
