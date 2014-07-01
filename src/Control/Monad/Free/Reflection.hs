@@ -37,5 +37,8 @@ view (FreeRefl h t) = case h of
     tc :| hc -> view $ runKleisli hc a ^>>= tc
   Free f -> Free $ fmap (^>>= t) f
 
+unview :: FreeView f a -> Free f a
+unview x = FreeRefl x id
+
 (^>>=) :: Free f x -> Cat (Kleisli (Free f)) x b -> Free f b
 FreeRefl h t ^>>= r = FreeRefl h (r . t)
