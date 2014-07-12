@@ -40,6 +40,15 @@ module Control.Monad.Trans.Iter
   -- monad encapsulates errors, the 'Iter' monad encapsulates
   -- non-termination. The 'IterT' transformer generalizes non-termination to any monadic
   -- computation.
+  --
+  -- Computations in 'IterT' (or 'Iter') can be composed in two ways:
+  --
+  -- * /Sequential:/ Using the 'Monad' instance, the result of a computation
+  --   can be fed into the next.
+  --
+  -- * /Parallel:/ Using the 'MonadPlus' instance, several computations can be
+  --   executed concurrently, and the first to finish will prevail.
+  --   See also the <examples/Cabbage.lhs cabbage example>.
 
   -- * The iterative monad transformer
     IterT(..)
@@ -419,6 +428,7 @@ iterDataType = mkDataType "Control.Monad.Iter.IterT" [iterConstr]
 
 {- $examples
 
-<examples/MandelbrotIter.lhs Mandelbrot>
+<examples/MandelbrotIter.lhs Rendering the Mandelbrot set>
+<examples/Cabbage.lhs The wolf, the sheep and the cabbage>
 
 -}
