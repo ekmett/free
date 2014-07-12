@@ -62,6 +62,7 @@ module Control.Monad.Trans.Iter
   , never
   , interleave, interleave_
   -- * Consuming iterative monads
+  , unsafeIter
   , retract
   , fold
   , foldM
@@ -287,6 +288,19 @@ delay = wrap . return
 -- @
 retract :: Monad m => IterT m a -> m a
 retract m = runIterT m >>= either return retract
+
+-- |
+-- Runs a computation in the Iter monad. It may possibly not terminate;
+-- compose with 'cutoff' to limit the number of steps.
+--
+-- @
+-- 'unsafeIter' = 'runIdentity' . 'retract'
+-- @
+-- @
+-- 'unsafeIter' = 'fold' 'runIdentity'
+-- @
+unsafeIter :: Iter a -> a
+unsafeIter = runIdentity . retract
 
 -- | Tear down a 'Free' 'Monad' using iteration.
 fold :: Monad m => (m a -> a) -> IterT m a -> a
