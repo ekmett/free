@@ -158,7 +158,7 @@ instance Monad m => Monad (IterT m) where
   {-# INLINE return #-}
   IterT m >>= k = IterT $ m >>= either (runIterT . k) (return . Right . (>>= k))
   {-# INLINE (>>=) #-}
-  fail = IterT . fail
+  fail _ = never
   {-# INLINE fail #-}
 
 instance Monad m => Apply (IterT m) where
@@ -173,16 +173,19 @@ instance MonadFix m => MonadFix (IterT m) where
   mfix f = IterT $ mfix $ runIterT . f . either id (error "mfix (IterT m): Right")
   {-# INLINE mfix #-}
 
-instance MonadPlus m => Alternative (IterT m) where
-  empty = IterT mzero
+instance Monad m => Alternative (IterT m) where
+  empty = mzero
   {-# INLINE empty #-}
-  IterT a <|> IterT b = IterT (mplus a b)
+  (<|>) = mplus
   {-# INLINE (<|>) #-}
 
-instance MonadPlus m => MonadPlus (IterT m) where
-  mzero = IterT mzero
+-- | Capretta's 'race' combinator. Satisfies left catch.
+instance Monad m => MonadPlus (IterT m) where
+  mzero = never
   {-# INLINE mzero #-}
-  IterT a `mplus` IterT b = IterT (mplus a b)
+  (IterT x) `mplus` (IterT y) = IterT $ x >>= either
+                                (return . Left)
+                                (flip liftM y . second . mplus)
   {-# INLINE mplus #-}
 
 instance MonadTrans IterT where
