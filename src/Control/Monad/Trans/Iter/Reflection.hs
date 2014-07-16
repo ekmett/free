@@ -1,5 +1,10 @@
 {-# LANGUAGE GADTs, ViewPatterns #-}
-module Control.Monad.Trans.Iter.Reflection (IterT(..), IterView(..), view, unview) where
+module Control.Monad.Trans.Iter.Reflection
+  ( IterT(..)
+  , IterView(..)
+  , view
+  , unview
+  ) where
 
 import Control.Applicative
 import Control.Arrow (Kleisli(..))
