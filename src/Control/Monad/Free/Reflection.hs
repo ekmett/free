@@ -2,6 +2,8 @@
 module Control.Monad.Free.Reflection
   ( Free(..)
   , FreeView(..)
+  , view
+  , unview
   ) where
 
 import Control.Applicative
