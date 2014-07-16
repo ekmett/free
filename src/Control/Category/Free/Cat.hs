@@ -80,11 +80,15 @@ instance Category (Cat r) where
   Shallow ls . Shallow rs = case unsnoc ls of
     i :| l -> case uncons rs of
       h :| t -> Deep i id (D.Digit (D.D2 l h)) id t
+      Empty -> impossible
+    Empty -> impossible
   Shallow d . Deep f a m b r = Deep d (Simple f <| a) m b r
   Deep f a m b r . Shallow d = Deep f a m (b |> Simple r) d
   Deep f1 a1 m1 b1 r1 . Deep f2 a2 m2 b2 r2 = case unsnoc r1 of
     i :| l -> case uncons f2 of
       h :| t -> Deep f1 (a1 |> Complex m1 b1 i) (D.Digit (D.D2 l h)) (Complex t a2 m2 <| b2) r2
+      Empty -> impossible
+    Empty -> impossible
 
 impossible :: a
 impossible = error "the impossible happened"
