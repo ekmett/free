@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -25,6 +26,7 @@ module Control.Comonad.Cofree
   , section
   , coiter
   , unfold
+  , hoistCofree
   -- * Lenses into cofree comonads
   , _extract
   , _unwrap
@@ -111,6 +113,9 @@ coiter psi a = a :< (coiter psi <$> psi a)
 unfold :: Functor f => (b -> (a, f b)) -> b -> Cofree f a
 unfold f c = case f c of
   (x, d) -> x :< fmap (unfold f) d
+
+hoistCofree :: Functor f => (forall x . f x -> g x) -> Cofree f a -> Cofree g a
+hoistCofree f (x :< y) = x :< f (hoistCofree f <$> y)
 
 instance Functor f => ComonadCofree f (Cofree f) where
   unwrap (_ :< as) = as
