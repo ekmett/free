@@ -23,7 +23,7 @@ module Control.Applicative.Free
   -- flexible to inspect and interpret, as the number of ways in which
   -- the values can be nested is more limited.
   --
-  -- See <http://paolocapriotti.com/assets/applicative.pdf Free Applicative Functors>,
+  -- See <http://arxiv.org/abs/1403.0749 Free Applicative Functors>,
   -- by Paolo Capriotti and Ambrus Kaposi, for some applications.
 
     Ap(..)
