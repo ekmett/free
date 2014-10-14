@@ -1,3 +1,22 @@
+5.0
+---
+* Redefine `Alternative` and `MonadPlus` instances of `IterT` so that they apply to any underlying `Monad`.
+  `mplus` or `<|>` is Capretta's `race` combinator; `mzero` or `empty` is a non-terminating computation.
+* Redefine `fail s` for `IterT` as `mzero`, for any string `s`.
+
+4.9
+---
+* Remove `either` support. Why? It dragged in a large number of dependencies we otherwise don't support, and so is probably best inverted.
+
+4.8.0.1
+-------
+* Allow complation with older versions of `base`. (Foldable didn't add foldl' until base 4.6)
+
+4.8
+-----
+* Added a `MonadFree` instance for `EitherT` (frrom the `either` package).
+* Support for `transformers` 0.4
+
 4.7.1
 -----
 * Added more versions of `cutoff`.

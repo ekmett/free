@@ -39,6 +39,7 @@ import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.List
 import Control.Monad.Trans.Error
 import Control.Monad.Trans.Identity
+-- import Control.Monad.Trans.Either
 import Data.Monoid
 
 -- |
@@ -134,6 +135,9 @@ instance (Functor f, MonadFree f m) => MonadFree f (ListT m) where
 
 instance (Functor f, MonadFree f m, Error e) => MonadFree f (ErrorT e m) where
   wrap = ErrorT . wrap . fmap runErrorT
+
+-- instance (Functor f, MonadFree f m) => MonadFree f (EitherT e m) where
+--   wrap = EitherT . wrap . fmap runEitherT
 
 -- | A version of lift that can be used with just a Functor for f.
 liftF :: (Functor f, MonadFree f m) => f a -> m a

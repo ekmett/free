@@ -40,6 +40,15 @@ module Control.Monad.Trans.Iter
   -- monad encapsulates errors, the 'Iter' monad encapsulates
   -- non-termination. The 'IterT' transformer generalizes non-termination to any monadic
   -- computation.
+  --
+  -- Computations in 'IterT' (or 'Iter') can be composed in two ways:
+  --
+  -- * /Sequential:/ Using the 'Monad' instance, the result of a computation
+  --   can be fed into the next.
+  --
+  -- * /Parallel:/ Using the 'MonadPlus' instance, several computations can be
+  --   executed concurrently, and the first to finish will prevail.
+  --   See also the <examples/Cabbage.lhs cabbage example>.
 
   -- * The iterative monad transformer
     IterT(..)
@@ -158,7 +167,7 @@ instance Monad m => Monad (IterT m) where
   {-# INLINE return #-}
   IterT m >>= k = IterT $ m >>= either (runIterT . k) (return . Right . (>>= k))
   {-# INLINE (>>=) #-}
-  fail = IterT . fail
+  fail _ = never
   {-# INLINE fail #-}
 
 instance Monad m => Apply (IterT m) where
@@ -173,16 +182,19 @@ instance MonadFix m => MonadFix (IterT m) where
   mfix f = IterT $ mfix $ runIterT . f . either id (error "mfix (IterT m): Right")
   {-# INLINE mfix #-}
 
-instance MonadPlus m => Alternative (IterT m) where
-  empty = IterT mzero
+instance Monad m => Alternative (IterT m) where
+  empty = mzero
   {-# INLINE empty #-}
-  IterT a <|> IterT b = IterT (mplus a b)
+  (<|>) = mplus
   {-# INLINE (<|>) #-}
 
-instance MonadPlus m => MonadPlus (IterT m) where
-  mzero = IterT mzero
+-- | Capretta's 'race' combinator. Satisfies left catch.
+instance Monad m => MonadPlus (IterT m) where
+  mzero = never
   {-# INLINE mzero #-}
-  IterT a `mplus` IterT b = IterT (mplus a b)
+  (IterT x) `mplus` (IterT y) = IterT $ x >>= either
+                                (return . Left)
+                                (flip liftM y . second . mplus)
   {-# INLINE mplus #-}
 
 instance MonadTrans IterT where
@@ -416,6 +428,8 @@ iterDataType = mkDataType "Control.Monad.Iter.IterT" [iterConstr]
 
 {- $examples
 
-<examples/MandelbrotIter.lhs Mandelbrot>
+* <examples/MandelbrotIter.lhs Rendering the Mandelbrot set>
+
+* <examples/Cabbage.lhs The wolf, the sheep and the cabbage>
 
 -}

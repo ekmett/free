@@ -139,7 +139,7 @@ instance (Functor f, Comonad w) => ComonadCofree f (CofreeT f w) where
   unwrap = tailF . extract . runCofreeT
 
 instance Show (w (CofreeF f a (CofreeT f w a))) => Show (CofreeT f w a) where
-  showsPrec d w = showParen (d > 10) $
+  showsPrec d (CofreeT w) = showParen (d > 10) $
     showString "CofreeT " . showsPrec 11 w
 
 instance Read (w (CofreeF f a (CofreeT f w a))) => Read (CofreeT f w a) where
