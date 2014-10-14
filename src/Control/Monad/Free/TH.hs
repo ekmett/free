@@ -14,7 +14,8 @@
 module Control.Monad.Free.TH
   (
    -- * Free monadic actions
-   makeFree
+   makeFree,
+   makeFreeCon,
    -- $doc
 
    -- ** Examples
@@ -175,24 +176,46 @@ liftCon ts cx f n ns con =
     ForallC ts' cx' con' -> liftCon (ts ++ ts') (cx ++ cx') f n ns con'
 
 -- | Provide free monadic actions for a type declaration.
-liftDec :: Dec -> Q [Dec]
-liftDec (DataD _ tyName tyVarBndrs cons _)
+liftDec :: Maybe [Name] -> Dec -> Q [Dec]
+liftDec onlyCons (DataD _ tyName tyVarBndrs cons _)
   | null tyVarBndrs = fail $ "Type " ++ show tyName ++ " needs at least one free variable"
-  | otherwise = concat <$> mapM (liftCon [] [] con nextTyName (init tyNames)) cons
+  | otherwise = concat <$> mapM (liftCon [] [] con nextTyName (init tyNames)) cons'
     where
+      cons' = case onlyCons of
+                Nothing -> cons
+                Just ns -> filter (\con -> constructorName con `elem` ns) cons
       tyNames    = map tyVarBndrName tyVarBndrs
       nextTyName = last tyNames
       con        = ConT tyName
-liftDec dec = fail $ "liftDec: Don't know how to lift " ++ show dec
+liftDec _ dec = fail $ "liftDec: Don't know how to lift " ++ show dec
 
--- | @$(makeFree ''Type)@ provides free monadic actions for the
--- constructors of the given type.
-makeFree :: Name -> Q [Dec]
-makeFree tyCon = do
+-- | Get construstor name.
+constructorName :: Con -> Name
+constructorName (NormalC  name _)   = name
+constructorName (RecC     name _)   = name
+constructorName (InfixC   _ name _) = name
+constructorName (ForallC  _ _ c)    = constructorName c
+
+genFree :: Maybe [Name] -> Name -> Q [Dec]
+genFree cnames tyCon = do
   info <- reify tyCon
   case info of
-    TyConI dec -> liftDec dec
+    TyConI dec -> liftDec cnames dec
     _ -> fail "makeFree expects a type constructor"
+
+-- | @$(makeFree ''T)@ provides free monadic actions for the
+-- constructors of the given data type @T@.
+makeFree :: Name -> Q [Dec]
+makeFree = genFree Nothing
+
+-- | @$(makeFreeCon 'Con)@ provides free monadic action for a data
+-- constructor @Con@.
+makeFreeCon :: Name -> Q [Dec]
+makeFreeCon con = do
+  info <- reify con
+  case info of
+    DataConI cname _ tname _ -> genFree (Just [cname]) tname
+    _ -> fail "makeFreeCon expects a data constructor"
 
 {- $doc
  To generate free monadic actions from a @Type@, it must be a @data@
