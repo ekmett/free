@@ -205,14 +205,21 @@ constructorName (RecC     name _)   = name
 constructorName (InfixC   _ name _) = name
 constructorName (ForallC  _ _ c)    = constructorName c
 
-genFree :: Bool -> Maybe [Name] -> Name -> Q [Dec]
+-- | Generate monadic actions for a data type.
+genFree :: Bool         -- ^ Include type signature?
+        -> Maybe [Name] -- ^ Include only mentioned constructor names. Use all constructors when @Nothing@.
+        -> Name         -- ^ Type name.
+        -> Q [Dec]      -- ^ Generated declarations.
 genFree typeSig cnames tyCon = do
   info <- reify tyCon
   case info of
     TyConI dec -> liftDec typeSig cnames dec
     _ -> fail "makeFree expects a type constructor"
 
-genFreeCon :: Bool -> Name -> Q [Dec]
+-- | Generate monadic action for a single constructor of a data type.
+genFreeCon :: Bool         -- ^ Include type signature?
+           -> Name         -- ^ Constructor name.
+           -> Q [Dec]      -- ^ Generated declarations.
 genFreeCon typeSig cname = do
   info <- reify cname
   case info of
@@ -326,7 +333,7 @@ makeFreeCon_ = genFreeCon False
        @a@ is a fresh type variable.
 
      2. If only one argument in the constructor depends on @param@, then
-       @ret ≡ (s1, …, sM)@. In particular, f @M == 0@, then @ret ≡ ()@; if @M == 1@, @ret ≡ s1@.
+       @ret ≡ (s1, …, sM)@. In particular, if @M == 0@, then @ret ≡ ()@; if @M == 1@, @ret ≡ s1@.
 
      3. If two arguments depend on @param@, (e.g. @u1 -> … -> uL -> param@ and
        @v1 -> … -> vM -> param@, then @ret ≡ Either (u1, …, uL) (v1, …, vM)@.
