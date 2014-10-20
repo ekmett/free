@@ -42,6 +42,7 @@ module Control.Monad.Trans.Free.Church
   , iterM
   -- * Free Monads With Class
   , MonadFree(..)
+  , liftF
   ) where
 
 import Control.Applicative
