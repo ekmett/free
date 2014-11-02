@@ -83,7 +83,7 @@ instance Apply (FT f m) where
 
 instance Applicative (FT f m) where
   pure a = FT $ \k _ -> k a
-  FT fk <*> FT ak = FT $ \b fr -> ak (\d -> fk (\e -> b (e d)) fr) fr
+  FT fk <*> FT ak = FT $ \b fr -> fk (\e -> ak (\d -> b (e d)) fr) fr
 
 instance Bind (FT f m) where
   (>>-) = (>>=)
