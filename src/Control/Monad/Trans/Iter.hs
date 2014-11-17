@@ -60,6 +60,7 @@ module Control.Monad.Trans.Iter
   , liftIter
   , cutoff
   , never
+  , untilJust
   , interleave, interleave_
   -- * Consuming iterative monads
   , retract
@@ -308,6 +309,20 @@ liftIter = hoistIterT (return . runIdentity)
 -- | A computation that never terminates
 never :: (Monad f, MonadFree f m) => m a
 never = delay never
+
+-- | Repeatedly run a computation until it produces a 'Just' value.
+-- This can be useful when paired with a monad that has side effects.
+--
+-- For example, we may have @genId :: IO (Maybe Id)@ that uses a random
+-- number generator to allocate ids, but fails if it finds a collision.
+-- We can repeatedly run this with
+--
+-- @
+-- 'retract' ('untilJust' genId) :: IO Id
+-- @
+untilJust :: (Monad m) => m (Maybe a) -> IterT m a
+untilJust f = maybe (delay (untilJust f)) return =<< lift f
+{-# INLINE untilJust #-}
 
 -- | Cuts off an iterative computation after a given number of
 -- steps. If the number of steps is 0 or less, no computation nor

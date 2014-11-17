@@ -3,6 +3,8 @@
 * Redefine `Alternative` and `MonadPlus` instances of `IterT` so that they apply to any underlying `Monad`.
   `mplus` or `<|>` is Capretta's `race` combinator; `mzero` or `empty` is a non-terminating computation.
 * Redefine `fail s` for `IterT` as `mzero`, for any string `s`.
+* Added `Control.Monad.Trans.Iter.untilJust`, which repeatedly retries a `m (Maybe a)` computation until
+  it produces `Just` a value.
 
 4.9
 ---
