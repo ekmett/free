@@ -50,7 +50,9 @@ import Control.Applicative
 import Data.Functor.Apply
 import Data.Functor.Identity
 import Data.Typeable
-import Data.Monoid
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (Monoid)
+#endif
 import qualified Data.Foldable as F
 
 -- | The free 'Applicative' for a 'Functor' @f@.
