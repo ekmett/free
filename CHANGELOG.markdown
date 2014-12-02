@@ -1,3 +1,7 @@
+4.10.0.1
+------
+* Fix for very old `cabal` versions where the `MIN_VERSION_foo` macros aren't negation friendly.
+
 4.10
 ----
 * Redefine `Alternative` and `MonadPlus` instances of `IterT` so that they apply to any underlying `Monad`.
