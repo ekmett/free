@@ -98,6 +98,7 @@ instance Applicative (F f) where
   pure a = F (\kp _ -> kp a)
   F f <*> F g = F (\kp kf -> f (\a -> g (kp . a) kf) kf)
 
+-- | This violates the Alternative laws, handle with care.
 instance Alternative f => Alternative (F f) where
   empty = F (\_ kf -> kf empty)
   F f <|> F g = F (\kp kf -> kf (pure (f kp kf) <|> pure (g kp kf)))
@@ -123,6 +124,7 @@ instance (Foldable f, Functor f) => Foldable (F f) where
     {-# INLINE foldl' #-}
 #endif
 
+-- | This violates the MonadPlus laws, handle with care.
 instance MonadPlus f => MonadPlus (F f) where
   mzero = F (\_ kf -> kf mzero)
   F f `mplus` F g = F (\kp kf -> kf (return (f kp kf) `mplus` return (g kp kf)))
