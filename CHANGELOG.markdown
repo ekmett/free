@@ -1,4 +1,4 @@
-4.10.1
+4.11
 -----
 * Pass Monad[FreeT].fail into underlying monad
 
