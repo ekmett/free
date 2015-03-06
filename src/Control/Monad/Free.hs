@@ -13,7 +13,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free
--- Copyright   :  (C) 2008-2014 Edward Kmett
+-- Copyright   :  (C) 2008-2015 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -30,6 +30,7 @@ module Control.Monad.Free
   , iter
   , iterM
   , hoistFree
+  , foldFree
   , toFreeT
   , cutoff
   , _Pure, _Free
@@ -308,6 +309,11 @@ iterM phi (Free f) = phi $ fmap (iterM phi) f
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
 hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
+
+-- | The very definition of a free monoid is that given a natural transformation you get a monoid homomorphism.
+foldFree :: (Functor m, Monad m) => (forall x . f x -> m x) -> Free f a -> m a
+foldFree _ (Pure a)  = return a
+foldFree f (Free as) = f as >>= foldFree f
 
 -- | Convert a 'Free' monad from "Control.Monad.Free" to a 'FreeT.FreeT' monad
 -- from "Control.Monad.Trans.Free".

@@ -10,7 +10,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free.Church
--- Copyright   :  (C) 2011-2012 Edward Kmett
+-- Copyright   :  (C) 2011-2015 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -60,6 +60,7 @@ module Control.Monad.Free.Church
   , toF
   , retract
   , hoistF
+  , foldF
   , MonadFree(..)
   , liftF
   ) where
@@ -165,6 +166,10 @@ retract (F m) = m return Monad.join
 -- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @F f@ to @F g@.
 hoistF :: (forall x. f x -> g x) -> F f a -> F g a
 hoistF t (F m) = F (\p f -> m p (f . t))
+
+-- | The very definition of a free monoid is that given a natural transformation you get a monoid homomorphism.
+foldF :: Monad m => (forall x. f x -> m x) -> F f a -> m a
+foldF f (F m) = m return (Monad.join . f)
 
 -- | Convert to another free monad representation.
 fromF :: MonadFree f m => F f a -> m a
