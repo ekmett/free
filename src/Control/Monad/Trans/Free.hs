@@ -210,6 +210,7 @@ instance (Functor f, Monad m) => Bind (FreeT f m) where
   (>>-) = (>>=)
 
 instance (Functor f, Monad m) => Monad (FreeT f m) where
+  fail e = FreeT (fail e)
   return a = FreeT (return (Pure a))
   {-# INLINE return #-}
   FreeT m >>= f = FreeT $ m >>= \v -> case v of

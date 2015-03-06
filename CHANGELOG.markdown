@@ -1,3 +1,7 @@
+4.10.1
+-----
+* Pass Monad[FreeT].fail into underlying monad
+
 4.10.0.1
 ------
 * Fix for very old `cabal` versions where the `MIN_VERSION_foo` macros aren't negation friendly.
