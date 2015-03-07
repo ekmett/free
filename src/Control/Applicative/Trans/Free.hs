@@ -36,6 +36,7 @@ module Control.Applicative.Trans.Free
   , hoistApF
   , transApT
   , transApF
+  , joinApT
   -- * Free Applicative
   , Ap
   , runAp
@@ -47,6 +48,7 @@ module Control.Applicative.Trans.Free
   ) where
 
 import Control.Applicative
+import Control.Monad (liftM)
 import Data.Functor.Apply
 import Data.Functor.Identity
 import Data.Typeable
@@ -155,6 +157,13 @@ transApF f (Ap x y) = x `Ap` transApT f y
 -- | Given a natural transformation from @g@ to @g'@ this gives a monoidal natural transformation from @ApT f g@ to @ApT f g'@.
 transApT :: Functor g => (forall a. g a -> g' a) -> ApT f g b -> ApT f g' b
 transApT f (ApT g) = ApT $ f (transApF f <$> g)
+
+-- | Pull out and join @m@ layers of @'ApT' f m a@.
+joinApT :: Monad m => ApT f m a -> m (Ap f a)
+joinApT (ApT m) = m >>= joinApF
+  where
+    joinApF (Pure x) = return (pure x)
+    joinApF (Ap x y) = (liftApT x <**>) `liftM` joinApT y
 
 -- | The free 'Applicative' for a 'Functor' @f@.
 type Ap f = ApT f Identity
