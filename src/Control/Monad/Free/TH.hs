@@ -192,7 +192,7 @@ liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs cons _)
     where
       cons' = case onlyCons of
                 Nothing -> cons
-                Just ns -> filter (\con -> constructorName con `elem` ns) cons
+                Just ns -> filter (\c -> constructorName c `elem` ns) cons
       tyNames    = map tyVarBndrName tyVarBndrs
       nextTyName = last tyNames
       con        = ConT tyName
