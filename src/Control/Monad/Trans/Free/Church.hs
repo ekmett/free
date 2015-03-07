@@ -38,6 +38,7 @@ module Control.Monad.Trans.Free.Church
   , improve
   , fromF, toF
   , retract
+  , retractT
   , iter
   , iterM
   -- * Free Monads With Class
@@ -232,6 +233,10 @@ cutoff n = toFT . FreeT.cutoff n . fromFT
 retract :: (Functor f, Monad f) => F f a -> f a
 retract m = runF m return join
 {-# INLINE retract #-}
+
+-- | Tear down a free monad transformer using iteration over a transformer.
+retractT :: (MonadTrans t, Monad (t m), Monad m) => FT (t m) m a -> t m a
+retractT (FT m) = join . lift $ m (return . return) $ \x -> return $ x >>= join . lift
 
 -- | Tear down an 'F' 'Monad' using iteration.
 iter :: Functor f => (f a -> a) -> F f a -> a
