@@ -335,7 +335,7 @@ toFreeT (Free f) = FreeT.FreeT (return (FreeT.Free (fmap toFreeT f)))
 -- Calling 'retract . cutoff n' is always terminating, provided each of the
 -- steps in the iteration is terminating.
 cutoff :: (Functor f) => Integer -> Free f a -> Free f (Maybe a)
-cutoff 0 _ = return Nothing
+cutoff n _ | n <= 0 = return Nothing
 cutoff n (Free f) = Free $ fmap (cutoff (n - 1)) f
 cutoff _ m = Just <$> m
 

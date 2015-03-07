@@ -40,6 +40,10 @@ module Control.Monad.Trans.Free
   , hoistFreeT
   , transFreeT
   , cutoff
+  , partialIterT
+  , intersperseT
+  , intercalateT
+  , retractT
   -- * Operations of free monad
   , retract
   , retractT
@@ -315,6 +319,10 @@ hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
 
+-- | Tear down a free monad transformer using Monad instance for @t m@.
+retractT :: (Functor (t m), Monad (t m), MonadTrans t, Monad m) => FreeT (t m) m a -> t m a
+retractT = iterTM join
+
 -- |
 -- 'retract' is the left inverse of 'liftF'
 --
@@ -351,8 +359,56 @@ iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 -- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
 cutoff :: (Functor f, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
-cutoff 0 _ = return Nothing
+cutoff n _ | n <= 0 = return Nothing
 cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
+
+-- | @partialIterT n phi m@ interprets first @n@ layers of @m@ using @phi@.
+-- This is sort of the opposite for @'cutoff'@.
+--
+-- Some examples (@n ≥ 0@):
+--
+-- @
+-- 'partialIterT' 0 _ m              ≡ m
+-- 'partialIterT' (n+1) phi '.' 'return' ≡ 'return'
+-- 'partialIterT' (n+1) phi '.' 'lift'   ≡ 'lift'
+-- 'partialIterT' (n+1) phi '.' 'wrap'   ≡ 'join' . 'lift' . phi
+-- @
+partialIterT :: Monad m => Integer -> (forall a. f a -> m a) -> FreeT f m b -> FreeT f m b
+partialIterT n phi m
+  | n <= 0 = m
+  | otherwise = FreeT $ do
+      val <- runFreeT m
+      case val of
+        Pure a -> return (Pure a)
+        Free f -> phi f >>= runFreeT . partialIterT (n - 1) phi
+
+-- | @intersperseT f m@ inserts a layer @f@ between every two layers in
+-- @m@.
+--
+-- @
+-- 'intersperseT' f '.' 'return' ≡ 'return'
+-- 'intersperseT' f '.' 'lift'   ≡ 'lift'
+-- 'intersperseT' f '.' 'wrap'   ≡ 'wrap' '.' 'fmap' ('iterTM' ('wrap' '.' ('<$' f) '.' 'wrap'))
+-- @
+intersperseT :: (Monad m, Functor f) => f a -> FreeT f m b -> FreeT f m b
+intersperseT f (FreeT m) = FreeT $ do
+  val <- m
+  case val of
+    Pure x -> return $ Pure x
+    Free y -> return . Free $ fmap (iterTM (wrap . (<$ f) . wrap)) y
+
+-- | @intercalateT f m@ inserts a layer @f@ between every two layers in
+-- @m@ and then retracts the result.
+--
+-- @
+-- 'intercalateT' f ≡ 'retractT' . 'intersperseT' f
+-- @
+intercalateT :: (Monad m, MonadTrans t, Monad (t m), Functor (t m)) => t m a -> FreeT (t m) m b -> t m b
+intercalateT f (FreeT m) = do
+  val <- lift m
+  case val of
+    Pure x -> return x
+    Free y -> y >>= iterTM (\x -> f >> join x)
 
 #if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where
