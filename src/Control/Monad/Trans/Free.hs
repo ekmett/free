@@ -42,6 +42,7 @@ module Control.Monad.Trans.Free
   , cutoff
   -- * Operations of free monad
   , retract
+  , retractT
   , iter
   , iterM
   -- * Free Monads With Class
@@ -420,3 +421,9 @@ freeTDataType = mkDataType "Control.Monad.Trans.Free.FreeT" [freeTConstr]
 {-# NOINLINE freeTDataType #-}
 #endif
 
+retractT :: (MonadTrans t, Monad (t m), Monad m) => FreeT (t m) m a -> t m a
+retractT (FreeT m) = do
+  val <- lift m
+  case val of
+    Pure x -> return x
+    Free y -> y >>= retractT
