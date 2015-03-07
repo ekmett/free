@@ -1,6 +1,12 @@
 4.11
 -----
 * Pass Monad[FreeT].fail into underlying monad
+* Add `retractT`.
+* Added `cutoff` for the church encoded free monad.
+* `cutoff` now accepts negative numbers.
+* Added `intersperseT` and `intercalateT`.
+* Added `foldFree` and `foldF`.
+* Added some new `template-haskell` toys.
 
 4.10.0.1
 ------
