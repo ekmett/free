@@ -13,13 +13,9 @@ import Text.Read (readMaybe)
 
 -- | A data type representing basic commands for a retriable eDSL.
 data RetryF next where
-  -- | Simple output command.
   Output    :: String -> next -> RetryF next
-  -- | Get anything readable from input.
   Input     :: Read a => (a -> next) -> RetryF next
-  -- | Declare a retriable block.
   WithRetry :: Retry a -> (a -> next) -> RetryF next
-  -- | Force retry command (retries innermost retriable block).
   Retry     :: RetryF next
 
 -- | Unfortunately this Functor instance cannot yet be derived
@@ -33,8 +29,20 @@ instance Functor RetryF where
 -- | The monad for a retriable eDSL.
 type Retry = Free RetryF
 
--- automacally generate convenience functions
-makeFree ''RetryF
+-- | Simple output command.
+makeFreeCon 'Output
+
+-- | Get anything readable from input.
+makeFreeCon 'Input
+
+-- | Force retry command (retries innermost retriable block).
+makeFreeCon 'Retry
+
+makeFreeCon_ 'WithRetry
+-- | Run a retryable block.
+withRetry :: MonadFree RetryF m =>
+             Retry a  -- ^ Computation to retry.
+          -> m a      -- ^ Computation that retries until succeeds.
 
 -- The following functions have been made available:
 --
