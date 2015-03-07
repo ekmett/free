@@ -46,7 +46,6 @@ module Control.Monad.Trans.Free
   , retractT
   -- * Operations of free monad
   , retract
-  , retractT
   , iter
   , iterM
   -- * Free Monads With Class
@@ -319,10 +318,6 @@ hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
 
--- | Tear down a free monad transformer using Monad instance for @t m@.
-retractT :: (Functor (t m), Monad (t m), MonadTrans t, Monad m) => FreeT (t m) m a -> t m a
-retractT = iterTM join
-
 -- |
 -- 'retract' is the left inverse of 'liftF'
 --
@@ -396,6 +391,14 @@ intersperseT f (FreeT m) = FreeT $ do
   case val of
     Pure x -> return $ Pure x
     Free y -> return . Free $ fmap (iterTM (wrap . (<$ f) . wrap)) y
+
+-- | Tear down a free monad transformer using Monad instance for @t m@.
+retractT :: (MonadTrans t, Monad (t m), Monad m) => FreeT (t m) m a -> t m a
+retractT (FreeT m) = do
+  val <- lift m
+  case val of
+    Pure x -> return x
+    Free y -> y >>= retractT
 
 -- | @intercalateT f m@ inserts a layer @f@ between every two layers in
 -- @m@ and then retracts the result.
@@ -477,9 +480,3 @@ freeTDataType = mkDataType "Control.Monad.Trans.Free.FreeT" [freeTConstr]
 {-# NOINLINE freeTDataType #-}
 #endif
 
-retractT :: (MonadTrans t, Monad (t m), Monad m) => FreeT (t m) m a -> t m a
-retractT (FreeT m) = do
-  val <- lift m
-  case val of
-    Pure x -> return x
-    Free y -> y >>= retractT
