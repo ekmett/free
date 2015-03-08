@@ -20,7 +20,8 @@ module Control.Alternative.Free.Final
 
 import Control.Applicative
 import Data.Functor.Apply
-import Data.Functor.Alt
+import Data.Functor.Alt ((<!>))
+import qualified Data.Functor.Alt as Alt
 import Data.Semigroup
 
 -- | The free 'Alternative' for a 'Functor' @f@.
@@ -36,7 +37,7 @@ instance Applicative (Alt f) where
   pure x = Alt (\_ -> pure x)
   Alt f <*> Alt x = Alt (\k -> f k <*> x k)
 
-instance Alt (Alt f) where
+instance Alt.Alt (Alt f) where
   Alt x <!> Alt y = Alt (\k -> x k <|> y k)
 
 instance Alternative (Alt f) where
