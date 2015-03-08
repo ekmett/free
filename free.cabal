@@ -83,6 +83,7 @@ library
     Control.Applicative.Free.Final
     Control.Applicative.Trans.Free
     Control.Alternative.Free
+    Control.Alternative.Free.Final
     Control.Comonad.Cofree
     Control.Comonad.Cofree.Class
     Control.Comonad.Trans.Cofree
