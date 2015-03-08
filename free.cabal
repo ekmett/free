@@ -80,6 +80,7 @@ library
 
   exposed-modules:
     Control.Applicative.Free
+    Control.Applicative.Free.Final
     Control.Applicative.Trans.Free
     Control.Alternative.Free
     Control.Comonad.Cofree
