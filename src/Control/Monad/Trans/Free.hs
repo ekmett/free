@@ -54,6 +54,7 @@ module Control.Monad.Trans.Free
 
 import Control.Applicative
 import Control.Monad (liftM, MonadPlus(..), ap, join)
+import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.IO.Class
@@ -286,6 +287,14 @@ instance (Functor f, Monad m) => MonadFree f (FreeT f m) where
   wrap = FreeT . return . Free
   {-# INLINE wrap #-}
 
+instance (Functor f, MonadThrow m) => MonadThrow (FreeT f m) where
+  throwM = lift . throwM
+  {-# INLINE throwM #-}
+
+instance (Functor f, MonadCatch m) => MonadCatch (FreeT f m) where
+  FreeT m `catch` f = FreeT $ liftM (fmap (`catch` f)) m `catch` (runFreeT . f)
+  {-# INLINE catch #-}
+
 -- | Tear down a free monad transformer using iteration.
 iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FreeT f m a -> m a
 iterT f (FreeT m) = do
@@ -479,4 +488,3 @@ freeTDataType = mkDataType "Control.Monad.Trans.Free.FreeT" [freeTConstr]
 {-# NOINLINE freeFDataType #-}
 {-# NOINLINE freeTDataType #-}
 #endif
-
