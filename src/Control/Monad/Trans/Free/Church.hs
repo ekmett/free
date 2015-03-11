@@ -68,7 +68,7 @@ import Data.Functor.Bind hiding (join)
 import Data.Function
 
 -- | The \"free monad transformer\" for a functor @f@
-newtype FT f m a = FT {runFT :: forall r. (a -> m r) -> (f (m r) -> m r) -> m r}
+newtype FT f m a = FT { runFT :: forall r. (a -> m r) -> (forall x. (x -> m r) -> f x -> m r) -> m r }
 
 instance (Functor f, Monad m, Eq (FreeT f m a)) => Eq (FT f m a) where
   (==) = (==) `on` fromFT
@@ -93,8 +93,8 @@ instance Monad (FT f m) where
   return = pure
   FT fk >>= f = FT $ \b fr -> fk (\d -> runFT (f d) b fr) fr
 
-instance (Functor f) => MonadFree f (FT f m) where
-  wrap f = FT (\kp kf -> kf (fmap (\(FT m) -> m kp kf) f))
+instance MonadFree f (FT f m) where
+  wrap f = FT (\kp kf -> kf (\ft -> runFT ft kp kf) f)
 
 instance MonadTrans (FT f) where
   lift m = FT (\a _ -> m >>= a)
@@ -110,14 +110,14 @@ instance MonadPlus m => MonadPlus (FT f m) where
 instance (Foldable f, Foldable m, Monad m) => Foldable (FT f m) where
   foldr f r xs = F.foldr (<<<) id inner r
     where
-      inner = runFT xs (return . f) (F.foldr (liftM2 (<<<)) (return id))
+      inner = runFT xs (return . f) (\xg xf -> F.foldr (liftM2 (<<<) . xg) (return id) xf)
   {-# INLINE foldr #-}
 
 #if MIN_VERSION_base(4,6,0)
   foldl' f z xs = F.foldl' (!>>>) id inner z
     where
       (!>>>) h g = \r -> g $! h r
-      inner = runFT xs (return . flip f) (F.foldr (liftM2 (>>>)) (return id))
+      inner = runFT xs (return . flip f) (\xg xf -> F.foldr (liftM2 (>>>) . xg) (return id) xf)
   {-# INLINE foldl' #-}
 #endif
 
@@ -125,7 +125,7 @@ instance (Monad m, Traversable m, Traversable f) => Traversable (FT f m) where
   traverse f (FT k) = fmap (join . lift) . T.sequenceA $ k traversePure traverseFree
     where
       traversePure = return . fmap return . f
-      traverseFree = return . fmap (wrap . fmap (join . lift)) . T.sequenceA . fmap T.sequenceA
+      traverseFree xg = return . fmap (wrap . fmap (join . lift)) . T.traverse (T.sequenceA . xg)
 
 instance (MonadIO m) => MonadIO (FT f m) where
   liftIO = lift . liftIO
@@ -172,41 +172,41 @@ toFT (FreeT f) = FT $ \ka kfr -> do
   freef <- f
   case freef of
     Pure a -> ka a
-    Free fb -> kfr $ fmap (($ kfr) . ($ ka) . runFT . toFT) fb
+    Free fb -> kfr (\x -> runFT (toFT x) ka kfr) fb
 
 -- | Convert to a 'FreeT' free monad representation.
 fromFT :: (Monad m, Functor f) => FT f m a -> FreeT f m a
-fromFT (FT k) = FreeT $ k (return . Pure) (runFreeT . wrap . fmap FreeT)
+fromFT (FT k) = FreeT $ k (return . Pure) (\xg -> runFreeT . wrap . fmap (FreeT . xg))
 
 -- | The \"free monad\" for a functor @f@.
 type F f = FT f Identity
 
 -- | Unwrap the 'Free' monad to obtain it's Church-encoded representation.
 runF :: Functor f => F f a -> (forall r. (a -> r) -> (f r -> r) -> r)
-runF (FT m) = \kp kf -> runIdentity $ m (return . kp) (return . kf . fmap runIdentity)
+runF (FT m) = \kp kf -> runIdentity $ m (return . kp) (\xg -> return . kf . fmap (runIdentity . xg))
 
 -- | Wrap a Church-encoding of a \"free monad\" as the free monad for a functor.
 free :: Functor f => (forall r. (a -> r) -> (f r -> r) -> r) -> F f a
-free f = FT (\kp kf -> return $ f (runIdentity . kp) (runIdentity . kf . fmap return))
+free f = FT (\kp kf -> return $ f (runIdentity . kp) (runIdentity . kf return))
 
 -- | Tear down a free monad transformer using iteration.
 iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FT f m a -> m a
-iterT phi (FT m) = m return phi
+iterT phi (FT m) = m return (\xg -> phi . fmap xg)
 {-# INLINE iterT #-}
 
 -- | Tear down a free monad transformer using iteration over a transformer.
 iterTM :: (Functor f, Monad m, MonadTrans t, Monad (t m)) => (f (t m a) -> t m a) -> FT f m a -> t m a
-iterTM f (FT m) = join . lift $ m (return . return) (return . f . fmap (join .lift))
+iterTM f (FT m) = join . lift $ m (return . return) (\xg -> return . f . fmap (join . lift . xg))
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FT' f m@ to @'FT' f n@
 --
 -- @'hoistFT' :: ('Monad' m, 'Monad' n, 'Functor' f) => (m ~> n) -> 'FT' f m ~> 'FT' f n@
 hoistFT :: (Monad m, Monad n, Functor f) => (forall a. m a -> n a) -> FT f m b -> FT f n b
-hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (return . kf . fmap (join . phi)))
+hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (\xg -> return . kf (join . phi . xg)))
 
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FT' f m@ to @'FT' g n@
 transFT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FT f m b -> FT g m b
-transFT phi (FT m) = FT (\kp kf -> m kp (kf . phi))
+transFT phi (FT m) = FT (\kp kf -> m kp (\xg -> kf xg . phi))
 
 -- | Cuts off a tree of computations at a given depth.
 -- If the depth is 0 or less, no computation nor
@@ -236,7 +236,7 @@ retract m = runF m return join
 
 -- | Tear down a free monad transformer using iteration over a transformer.
 retractT :: (MonadTrans t, Monad (t m), Monad m) => FT (t m) m a -> t m a
-retractT (FT m) = join . lift $ m (return . return) $ \x -> return $ x >>= join . lift
+retractT (FT m) = join . lift $ m (return . return) (\xg xf -> return $ xf >>= join . lift . xg)
 
 -- | Tear down an 'F' 'Monad' using iteration.
 iter :: Functor f => (f a -> a) -> F f a -> a
