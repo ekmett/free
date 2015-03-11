@@ -73,6 +73,7 @@ module Control.Monad.Trans.Iter
   ) where
 
 import Control.Applicative
+import Control.Monad.Catch (MonadCatch(..), MonadThrow(..))
 import Control.Monad (ap, liftM, MonadPlus(..), join)
 import Control.Monad.Fix
 import Control.Monad.Trans.Class
@@ -268,6 +269,14 @@ instance MonadCont m => MonadCont (IterT m) where
 instance Monad m => MonadFree Identity (IterT m) where
   wrap = IterT . return . Right . runIdentity
   {-# INLINE wrap #-}
+
+instance MonadThrow m => MonadThrow (IterT m) where
+  throwM = lift . throwM
+  {-# INLINE throwM #-}
+
+instance MonadCatch m => MonadCatch (IterT m) where
+  catch (IterT m) f = IterT $ liftM (fmap (`catch` f)) m `catch` (runIterT . f)
+  {-# INLINE catch #-}
 
 -- | Adds an extra layer to a free monad value.
 --
