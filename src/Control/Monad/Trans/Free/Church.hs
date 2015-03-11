@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 #ifndef MIN_VERSION_mtl
@@ -167,7 +167,7 @@ instance (Functor f, MonadState s m) => MonadState s (FT f m) where
 
 -- | Generate a Church-encoded free monad transformer from a 'FreeT' monad
 -- transformer.
-toFT :: (Monad m, Functor f) => FreeT f m a -> FT f m a
+toFT :: Monad m => FreeT f m a -> FT f m a
 toFT (FreeT f) = FT $ \ka kfr -> do
   freef <- f
   case freef of
@@ -186,7 +186,7 @@ runF :: Functor f => F f a -> (forall r. (a -> r) -> (f r -> r) -> r)
 runF (FT m) = \kp kf -> runIdentity $ m (return . kp) (\xg -> return . kf . fmap (runIdentity . xg))
 
 -- | Wrap a Church-encoding of a \"free monad\" as the free monad for a functor.
-free :: Functor f => (forall r. (a -> r) -> (f r -> r) -> r) -> F f a
+free :: (forall r. (a -> r) -> (f r -> r) -> r) -> F f a
 free f = FT (\kp kf -> return $ f (runIdentity . kp) (runIdentity . kf return))
 
 -- | Tear down a free monad transformer using iteration.
@@ -201,11 +201,11 @@ iterTM f (FT m) = join . lift $ m (return . return) (\xg -> return . f . fmap (j
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FT' f m@ to @'FT' f n@
 --
 -- @'hoistFT' :: ('Monad' m, 'Monad' n, 'Functor' f) => (m ~> n) -> 'FT' f m ~> 'FT' f n@
-hoistFT :: (Monad m, Monad n, Functor f) => (forall a. m a -> n a) -> FT f m b -> FT f n b
+hoistFT :: (Monad m, Monad n) => (forall a. m a -> n a) -> FT f m b -> FT f n b
 hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (\xg -> return . kf (join . phi . xg)))
 
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FT' f m@ to @'FT' g n@
-transFT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FT f m b -> FT g m b
+transFT :: Monad m => (forall a. f a -> g a) -> FT f m b -> FT g m b
 transFT phi (FT m) = FT (\kp kf -> m kp (\xg -> kf xg . phi))
 
 -- | Cuts off a tree of computations at a given depth.
@@ -253,7 +253,7 @@ fromF m = runF m return wrap
 {-# INLINE fromF #-}
 
 -- | Generate a Church-encoded free monad from a 'Free' monad.
-toF :: (Functor f) => Free f a -> F f a
+toF :: Free f a -> F f a
 toF = toFT
 {-# INLINE toF #-}
 
