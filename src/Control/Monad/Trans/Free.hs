@@ -41,6 +41,10 @@ module Control.Monad.Trans.Free
   , transFreeT
   , joinFreeT
   , cutoff
+  , partialIterT
+  , intersperseT
+  , intercalateT
+  , retractT
   -- * Operations of free monad
   , retract
   , iter
@@ -51,6 +55,7 @@ module Control.Monad.Trans.Free
 
 import Control.Applicative
 import Control.Monad (liftM, MonadPlus(..), ap, join)
+import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.IO.Class
@@ -211,6 +216,7 @@ instance (Functor f, Monad m) => Bind (FreeT f m) where
   (>>-) = (>>=)
 
 instance (Functor f, Monad m) => Monad (FreeT f m) where
+  fail e = FreeT (fail e)
   return a = FreeT (return (Pure a))
   {-# INLINE return #-}
   FreeT m >>= f = FreeT $ m >>= \v -> case v of
@@ -281,6 +287,14 @@ instance (Functor f, MonadPlus m) => MonadPlus (FreeT f m) where
 instance (Functor f, Monad m) => MonadFree f (FreeT f m) where
   wrap = FreeT . return . Free
   {-# INLINE wrap #-}
+
+instance (Functor f, MonadThrow m) => MonadThrow (FreeT f m) where
+  throwM = lift . throwM
+  {-# INLINE throwM #-}
+
+instance (Functor f, MonadCatch m) => MonadCatch (FreeT f m) where
+  FreeT m `catch` f = FreeT $ liftM (fmap (`catch` f)) m `catch` (runFreeT . f)
+  {-# INLINE catch #-}
 
 -- | Tear down a free monad transformer using iteration.
 iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FreeT f m a -> m a
@@ -357,8 +371,64 @@ iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 -- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
 cutoff :: (Functor f, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
-cutoff 0 _ = return Nothing
+cutoff n _ | n <= 0 = return Nothing
 cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
+
+-- | @partialIterT n phi m@ interprets first @n@ layers of @m@ using @phi@.
+-- This is sort of the opposite for @'cutoff'@.
+--
+-- Some examples (@n ≥ 0@):
+--
+-- @
+-- 'partialIterT' 0 _ m              ≡ m
+-- 'partialIterT' (n+1) phi '.' 'return' ≡ 'return'
+-- 'partialIterT' (n+1) phi '.' 'lift'   ≡ 'lift'
+-- 'partialIterT' (n+1) phi '.' 'wrap'   ≡ 'join' . 'lift' . phi
+-- @
+partialIterT :: Monad m => Integer -> (forall a. f a -> m a) -> FreeT f m b -> FreeT f m b
+partialIterT n phi m
+  | n <= 0 = m
+  | otherwise = FreeT $ do
+      val <- runFreeT m
+      case val of
+        Pure a -> return (Pure a)
+        Free f -> phi f >>= runFreeT . partialIterT (n - 1) phi
+
+-- | @intersperseT f m@ inserts a layer @f@ between every two layers in
+-- @m@.
+--
+-- @
+-- 'intersperseT' f '.' 'return' ≡ 'return'
+-- 'intersperseT' f '.' 'lift'   ≡ 'lift'
+-- 'intersperseT' f '.' 'wrap'   ≡ 'wrap' '.' 'fmap' ('iterTM' ('wrap' '.' ('<$' f) '.' 'wrap'))
+-- @
+intersperseT :: (Monad m, Functor f) => f a -> FreeT f m b -> FreeT f m b
+intersperseT f (FreeT m) = FreeT $ do
+  val <- m
+  case val of
+    Pure x -> return $ Pure x
+    Free y -> return . Free $ fmap (iterTM (wrap . (<$ f) . wrap)) y
+
+-- | Tear down a free monad transformer using Monad instance for @t m@.
+retractT :: (MonadTrans t, Monad (t m), Monad m) => FreeT (t m) m a -> t m a
+retractT (FreeT m) = do
+  val <- lift m
+  case val of
+    Pure x -> return x
+    Free y -> y >>= retractT
+
+-- | @intercalateT f m@ inserts a layer @f@ between every two layers in
+-- @m@ and then retracts the result.
+--
+-- @
+-- 'intercalateT' f ≡ 'retractT' . 'intersperseT' f
+-- @
+intercalateT :: (Monad m, MonadTrans t, Monad (t m), Functor (t m)) => t m a -> FreeT (t m) m b -> t m b
+intercalateT f (FreeT m) = do
+  val <- lift m
+  case val of
+    Pure x -> return x
+    Free y -> y >>= iterTM (\x -> f >> join x)
 
 #if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where
@@ -426,4 +496,3 @@ freeTDataType = mkDataType "Control.Monad.Trans.Free.FreeT" [freeTConstr]
 {-# NOINLINE freeFDataType #-}
 {-# NOINLINE freeTDataType #-}
 #endif
-

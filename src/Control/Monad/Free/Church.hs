@@ -10,7 +10,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free.Church
--- Copyright   :  (C) 2011-2012 Edward Kmett
+-- Copyright   :  (C) 2011-2015 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -60,14 +60,17 @@ module Control.Monad.Free.Church
   , toF
   , retract
   , hoistF
+  , foldF
   , MonadFree(..)
   , liftF
+  , cutoff
   ) where
 
 import Control.Applicative
 import Control.Monad as Monad
 import Control.Monad.Fix
-import Control.Monad.Free hiding (retract, iterM)
+import Control.Monad.Free hiding (retract, iterM, cutoff)
+import qualified Control.Monad.Free as Free
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
 import Control.Monad.Cont.Class
@@ -98,6 +101,7 @@ instance Applicative (F f) where
   pure a = F (\kp _ -> kp a)
   F f <*> F g = F (\kp kf -> f (\a -> g (kp . a) kf) kf)
 
+-- | This violates the Alternative laws, handle with care.
 instance Alternative f => Alternative (F f) where
   empty = F (\_ kf -> kf empty)
   F f <|> F g = F (\kp kf -> kf (pure (f kp kf) <|> pure (g kp kf)))
@@ -123,6 +127,7 @@ instance (Foldable f, Functor f) => Foldable (F f) where
     {-# INLINE foldl' #-}
 #endif
 
+-- | This violates the MonadPlus laws, handle with care.
 instance MonadPlus f => MonadPlus (F f) where
   mzero = F (\_ kf -> kf mzero)
   F f `mplus` F g = F (\kp kf -> kf (return (f kp kf) `mplus` return (g kp kf)))
@@ -164,6 +169,10 @@ retract (F m) = m return Monad.join
 hoistF :: (forall x. f x -> g x) -> F f a -> F g a
 hoistF t (F m) = F (\p f -> m p (f . t))
 
+-- | The very definition of a free monoid is that given a natural transformation you get a monoid homomorphism.
+foldF :: Monad m => (forall x. f x -> m x) -> F f a -> m a
+foldF f (F m) = m return (Monad.join . f)
+
 -- | Convert to another free monad representation.
 fromF :: MonadFree f m => F f a -> m a
 fromF (F m) = m return wrap
@@ -187,3 +196,21 @@ toF xs = F (\kp kf -> go kp kf xs) where
 improve :: Functor f => (forall m. MonadFree f m => m a) -> Free f a
 improve m = fromF m
 {-# INLINE improve #-}
+
+
+-- | Cuts off a tree of computations at a given depth.
+-- If the depth is 0 or less, no computation nor
+-- monadic effects will take place.
+--
+-- Some examples (@n ≥ 0@):
+--
+-- prop> cutoff 0     _        == return Nothing
+-- prop> cutoff (n+1) . return == return . Just
+-- prop> cutoff (n+1) . lift   == lift . liftM Just
+-- prop> cutoff (n+1) . wrap   == wrap . fmap (cutoff n)
+--
+-- Calling @'retract' . 'cutoff' n@ is always terminating, provided each of the
+-- steps in the iteration is terminating.
+cutoff :: (Functor f) => Integer -> F f a -> F f (Maybe a)
+cutoff n = toF . Free.cutoff n . fromF
+

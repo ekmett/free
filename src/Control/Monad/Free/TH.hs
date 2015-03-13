@@ -14,10 +14,15 @@
 module Control.Monad.Free.TH
   (
    -- * Free monadic actions
-   makeFree
+   makeFree,
+   makeFree_,
+   makeFreeCon,
+   makeFreeCon_,
+
+   -- * Documentation
    -- $doc
 
-   -- ** Examples
+   -- * Examples
    -- $examples
   ) where
 
@@ -132,8 +137,8 @@ unifyCaptured _ [(t, e)] = return (t, [e])
 unifyCaptured _ [x, y]   = unifyT x y
 unifyCaptured _ _ = fail "can't unify more than 2 arguments that use type parameter"
 
-liftCon' :: [TyVarBndr] -> Cxt -> Type -> Name -> [Name] -> Name -> [Type] -> Q [Dec]
-liftCon' tvbs cx f n ns cn ts = do
+liftCon' :: Bool -> [TyVarBndr] -> Cxt -> Type -> Name -> [Name] -> Name -> [Type] -> Q [Dec]
+liftCon' typeSig tvbs cx f n ns cn ts = do
   -- prepare some names
   opName <- mkName <$> mkOpName (nameBase cn)
   m      <- newName "m"
@@ -157,42 +162,123 @@ liftCon' tvbs cx f n ns cn ts = do
       q = tvbs ++ map PlainTV (qa ++ m : ns)
       qa = case retType of VarT b | a == b -> [a]; _ -> []
       f' = foldl AppT f (map VarT ns)
-  return
+  return $ concat
+    [ if typeSig
 #if MIN_VERSION_template_haskell(2,10,0)
-    [ SigD opName (ForallT q (cx ++ [ConT monadFree `AppT` f' `AppT` VarT m]) opType)
+        then [ SigD opName (ForallT q (cx ++ [ConT monadFree `AppT` f' `AppT` VarT m]) opType) ]
 #else
-    [ SigD opName (ForallT q (cx ++ [ClassP monadFree [f', VarT m]]) opType)
+        then [ SigD opName (ForallT q (cx ++ [ClassP monadFree [f', VarT m]]) opType) ]
 #endif
-    , FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ]
+        else []
+    , [ FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ] ]
 
 -- | Provide free monadic actions for a single value constructor.
-liftCon :: [TyVarBndr] -> Cxt -> Type -> Name -> [Name] -> Con -> Q [Dec]
-liftCon ts cx f n ns con =
+liftCon :: Bool -> [TyVarBndr] -> Cxt -> Type -> Name -> [Name] -> Con -> Q [Dec]
+liftCon typeSig ts cx f n ns con =
   case con of
-    NormalC cName fields -> liftCon' ts cx f n ns cName $ map snd fields
-    RecC    cName fields -> liftCon' ts cx f n ns cName $ map (\(_, _, ty) -> ty) fields
-    InfixC  (_,t1) cName (_,t2) -> liftCon' ts cx f n ns cName [t1, t2]
-    ForallC ts' cx' con' -> liftCon (ts ++ ts') (cx ++ cx') f n ns con'
+    NormalC cName fields -> liftCon' typeSig ts cx f n ns cName $ map snd fields
+    RecC    cName fields -> liftCon' typeSig ts cx f n ns cName $ map (\(_, _, ty) -> ty) fields
+    InfixC  (_,t1) cName (_,t2) -> liftCon' typeSig ts cx f n ns cName [t1, t2]
+    ForallC ts' cx' con' -> liftCon typeSig (ts ++ ts') (cx ++ cx') f n ns con'
 
 -- | Provide free monadic actions for a type declaration.
-liftDec :: Dec -> Q [Dec]
-liftDec (DataD _ tyName tyVarBndrs cons _)
+liftDec :: Bool             -- ^ Include type signature?
+        -> Maybe [Name]     -- ^ Include only mentioned constructor names. Use all constructors when @Nothing@.
+        -> Dec              -- ^ Data type declaration.
+        -> Q [Dec]
+liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs cons _)
   | null tyVarBndrs = fail $ "Type " ++ show tyName ++ " needs at least one free variable"
-  | otherwise = concat <$> mapM (liftCon [] [] con nextTyName (init tyNames)) cons
+  | otherwise = concat <$> mapM (liftCon typeSig [] [] con nextTyName (init tyNames)) cons'
     where
+      cons' = case onlyCons of
+                Nothing -> cons
+                Just ns -> filter (\c -> constructorName c `elem` ns) cons
       tyNames    = map tyVarBndrName tyVarBndrs
       nextTyName = last tyNames
       con        = ConT tyName
-liftDec dec = fail $ "liftDec: Don't know how to lift " ++ show dec
+liftDec _ _ dec = fail $ "liftDec: Don't know how to lift " ++ show dec
 
--- | @$(makeFree ''Type)@ provides free monadic actions for the
--- constructors of the given type.
-makeFree :: Name -> Q [Dec]
-makeFree tyCon = do
+-- | Get construstor name.
+constructorName :: Con -> Name
+constructorName (NormalC  name _)   = name
+constructorName (RecC     name _)   = name
+constructorName (InfixC   _ name _) = name
+constructorName (ForallC  _ _ c)    = constructorName c
+
+-- | Generate monadic actions for a data type.
+genFree :: Bool         -- ^ Include type signature?
+        -> Maybe [Name] -- ^ Include only mentioned constructor names. Use all constructors when @Nothing@.
+        -> Name         -- ^ Type name.
+        -> Q [Dec]      -- ^ Generated declarations.
+genFree typeSig cnames tyCon = do
   info <- reify tyCon
   case info of
-    TyConI dec -> liftDec dec
+    TyConI dec -> liftDec typeSig cnames dec
     _ -> fail "makeFree expects a type constructor"
+
+-- | Generate monadic action for a single constructor of a data type.
+genFreeCon :: Bool         -- ^ Include type signature?
+           -> Name         -- ^ Constructor name.
+           -> Q [Dec]      -- ^ Generated declarations.
+genFreeCon typeSig cname = do
+  info <- reify cname
+  case info of
+    DataConI _ _ tname _ -> genFree typeSig (Just [cname]) tname
+    _ -> fail "makeFreeCon expects a data constructor"
+
+-- | @$('makeFree' ''T)@ provides free monadic actions for the
+-- constructors of the given data type @T@.
+makeFree :: Name -> Q [Dec]
+makeFree = genFree True Nothing
+
+-- | Like 'makeFreeCon', but does not provide type signatures.
+-- This can be used to attach Haddock comments to individual arguments
+-- for each generated function.
+--
+-- @
+-- data LangF x = Output String x
+--
+-- makeFree_ 'LangF
+--
+-- -- | Output a string.
+-- output :: MonadFree LangF m =>
+--           String   -- ^ String to output.
+--        -> m ()     -- ^ No result.
+-- @
+--
+-- 'makeFree_' must be called *before* the explicit type signatures.
+makeFree_ :: Name -> Q [Dec]
+makeFree_ = genFree False Nothing
+
+-- | @$('makeFreeCon' 'Con)@ provides free monadic action for a data
+-- constructor @Con@. Note that you can attach Haddock comment to the
+-- generated function by placing it before the top-level invocation of
+-- 'makeFreeCon':
+--
+-- @
+-- -- | Output a string.
+-- makeFreeCon 'Output
+-- @
+makeFreeCon :: Name -> Q [Dec]
+makeFreeCon = genFreeCon True
+
+-- | Like 'makeFreeCon', but does not provide a type signature.
+-- This can be used to attach Haddock comments to individual arguments.
+--
+-- @
+-- data LangF x = Output String x
+--
+-- makeFreeCon_ 'Output
+--
+-- -- | Output a string.
+-- output :: MonadFree LangF m =>
+--           String   -- ^ String to output.
+--        -> m ()     -- ^ No result.
+-- @
+--
+-- 'makeFreeCon_' must be called *before* the explicit type signature.
+makeFreeCon_ :: Name -> Q [Dec]
+makeFreeCon_ = genFreeCon False
 
 {- $doc
  To generate free monadic actions from a @Type@, it must be a @data@
@@ -247,7 +333,7 @@ makeFree tyCon = do
        @a@ is a fresh type variable.
 
      2. If only one argument in the constructor depends on @param@, then
-       @ret ≡ (s1, …, sM)@. In particular, f @M == 0@, then @ret ≡ ()@; if @M == 1@, @ret ≡ s1@.
+       @ret ≡ (s1, …, sM)@. In particular, if @M == 0@, then @ret ≡ ()@; if @M == 1@, @ret ≡ s1@.
 
      3. If two arguments depend on @param@, (e.g. @u1 -> … -> uL -> param@ and
        @v1 -> … -> vM -> param@, then @ret ≡ Either (u1, …, uL) (v1, …, vM)@.

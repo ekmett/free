@@ -1,8 +1,30 @@
-5.0
----
+4.12
+----
+
+* Add instances of `MonadCatch` and `MonadThrow` from `exceptions` to `FT`, `FreeT` and `IterT`.
+
+4.11
+-----
+* Pass Monad[FreeT].fail into underlying monad
+* Add `retractT`.
+* Added `cutoff` for the church encoded free monad.
+* `cutoff` now accepts negative numbers.
+* Added `intersperseT` and `intercalateT`.
+* Added `foldFree` and `foldF`.
+* Added some new `template-haskell` toys.
+
+4.10.0.1
+------
+* Fix for very old `cabal` versions where the `MIN_VERSION_foo` macros aren't negation friendly.
+
+4.10
+----
 * Redefine `Alternative` and `MonadPlus` instances of `IterT` so that they apply to any underlying `Monad`.
   `mplus` or `<|>` is Capretta's `race` combinator; `mzero` or `empty` is a non-terminating computation.
 * Redefine `fail s` for `IterT` as `mzero`, for any string `s`.
+* Added `Control.Monad.Trans.Iter.untilJust`, which repeatedly retries a `m (Maybe a)` computation until
+  it produces `Just` a value.
+* Fix things so that we can build with GHC 7.10, which also uses the name `Alt` in `Data.Monoid`, and which exports `Monoid` from `Prelude`.
 
 4.9
 ---

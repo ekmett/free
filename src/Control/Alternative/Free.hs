@@ -29,6 +29,8 @@ module Control.Alternative.Free
 
 import Control.Applicative
 import Data.Functor.Apply
+import Data.Functor.Alt ((<!>))
+import qualified Data.Functor.Alt as Alt
 import Data.Semigroup
 import Data.Typeable
 
@@ -97,6 +99,10 @@ runAlt u xs0 = go xs0 where
 instance (Functor f) => Apply (Alt f) where
   (<.>) = (<*>)
   {-# INLINE (<.>) #-}
+
+instance (Functor f) => Alt.Alt (Alt f) where
+  (<!>) = (<|>)
+  {-# INLINE (<!>) #-}
 
 instance (Functor f) => Alternative (Alt f) where
   empty = Alt []
