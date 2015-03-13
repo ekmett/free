@@ -34,6 +34,7 @@ module Control.Monad.Trans.Free.Church
   , iterTM
   , hoistFT
   , transFT
+  , joinFT
   , cutoff
   -- * Operations of free monad
   , improve
@@ -217,6 +218,10 @@ hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (\xg -> return .
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FT' f m@ to @'FT' g n@
 transFT :: Monad m => (forall a. f a -> g a) -> FT f m b -> FT g m b
 transFT phi (FT m) = FT (\kp kf -> m kp (\xg -> kf xg . phi))
+
+-- | Pull out and join @m@ layers of @'FreeT' f m a@.
+joinFT :: (Monad m, Traversable f) => FT f m a -> m (F f a)
+joinFT (FT m) = m (return . return) (liftM wrap . T.sequence)
 
 -- | Cuts off a tree of computations at a given depth.
 -- If the depth is 0 or less, no computation nor
