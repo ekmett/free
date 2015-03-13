@@ -271,3 +271,11 @@ improve :: Functor f => (forall m. MonadFree f m => m a) -> Free f a
 improve m = fromF m
 {-# INLINE improve #-}
 
+-- | Improve the asymptotic performance of code that builds a free monad transformer
+-- with only binds and returns by using 'FT' behind the scenes.
+--
+-- Similar to 'improve'.
+improveT :: (Functor f, Monad m) => (forall t. MonadFree f (t m) => t m a) -> FreeT f m a
+improveT m = fromFT m
+{-# INLINE improveT #-}
+
