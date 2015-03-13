@@ -17,7 +17,7 @@
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  provisional
 -- Portability :  non-portable (rank-2 polymorphism, MTPCs)
--- 
+--
 -- Church-encoded free monad transformer.
 --
 -----------------------------------------------------------------------------
@@ -50,6 +50,7 @@ module Control.Monad.Trans.Free.Church
 import Control.Applicative
 import Control.Category ((<<<), (>>>))
 import Control.Monad
+import Control.Monad.Catch (MonadCatch(..), MonadThrow(..))
 import Control.Monad.Identity
 import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
@@ -165,6 +166,14 @@ instance (Functor f, MonadState s m) => MonadState s (FT f m) where
   state f = lift (state f)
   {-# INLINE state #-}
 #endif
+
+instance MonadThrow m => MonadThrow (FT f m) where
+  throwM = lift . throwM
+  {-# INLINE throwM #-}
+
+instance (Functor f, MonadCatch m) => MonadCatch (FT f m) where
+  catch m f = toFT $ fromFT m `catch` (fromFT . f)
+  {-# INLINE catch #-}
 
 -- | Generate a Church-encoded free monad transformer from a 'FreeT' monad
 -- transformer.

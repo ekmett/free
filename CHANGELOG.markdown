@@ -1,3 +1,8 @@
+4.12
+----
+
+* Add instances of `MonadCatch` and `MonadThrow` from `exceptions` to `FT`, `FreeT` and `IterT`.
+
 4.11
 -----
 * Pass Monad[FreeT].fail into underlying monad
