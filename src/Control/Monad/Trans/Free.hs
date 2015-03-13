@@ -39,6 +39,7 @@ module Control.Monad.Trans.Free
   , iterTM
   , hoistFreeT
   , transFreeT
+  , joinFreeT
   , cutoff
   -- * Operations of free monad
   , retract
@@ -312,6 +313,13 @@ hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g n@
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
+
+-- | Pull out and join @m@ layers of @'FreeT' f m a@.
+joinFreeT :: (Monad m, Traversable f) => FreeT f m a -> m (Free f a)
+joinFreeT (FreeT m) = m >>= joinFreeF
+  where
+    joinFreeF (Pure x) = return (return x)
+    joinFreeF (Free f) = wrap `liftM` Data.Traversable.mapM joinFreeT f
 
 -- |
 -- 'retract' is the left inverse of 'liftF'
