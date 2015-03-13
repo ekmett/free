@@ -28,6 +28,7 @@ module Control.Monad.Trans.Free.Church
   -- * The free monad
   , F, free, runF
   -- * Operations
+  , improveT
   , toFT, fromFT
   , iterT
   , iterTM
