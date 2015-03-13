@@ -221,7 +221,7 @@ transFT phi (FT m) = FT (\kp kf -> m kp (\xg -> kf xg . phi))
 
 -- | Pull out and join @m@ layers of @'FreeT' f m a@.
 joinFT :: (Monad m, Traversable f) => FT f m a -> m (F f a)
-joinFT (FT m) = m (return . return) (liftM wrap . T.sequence)
+joinFT (FT m) = m (return . return) (\xg -> liftM wrap . T.mapM xg)
 
 -- | Cuts off a tree of computations at a given depth.
 -- If the depth is 0 or less, no computation nor
