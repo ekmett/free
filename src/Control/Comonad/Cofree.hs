@@ -42,7 +42,7 @@ import Control.Comonad.Env.Class
 import Control.Comonad.Store.Class as Class
 import Control.Comonad.Traced.Class
 import Control.Category
-import Control.Monad(ap, (>=>))
+import Control.Monad(ap, (>=>), liftM)
 import Control.Monad.Zip
 import Data.Functor.Bind
 import Data.Functor.Extend
@@ -116,8 +116,8 @@ unfold f c = case f c of
   (x, d) -> x :< fmap (unfold f) d
 
 -- | Unfold a cofree comonad from a seed, monadically.
-unfoldM :: (Traversable f, Applicative m, Monad m) => (b -> m (a, f b)) -> b -> m (Cofree f a)
-unfoldM f = f >=> \ (x, t) -> (x :<) <$> traverse (unfoldM f) t
+unfoldM :: (Traversable f, Monad m) => (b -> m (a, f b)) -> b -> m (Cofree f a)
+unfoldM f = f >=> \ (x, t) -> (x :<) `liftM` Data.Traversable.mapM (unfoldM f) t
 
 hoistCofree :: Functor f => (forall x . f x -> g x) -> Cofree f a -> Cofree g a
 hoistCofree f (x :< y) = x :< f (hoistCofree f <$> y)
