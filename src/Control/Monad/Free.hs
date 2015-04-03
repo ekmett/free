@@ -33,11 +33,14 @@ module Control.Monad.Free
   , foldFree
   , toFreeT
   , cutoff
+  , unfold
+  , unfoldM
   , _Pure, _Free
   ) where
 
 import Control.Applicative
-import Control.Monad (liftM, MonadPlus(..))
+import Control.Arrow ((>>>))
+import Control.Monad (liftM, MonadPlus(..), (>=>))
 import Control.Monad.Fix
 import Control.Monad.Trans.Class
 import qualified Control.Monad.Trans.Free as FreeT
@@ -338,6 +341,14 @@ cutoff :: (Functor f) => Integer -> Free f a -> Free f (Maybe a)
 cutoff n _ | n <= 0 = return Nothing
 cutoff n (Free f) = Free $ fmap (cutoff (n - 1)) f
 cutoff _ m = Just <$> m
+
+-- | Unfold a free monad from a seed.
+unfold :: Functor f => (b -> Either a (f b)) -> b -> Free f a
+unfold f = f >>> either Pure (Free . fmap (unfold f))
+
+-- | Unfold a free monad from a seed, monadically.
+unfoldM :: (Traversable f, Applicative m, Monad m) => (b -> m (Either a (f b))) -> b -> m (Free f a)
+unfoldM f = f >=> either (pure . pure) (fmap Free . traverse (unfoldM f))
 
 -- | This is @Prism' (Free f a) a@ in disguise
 --
