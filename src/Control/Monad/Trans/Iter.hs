@@ -275,7 +275,7 @@ instance MonadThrow m => MonadThrow (IterT m) where
   {-# INLINE throwM #-}
 
 instance MonadCatch m => MonadCatch (IterT m) where
-  catch (IterT m) f = IterT $ liftM (fmap (`catch` f)) m `catch` (runIterT . f)
+  catch (IterT m) f = IterT $ liftM (fmap (`Control.Monad.Catch.catch` f)) m `Control.Monad.Catch.catch` (runIterT . f)
   {-# INLINE catch #-}
 
 -- | Adds an extra layer to a free monad value.
