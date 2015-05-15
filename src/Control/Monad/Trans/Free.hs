@@ -300,7 +300,8 @@ instance (Functor f, MonadThrow m) => MonadThrow (FreeT f m) where
   {-# INLINE throwM #-}
 
 instance (Functor f, MonadCatch m) => MonadCatch (FreeT f m) where
-  FreeT m `catch` f = FreeT $ liftM (fmap (`catch` f)) m `catch` (runFreeT . f)
+  FreeT m `catch` f = FreeT $ liftM (fmap (`Control.Monad.Catch.catch` f)) m
+                                `Control.Monad.Catch.catch` (runFreeT . f)
   {-# INLINE catch #-}
 
 -- | Tear down a free monad transformer using iteration.
