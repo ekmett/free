@@ -1,7 +1,7 @@
 4.12
 ----
-
 * Add instances of `MonadCatch` and `MonadThrow` from `exceptions` to `FT`, `FreeT` and `IterT`.
+* `semigroupoids` 5, `profunctors` 5, and `bifunctors` 5 support.
 
 4.11
 -----

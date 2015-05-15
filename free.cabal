@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       4.11
+version:       4.12
 license:       BSD3
 cabal-version: >= 1.10
 license-file:  LICENSE
@@ -9,7 +9,7 @@ maintainer:    Edward A. Kmett <ekmett@gmail.com>
 stability:     provisional
 homepage:      http://github.com/ekmett/free/
 bug-reports:   http://github.com/ekmett/free/issues
-copyright:     Copyright (C) 2008-2013 Edward A. Kmett
+copyright:     Copyright (C) 2008-2015 Edward A. Kmett
 synopsis:      Monads for free
 description:
   Free monads are useful for many tree-like structures and domain specific languages.
@@ -67,13 +67,13 @@ library
 
   build-depends:
     base                 == 4.*,
-    bifunctors           == 4.*,
+    bifunctors           >= 4 && < 6,
     comonad              == 4.*,
     distributive         >= 0.2.1,
     mtl                  >= 2.0.1.0 && < 2.3,
     prelude-extras       >= 0.4 && < 1,
-    profunctors          == 4.*,
-    semigroupoids        == 4.*,
+    profunctors          >= 4 && < 6,
+    semigroupoids        >= 4 && < 6,
     semigroups           >= 0.8.3.1 && < 1,
     transformers         >= 0.2.0   && < 0.5,
     template-haskell     >= 2.7.0.0 && < 3,
