@@ -1,3 +1,7 @@
+4.12.1
+------
+* Support GHC 7.4
+
 4.12
 ----
 * Add instances of `MonadCatch` and `MonadThrow` from `exceptions` to `FT`, `FreeT` and `IterT`.
