@@ -180,7 +180,7 @@ instance MonadThrow m => MonadThrow (FT f m) where
   {-# INLINE throwM #-}
 
 instance (Functor f, MonadCatch m) => MonadCatch (FT f m) where
-  catch m f = toFT $ fromFT m `catch` (fromFT . f)
+  catch m f = toFT $ fromFT m `Control.Monad.Catch.catch` (fromFT . f)
   {-# INLINE catch #-}
 
 -- | Generate a Church-encoded free monad transformer from a 'FreeT' monad
