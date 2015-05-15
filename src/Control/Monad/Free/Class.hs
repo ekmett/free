@@ -45,7 +45,7 @@ import Control.Monad.Trans.List
 import Control.Monad.Trans.Error
 import Control.Monad.Trans.Identity
 
-#if !MIN_VERSION_base(4,8,0)
+#if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 import Data.Monoid
 #endif

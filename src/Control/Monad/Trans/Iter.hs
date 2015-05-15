@@ -101,7 +101,7 @@ import Data.Typeable
 import Data.Data
 import Prelude.Extras
 
-#if !MIN_VERSION_base(4,8,0)
+#if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable hiding (fold)
 import Data.Traversable hiding (mapM)
 #endif

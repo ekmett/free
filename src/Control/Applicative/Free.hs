@@ -45,7 +45,7 @@ import Control.Applicative
 import Data.Functor.Apply
 import Data.Typeable
 
-#if !MIN_VERSION_base(4,8,0)
+#if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid
 #endif
 

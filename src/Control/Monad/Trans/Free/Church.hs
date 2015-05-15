@@ -72,7 +72,7 @@ import qualified Data.Traversable as T
 import Data.Functor.Bind hiding (join)
 import Data.Function
 
-#if !MIN_VERSION_base(4,8,0)
+#if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable (Foldable)
 import Data.Traversable (Traversable)
 #endif
