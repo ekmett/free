@@ -5,6 +5,10 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
 {-# OPTIONS_GHC -Wall #-}
+
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Applicative.Free
@@ -40,7 +44,10 @@ module Control.Applicative.Free
 import Control.Applicative
 import Data.Functor.Apply
 import Data.Typeable
+
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid
+#endif
 
 -- | The free 'Applicative' for a 'Functor' @f@.
 data Ap f a where

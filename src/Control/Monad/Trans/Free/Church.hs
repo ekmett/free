@@ -4,6 +4,10 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
+
 #ifndef MIN_VERSION_mtl
 #define MIN_VERSION_mtl(x,y,z) 1
 #endif
@@ -63,12 +67,15 @@ import Control.Monad.Cont.Class
 import Control.Monad.Free.Class
 import Control.Monad.Trans.Free (FreeT(..), FreeF(..), Free)
 import qualified Control.Monad.Trans.Free as FreeT
-import Data.Foldable (Foldable)
 import qualified Data.Foldable as F
-import Data.Traversable (Traversable)
 import qualified Data.Traversable as T
 import Data.Functor.Bind hiding (join)
 import Data.Function
+
+#if !MIN_VERSION_base(4,8,0)
+import Data.Foldable (Foldable)
+import Data.Traversable (Traversable)
+#endif
 
 -- | The \"free monad transformer\" for a functor @f@
 newtype FT f m a = FT { runFT :: forall r. (a -> m r) -> (forall x. (x -> m r) -> f x -> m r) -> m r }

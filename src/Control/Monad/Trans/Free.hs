@@ -9,6 +9,10 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
 
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
+
 #ifndef MIN_VERSION_mtl
 #define MIN_VERSION_mtl(x,y,z) 1
 #endif
@@ -66,7 +70,6 @@ import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind hiding (join)
 import Data.Monoid
-import Data.Foldable
 import Data.Function (on)
 import Data.Functor.Identity
 import Data.Traversable
@@ -75,6 +78,10 @@ import Data.Bifoldable
 import Data.Bitraversable
 import Data.Data
 import Prelude.Extras
+
+#if !MIN_VERSION_base(4,8,0)
+import Data.Foldable
+#endif
 
 -- | The base functor for a free monad.
 data FreeF f a b = Pure a | Free (f b)

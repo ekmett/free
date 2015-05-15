@@ -1,3 +1,9 @@
+{-# LANGUAGE CPP #-}
+
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.TH
@@ -27,10 +33,13 @@ module Control.Monad.Free.TH
   ) where
 
 import Control.Arrow
-import Control.Applicative
 import Control.Monad
 import Data.Char (toLower)
 import Language.Haskell.TH
+
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
+#endif
 
 data Arg
   = Captured Type Exp

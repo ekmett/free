@@ -1,4 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
+
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Applicative.Free.Final
@@ -30,7 +35,10 @@ module Control.Applicative.Free.Final
 
 import Control.Applicative
 import Data.Functor.Apply
+
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid
+#endif
 
 -- | The free 'Applicative' for a 'Functor' @f@.
 newtype Ap f a = Ap { _runAp :: forall g. Applicative g => (forall x. f x -> g x) -> g a }

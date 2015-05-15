@@ -6,6 +6,10 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
+
 #ifndef MIN_VERSION_mtl
 #define MIN_VERSION_mtl(x,y,z) 1
 #endif
@@ -89,15 +93,18 @@ import Data.Bitraversable
 import Data.Either
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Identity
-import Data.Foldable hiding (fold)
 import Data.Function (on)
-import Data.Traversable hiding (mapM)
 import Data.Monoid
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Typeable
 import Data.Data
 import Prelude.Extras
+
+#if !MIN_VERSION_base(4,8,0)
+import Data.Foldable hiding (fold)
+import Data.Traversable hiding (mapM)
+#endif
 
 -- | The monad supporting iteration based over a base monad @m@.
 --

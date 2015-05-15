@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -7,6 +8,10 @@
 {-# LANGUAGE TypeFamilies #-}
 #endif
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
+
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free.Class
@@ -25,7 +30,6 @@ module Control.Monad.Free.Class
   , wrapT
   ) where
 
-import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
@@ -40,8 +44,11 @@ import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.List
 import Control.Monad.Trans.Error
 import Control.Monad.Trans.Identity
--- import Control.Monad.Trans.Either
+
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
 import Data.Monoid
+#endif
 
 -- |
 -- Monads provide substitution ('fmap') and renormalization ('Control.Monad.join'):
