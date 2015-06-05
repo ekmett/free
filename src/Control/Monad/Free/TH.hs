@@ -240,7 +240,7 @@ genFreeCon typeSig cname = do
 makeFree :: Name -> Q [Dec]
 makeFree = genFree True Nothing
 
--- | Like 'makeFreeCon', but does not provide type signatures.
+-- | Like 'makeFree', but does not provide type signatures.
 -- This can be used to attach Haddock comments to individual arguments
 -- for each generated function.
 --
