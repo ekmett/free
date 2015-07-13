@@ -33,6 +33,7 @@ import Control.Applicative
 import Control.Comonad
 import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
+import Control.Comonad.Hoist.Class
 import Control.Category
 import Data.Bifunctor
 import Data.Bifoldable
@@ -137,6 +138,9 @@ instance Functor f => ComonadTrans (CofreeT f) where
 
 instance (Functor f, Comonad w) => ComonadCofree f (CofreeT f w) where
   unwrap = tailF . extract . runCofreeT
+
+instance Functor f => ComonadHoist (CofreeT f) where
+  cohoist g = CofreeT . fmap (second (cohoist g)) . g . runCofreeT
 
 instance Show (w (CofreeF f a (CofreeT f w a))) => Show (CofreeT f w a) where
   showsPrec d (CofreeT w) = showParen (d > 10) $
