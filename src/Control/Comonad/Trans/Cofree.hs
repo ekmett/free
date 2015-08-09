@@ -33,6 +33,7 @@ import Control.Applicative
 import Control.Comonad
 import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
+import Control.Comonad.Env.Class
 import Control.Comonad.Hoist.Class
 import Control.Category
 import Data.Bifunctor
@@ -138,6 +139,10 @@ instance Functor f => ComonadTrans (CofreeT f) where
 
 instance (Functor f, Comonad w) => ComonadCofree f (CofreeT f w) where
   unwrap = tailF . extract . runCofreeT
+
+instance (Functor f, ComonadEnv e w) => ComonadEnv e (CofreeT f w) where
+  ask = ask . lower
+  {-# INLINE ask #-} 
 
 instance Functor f => ComonadHoist (CofreeT f) where
   cohoist g = CofreeT . fmap (second (cohoist g)) . g . runCofreeT
