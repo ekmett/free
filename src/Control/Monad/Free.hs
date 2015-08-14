@@ -303,7 +303,7 @@ iter :: Functor f => (f a -> a) -> Free f a -> a
 iter _ (Pure a) = a
 iter phi (Free m) = phi (iter phi <$> m)
 
--- | Like iter for monadic values.
+-- | Like 'iter' for monadic values.
 iterM :: (Monad m, Functor f) => (f (m a) -> m a) -> Free f a -> m a
 iterM _   (Pure x) = return x
 iterM phi (Free f) = phi $ fmap (iterM phi) f
