@@ -169,7 +169,7 @@ retract (F m) = m return Monad.join
 hoistF :: (forall x. f x -> g x) -> F f a -> F g a
 hoistF t (F m) = F (\p f -> m p (f . t))
 
--- | The very definition of a free monoid is that given a natural transformation you get a monoid homomorphism.
+-- | The very definition of a free monad is that given a natural transformation you get a monad homomorphism.
 foldF :: Monad m => (forall x. f x -> m x) -> F f a -> m a
 foldF f (F m) = m return (Monad.join . f)
 

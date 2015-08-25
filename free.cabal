@@ -78,7 +78,8 @@ library
     semigroups           >= 0.8.3.1 && < 1,
     transformers         >= 0.2.0   && < 0.5,
     template-haskell     >= 2.7.0.0 && < 3,
-    exceptions           >= 0.6 && < 0.9
+    exceptions           >= 0.6 && < 0.9,
+    containers           < 0.6
 
   exposed-modules:
     Control.Applicative.Free

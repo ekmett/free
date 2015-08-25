@@ -41,6 +41,7 @@ import Control.Comonad.Cofree.Class
 import Control.Comonad.Env.Class
 import Control.Comonad.Store.Class as Class
 import Control.Comonad.Traced.Class
+import Control.Comonad.Hoist.Class
 import Control.Category
 import Control.Monad(ap, (>=>), liftM)
 import Control.Monad.Zip
@@ -290,6 +291,9 @@ cofreeDataType :: DataType
 cofreeDataType = mkDataType "Control.Comonad.Cofree.Cofree" [cofreeConstr]
 {-# NOINLINE cofreeDataType #-}
 #endif
+
+instance ComonadHoist Cofree where
+  cohoist = hoistCofree
 
 instance ComonadEnv e w => ComonadEnv e (Cofree w) where
   ask = ask . lower
