@@ -28,6 +28,7 @@ module Control.Monad.Free
   , retract
   , liftF
   , iter
+  , iterA
   , iterM
   , hoistFree
   , foldFree
@@ -303,10 +304,15 @@ iter :: Functor f => (f a -> a) -> Free f a -> a
 iter _ (Pure a) = a
 iter phi (Free m) = phi (iter phi <$> m)
 
+-- | Like iter for applicative values.
+iterA :: (Applicative p, Functor f) => (f (p a) -> p a) -> Free f a -> p a
+iterA _   (Pure x) = pure x
+iterA phi (Free f) = phi (iterA phi <$> f)
+
 -- | Like iter for monadic values.
 iterM :: (Monad m, Functor f) => (f (m a) -> m a) -> Free f a -> m a
 iterM _   (Pure x) = return x
-iterM phi (Free f) = phi $ fmap (iterM phi) f
+iterM phi (Free f) = phi (iterM phi <$> f)
 
 -- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'FreeT' f@ to @'FreeT' g@.
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b

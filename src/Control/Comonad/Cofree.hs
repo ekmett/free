@@ -25,6 +25,7 @@ module Control.Comonad.Cofree
   , ComonadCofree(..)
   , section
   , coiter
+  , coiterW
   , unfold
   , unfoldM
   , hoistCofree
@@ -110,6 +111,10 @@ data Cofree f a = a :< f (Cofree f a)
 -- @'coiter' f = 'unfold' ('id' 'Control.Arrow.&&&' f)@
 coiter :: Functor f => (a -> f a) -> a -> Cofree f a
 coiter psi a = a :< (coiter psi <$> psi a)
+
+-- | Like coiter for comonadic values.
+coiterW :: (Comonad w, Functor f) => (w a -> f (w a)) -> w a -> Cofree f a
+coiterW psi a = extract a :< (coiterW psi <$> psi a)
 
 -- | Unfold a cofree comonad from a seed.
 unfold :: Functor f => (b -> (a, f b)) -> b -> Cofree f a
