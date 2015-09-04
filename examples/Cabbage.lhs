@@ -43,7 +43,7 @@ rest intact:
 
 @
 *Cabbage> singleOut1 (== Sheep) [Wolf, Sheep, Cabbage]
-[(Just Wolf,[Sheep,Cabbage]),(Just Sheep,[Wolf,Cabbage]),(Just Cabbage,[Wolf,Sheep]),(Nothing,[Wolf,Sheep,Cabbage])]
+(Just Sheep,[Wolf,Cabbage])
 @
 
 > singleOutAll :: [a] -> [(Maybe a,[a])]
