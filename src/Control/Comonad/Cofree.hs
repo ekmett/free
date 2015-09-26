@@ -241,6 +241,10 @@ instance Foldable f => Foldable (Cofree f) where
   foldMap f = go where
     go (a :< as) = f a `mappend` foldMap go as
   {-# INLINE foldMap #-}
+#if __GLASGOW_HASKELL__ >= 709
+  length = go 0 where
+    go s (_ :< as) = foldl' go (s + 1) as
+#endif
 
 instance Foldable1 f => Foldable1 (Cofree f) where
   foldMap1 f = go where
