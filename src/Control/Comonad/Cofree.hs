@@ -361,7 +361,7 @@ _unwrap  f (a :< as) = (a :<) <$> f as
 -- @telescoped :: [Fold (g ('Cofree' g a)) ('Cofree' g a)]       -> Fold ('Cofree' g a) a@
 --
 -- @telescoped :: [Setter' (g ('Cofree' g a)) ('Cofree' g a)]    -> Setter' ('Cofree' g a) a@
-telescoped :: (Functor f, Functor g) =>
+telescoped :: Functor f =>
              [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
               (a -> f a) -> Cofree g a -> f (Cofree g a)
 telescoped = Prelude.foldr (\l r -> _unwrap . l . r) _extract
