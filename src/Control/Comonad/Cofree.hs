@@ -344,11 +344,23 @@ _unwrap :: Functor f => (g (Cofree g a) -> f (g (Cofree g a))) -> Cofree g a -> 
 _unwrap  f (a :< as) = (a :<) <$> f as
 {-# INLINE _unwrap #-}
 
--- | Construct a @Lens@ into a @'Cofree' f@ given a list of lenses into the base functor.
+-- | Construct an @Lens@ into a @'Cofree' g@ given a list of lenses into the base functor.
+-- When the input list is empty, this is equivalent to '_extract'.
+-- When the input list is non-empty, this composes the input lenses
+-- with '_unwrap' to walk through the @'Cofree' g@ before using
+-- '_extract' to get the element at the final location.
 --
 -- For more on lenses see the 'lens' package on hackage.
 --
--- @telescoped :: 'Functor' g => [Lens' ('Cofree' g a) (g ('Cofree' g a))] -> Lens' ('Cofree' g a) a@
+-- @telescoped :: [Lens' (g ('Cofree' g a)) ('Cofree' g a)]      -> Lens' ('Cofree' g a) a@
+--
+-- @telescoped :: [Traversal' (g ('Cofree' g a)) ('Cofree' g a)] -> Traversal' ('Cofree' g a) a@
+--
+-- @telescoped :: [Getter (g ('Cofree' g a)) ('Cofree' g a)]     -> Getter ('Cofree' g a) a@
+--
+-- @telescoped :: [Fold (g ('Cofree' g a)) ('Cofree' g a)]       -> Fold ('Cofree' g a) a@
+--
+-- @telescoped :: [Setter' (g ('Cofree' g a)) ('Cofree' g a)]    -> Setter' ('Cofree' g a) a@
 telescoped :: (Functor f, Functor g) =>
              [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
               (a -> f a) -> Cofree g a -> f (Cofree g a)
