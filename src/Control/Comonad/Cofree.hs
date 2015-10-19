@@ -66,7 +66,7 @@ infixr 5 :<
 -- /Formally/
 --
 -- A 'Comonad' @v@ is a cofree 'Comonad' for @f@ if every comonad homomorphism
--- another comonad @w@ to @v@ is equivalent to a natural transformation
+-- from another comonad @w@ to @v@ is equivalent to a natural transformation
 -- from @w@ to @f@.
 --
 -- A 'cofree' functor is right adjoint to a forgetful functor.
