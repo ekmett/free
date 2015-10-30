@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
@@ -26,6 +27,7 @@ module Control.Comonad.Trans.Cofree
   , ComonadCofree(..)
   , headF
   , tailF
+  , transCofreeT
   , coiterT
   ) where
 
@@ -33,6 +35,8 @@ import Control.Applicative
 import Control.Comonad
 import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
+import Control.Comonad.Env.Class
+import Control.Comonad.Hoist.Class
 import Control.Category
 import Data.Bifunctor
 import Data.Bifoldable
@@ -45,10 +49,7 @@ import Control.Monad (liftM)
 import Control.Monad.Trans
 import Control.Monad.Zip
 import Prelude hiding (id,(.))
-
-#if defined(GHC_TYPEABLE) || __GLASGOW_HASKELL__ >= 707
 import Data.Data
-#endif
 
 infixr 5 :<
 
@@ -85,6 +86,10 @@ instance Foldable f => Bifoldable (CofreeF f) where
 
 instance Traversable f => Bitraversable (CofreeF f) where
   bitraverse f g (a :< as) = (:<) <$> f a <*> traverse g as
+
+transCofreeF :: (forall x. f x -> g x) -> CofreeF f a b -> CofreeF g a b
+transCofreeF t (a :< fb) = a :< t fb
+{-# INLINE transCofreeF #-}
 
 -- | This is a cofree comonad of some functor @f@, with a comonad @w@ threaded through it at each level.
 newtype CofreeT f w a = CofreeT { runCofreeT :: w (CofreeF f a (CofreeT f w a)) }
@@ -141,8 +146,15 @@ instance Functor f => ComonadTrans (CofreeT f) where
 instance (Functor f, Comonad w) => ComonadCofree f (CofreeT f w) where
   unwrap = tailF . extract . runCofreeT
 
+instance (Functor f, ComonadEnv e w) => ComonadEnv e (CofreeT f w) where
+  ask = ask . lower
+  {-# INLINE ask #-} 
+
+instance Functor f => ComonadHoist (CofreeT f) where
+  cohoist g = CofreeT . fmap (second (cohoist g)) . g . runCofreeT
+
 instance Show (w (CofreeF f a (CofreeT f w a))) => Show (CofreeT f w a) where
-  showsPrec d w = showParen (d > 10) $
+  showsPrec d (CofreeT w) = showParen (d > 10) $
     showString "CofreeT " . showsPrec 11 w
 
 instance Read (w (CofreeF f a (CofreeT f w a))) => Read (CofreeT f w a) where
@@ -180,11 +192,13 @@ instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
                                      (a :< fa, b :< fb) <- mzip ma mb
                                      return $ (a, b) :< (uncurry mzip <$> mzip fa fb)
 
+-- | Lift a natural transformation from @f@ to @g@ into a comonad homomorphism from @'CofreeT' f w@ to @'CofreeT' g w@
+transCofreeT :: (Functor g, Comonad w) => (forall x. f x -> g x) -> CofreeT f w a -> CofreeT g w a
+transCofreeT t = CofreeT . liftW (fmap (transCofreeT t) . transCofreeF t) . runCofreeT
+
 -- | Unfold a @CofreeT@ comonad transformer from a coalgebra and an initial comonad.
 coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
 coiterT psi = CofreeT . extend (\w -> extract w :< fmap (coiterT psi) (psi w))
-
-#if defined(GHC_TYPEABLE) 
 
 #if __GLASGOW_HASKELL__ < 707
 
@@ -251,7 +265,6 @@ cofreeFDataType = mkDataType "Control.Comonad.Trans.Cofree.CofreeF" [cofreeFCons
 cofreeTDataType = mkDataType "Control.Comonad.Trans.Cofree.CofreeT" [cofreeTConstr]
 {-# NOINLINE cofreeFDataType #-}
 {-# NOINLINE cofreeTDataType #-}
-#endif
 
 -- lowerF :: (Functor f, Comonad w) => CofreeT f w a -> f a
 -- lowerF = fmap extract . unwrap

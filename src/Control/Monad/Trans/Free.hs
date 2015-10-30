@@ -9,6 +9,10 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
 
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
+
 #ifndef MIN_VERSION_mtl
 #define MIN_VERSION_mtl(x,y,z) 1
 #endif
@@ -39,6 +43,12 @@ module Control.Monad.Trans.Free
   , iterTM
   , hoistFreeT
   , transFreeT
+  , joinFreeT
+  , cutoff
+  , partialIterT
+  , intersperseT
+  , intercalateT
+  , retractT
   -- * Operations of free monad
   , retract
   , iter
@@ -49,6 +59,7 @@ module Control.Monad.Trans.Free
 
 import Control.Applicative
 import Control.Monad (liftM, MonadPlus(..), ap, join)
+import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
 import Control.Monad.IO.Class
@@ -59,14 +70,17 @@ import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind hiding (join)
 import Data.Monoid
-import Data.Foldable
+import Data.Function (on)
 import Data.Functor.Identity
 import Data.Traversable
 import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
-#ifdef GHC_TYPEABLE
 import Data.Data
+import Prelude.Extras
+
+#if !(MIN_VERSION_base(4,8,0))
+import Data.Foldable
 #endif
 
 -- | The base functor for a free monad.
@@ -76,6 +90,43 @@ data FreeF f a b = Pure a | Free (f b)
            ,Typeable
 #endif
            )
+
+instance Show1 f => Show2 (FreeF f) where
+  showsPrec2 d (Pure a)  = showParen (d > 10) $ showString "Pure " . showsPrec 11 a
+  showsPrec2 d (Free as) = showParen (d > 10) $ showString "Free " . showsPrec1 11 as
+
+instance (Show1 f, Show a) => Show1 (FreeF f a) where
+  showsPrec1 = showsPrec2
+
+instance Read1 f => Read2 (FreeF f) where
+  readsPrec2 d r = readParen (d > 10)
+      (\r' -> [ (Pure m, t)
+             | ("Pure", s) <- lex r'
+             , (m, t) <- readsPrec 11 s]) r
+    ++ readParen (d > 10)
+      (\r' -> [ (Free m, t)
+             | ("Free", s) <- lex r'
+             , (m, t) <- readsPrec1 11 s]) r
+
+instance (Read1 f, Read a) => Read1 (FreeF f a) where
+  readsPrec1 = readsPrec2
+
+instance Eq1 f => Eq2 (FreeF f) where
+  Pure a  ==## Pure b = a == b
+  Free as ==## Free bs = as ==# bs
+  _       ==## _ = False
+
+instance (Eq1 f, Eq a) => Eq1 (FreeF f a) where
+  (==#) = (==##)
+
+instance Ord1 f => Ord2 (FreeF f) where
+  Pure a `compare2` Pure b = a `compare` b
+  Pure _ `compare2` Free _ = LT
+  Free _ `compare2` Pure _ = GT
+  Free fa `compare2` Free fb = fa `compare1` fb
+
+instance (Ord1 f, Ord a) => Ord1 (FreeF f a) where
+  compare1 = compare2
 
 instance Functor f => Functor (FreeF f a) where
   fmap _ (Pure a)  = Pure a
@@ -129,11 +180,26 @@ free = FreeT . Identity
 {-# INLINE free #-}
 
 deriving instance Eq (m (FreeF f a (FreeT f m a))) => Eq (FreeT f m a)
+
+instance (Functor f, Eq1 f, Functor m, Eq1 m) => Eq1 (FreeT f m) where
+  (==#) = on (==#) (fmap (Lift1 . fmap Lift1) . runFreeT)
+
 deriving instance Ord (m (FreeF f a (FreeT f m a))) => Ord (FreeT f m a)
+
+instance (Functor f, Ord1 f, Functor m, Ord1 m) => Ord1 (FreeT f m) where
+  compare1 = on compare1 (fmap (Lift1 . fmap Lift1) . runFreeT)
+
+instance (Functor f, Show1 f, Functor m, Show1 m) => Show1 (FreeT f m) where
+  showsPrec1 d (FreeT m) = showParen (d > 10) $
+    showString "FreeT " . showsPrec1 11 (Lift1 . fmap Lift1 <$> m)
 
 instance Show (m (FreeF f a (FreeT f m a))) => Show (FreeT f m a) where
   showsPrec d (FreeT m) = showParen (d > 10) $
     showString "FreeT " . showsPrec 11 m
+
+instance (Functor f, Read1 f, Functor m, Read1 m) => Read1 (FreeT f m) where
+  readsPrec1 d =  readParen (d > 10) $ \r ->
+    [ (FreeT (fmap lower1 . lower1 <$> m),t) | ("FreeT",s) <- lex r, (m,t) <- readsPrec1 11 s]
 
 instance Read (m (FreeF f a (FreeT f m a))) => Read (FreeT f m a) where
   readsPrec d =  readParen (d > 10) $ \r ->
@@ -157,6 +223,7 @@ instance (Functor f, Monad m) => Bind (FreeT f m) where
   (>>-) = (>>=)
 
 instance (Functor f, Monad m) => Monad (FreeT f m) where
+  fail e = FreeT (fail e)
   return a = FreeT (return (Pure a))
   {-# INLINE return #-}
   FreeT m >>= f = FreeT $ m >>= \v -> case v of
@@ -228,6 +295,15 @@ instance (Functor f, Monad m) => MonadFree f (FreeT f m) where
   wrap = FreeT . return . Free
   {-# INLINE wrap #-}
 
+instance (Functor f, MonadThrow m) => MonadThrow (FreeT f m) where
+  throwM = lift . throwM
+  {-# INLINE throwM #-}
+
+instance (Functor f, MonadCatch m) => MonadCatch (FreeT f m) where
+  FreeT m `catch` f = FreeT $ liftM (fmap (`Control.Monad.Catch.catch` f)) m
+                                `Control.Monad.Catch.catch` (runFreeT . f)
+  {-# INLINE catch #-}
+
 -- | Tear down a free monad transformer using iteration.
 iterT :: (Functor f, Monad m) => (f (m a) -> m a) -> FreeT f m a -> m a
 iterT f (FreeT m) = do
@@ -256,9 +332,16 @@ instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) wher
 hoistFreeT :: (Monad m, Functor f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
 hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
 
--- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g n@
+-- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g m@
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
 transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
+
+-- | Pull out and join @m@ layers of @'FreeT' f m a@.
+joinFreeT :: (Monad m, Traversable f) => FreeT f m a -> m (Free f a)
+joinFreeT (FreeT m) = m >>= joinFreeF
+  where
+    joinFreeF (Pure x) = return (return x)
+    joinFreeF (Free f) = wrap `liftM` Data.Traversable.mapM joinFreeT f
 
 -- |
 -- 'retract' is the left inverse of 'liftF'
@@ -280,7 +363,82 @@ iter phi = runIdentity . iterT (Identity . phi . fmap runIdentity)
 iterM :: (Functor f, Monad m) => (f (m a) -> m a) -> Free f a -> m a
 iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+-- | Cuts off a tree of computations at a given depth.
+-- If the depth is @0@ or less, no computation nor
+-- monadic effects will take place.
+--
+-- Some examples (@n ≥ 0@):
+--
+-- @
+-- 'cutoff' 0     _        ≡ 'return' 'Nothing'
+-- 'cutoff' (n+1) '.' 'return' ≡ 'return' '.' 'Just'
+-- 'cutoff' (n+1) '.' 'lift'   ≡ 'lift' '.' 'liftM' 'Just'
+-- 'cutoff' (n+1) '.' 'wrap'   ≡ 'wrap' '.' 'fmap' ('cutoff' n)
+-- @
+--
+-- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
+-- steps in the iteration is terminating.
+cutoff :: (Functor f, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
+cutoff n _ | n <= 0 = return Nothing
+cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
+
+-- | @partialIterT n phi m@ interprets first @n@ layers of @m@ using @phi@.
+-- This is sort of the opposite for @'cutoff'@.
+--
+-- Some examples (@n ≥ 0@):
+--
+-- @
+-- 'partialIterT' 0 _ m              ≡ m
+-- 'partialIterT' (n+1) phi '.' 'return' ≡ 'return'
+-- 'partialIterT' (n+1) phi '.' 'lift'   ≡ 'lift'
+-- 'partialIterT' (n+1) phi '.' 'wrap'   ≡ 'join' . 'lift' . phi
+-- @
+partialIterT :: Monad m => Integer -> (forall a. f a -> m a) -> FreeT f m b -> FreeT f m b
+partialIterT n phi m
+  | n <= 0 = m
+  | otherwise = FreeT $ do
+      val <- runFreeT m
+      case val of
+        Pure a -> return (Pure a)
+        Free f -> phi f >>= runFreeT . partialIterT (n - 1) phi
+
+-- | @intersperseT f m@ inserts a layer @f@ between every two layers in
+-- @m@.
+--
+-- @
+-- 'intersperseT' f '.' 'return' ≡ 'return'
+-- 'intersperseT' f '.' 'lift'   ≡ 'lift'
+-- 'intersperseT' f '.' 'wrap'   ≡ 'wrap' '.' 'fmap' ('iterTM' ('wrap' '.' ('<$' f) '.' 'wrap'))
+-- @
+intersperseT :: (Monad m, Functor f) => f a -> FreeT f m b -> FreeT f m b
+intersperseT f (FreeT m) = FreeT $ do
+  val <- m
+  case val of
+    Pure x -> return $ Pure x
+    Free y -> return . Free $ fmap (iterTM (wrap . (<$ f) . wrap)) y
+
+-- | Tear down a free monad transformer using Monad instance for @t m@.
+retractT :: (MonadTrans t, Monad (t m), Monad m) => FreeT (t m) m a -> t m a
+retractT (FreeT m) = do
+  val <- lift m
+  case val of
+    Pure x -> return x
+    Free y -> y >>= retractT
+
+-- | @intercalateT f m@ inserts a layer @f@ between every two layers in
+-- @m@ and then retracts the result.
+--
+-- @
+-- 'intercalateT' f ≡ 'retractT' . 'intersperseT' f
+-- @
+intercalateT :: (Monad m, MonadTrans t, Monad (t m), Functor (t m)) => t m a -> FreeT (t m) m b -> t m b
+intercalateT f (FreeT m) = do
+  val <- lift m
+  case val of
+    Pure x -> return x
+    Free y -> y >>= iterTM (\x -> f >> join x)
+
+#if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable2 (FreeF f) where
   typeOf2 t = mkTyConApp freeFTyCon [typeOf1 (f t)] where
     f :: FreeF f a b -> f a
@@ -346,4 +504,3 @@ freeTDataType = mkDataType "Control.Monad.Trans.Free.FreeT" [freeTConstr]
 {-# NOINLINE freeFDataType #-}
 {-# NOINLINE freeTDataType #-}
 #endif
-

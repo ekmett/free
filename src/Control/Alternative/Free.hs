@@ -21,19 +21,20 @@
 ----------------------------------------------------------------------------
 module Control.Alternative.Free
   ( Alt(..)
-    , AltF(..)
-    , runAlt
-    , liftAlt
-    , hoistAlt
+  , AltF(..)
+  , runAlt
+  , liftAlt
+  , hoistAlt
   ) where
 
 import Control.Applicative
 import Data.Functor.Apply
+import Data.Functor.Alt ((<!>))
+import qualified Data.Functor.Alt as Alt
 import Data.Semigroup
-
-#ifdef GHC_TYPEABLE
 import Data.Typeable
-#endif
+
+infixl 3 `Ap`
 
 data AltF f a where
   Ap     :: f a -> Alt f (a -> b) -> AltF f b
@@ -53,8 +54,6 @@ instance Functor f => Functor (AltF f) where
 
 instance Functor f => Functor (Alt f) where
   fmap f (Alt xs) = Alt $ map (fmap f) xs
-  
-infixl 3 `Ap`
 
 instance Functor f => Applicative (AltF f) where
   pure = Pure
@@ -63,7 +62,7 @@ instance Functor f => Applicative (AltF f) where
   y          <*> (Pure a)  = fmap ($ a) y  -- interchange
   (Ap a f)   <*> b         = a `Ap` (flip <$> f <*> (Alt [b]))
   {-# INLINE (<*>) #-}
- 
+
 instance Functor f => Applicative (Alt f) where
   pure a = Alt [pure a]
   {-# INLINE pure #-}
@@ -75,21 +74,20 @@ instance Functor f => Applicative (Alt f) where
       Pure f `ap'` u      = fmap f u
       (u `Ap` f) `ap'` v  = Alt [u `Ap` (flip <$> f) <*> v]
   {-# INLINE (<*>) #-}
-  
 
 liftAltF :: (Functor f) => f a -> AltF f a
-liftAltF x = x `Ap` pure id 
+liftAltF x = x `Ap` pure id
 {-# INLINE liftAltF #-}
 
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftAlt :: (Functor f) => f a -> Alt f a
 liftAlt = Alt . (:[]) . liftAltF
 {-# INLINE liftAlt #-}
-    
+
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Alt' f@ to @g@.
 runAlt :: forall f g a. Alternative g => (forall x. f x -> g x) -> Alt f a -> g a
 runAlt u xs0 = go xs0 where
-  
+
   go  :: Alt f b -> g b
   go (Alt xs) = foldr (\r a -> (go2 r) <|> a) empty xs
 
@@ -101,7 +99,11 @@ runAlt u xs0 = go xs0 where
 instance (Functor f) => Apply (Alt f) where
   (<.>) = (<*>)
   {-# INLINE (<.>) #-}
-                     
+
+instance (Functor f) => Alt.Alt (Alt f) where
+  (<!>) = (<|>)
+  {-# INLINE (<!>) #-}
+
 instance (Functor f) => Alternative (Alt f) where
   empty = Alt []
   {-# INLINE empty #-}
@@ -120,7 +122,6 @@ instance (Functor f) => Monoid (Alt f a) where
   mconcat as = Alt (as >>= alternatives)
   {-# INLINE mconcat #-}
 
-
 hoistAltF :: (forall a. f a -> g a) -> AltF f b -> AltF g b
 hoistAltF _ (Pure a) = Pure a
 hoistAltF f (Ap x y) = Ap (f x) (hoistAlt f y)
@@ -131,19 +132,25 @@ hoistAlt :: (forall a. f a -> g a) -> Alt f b -> Alt g b
 hoistAlt f (Alt as) = Alt (map (hoistAltF f) as)
 {-# INLINE hoistAlt #-}
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Alt f) where
   typeOf1 t = mkTyConApp altTyCon [typeOf1 (f t)] where
     f :: Alt f a -> f a
     f = undefined
 
-altTyCon :: TyCon
+instance Typeable1 f => Typeable1 (AltF f) where
+  typeOf1 t = mkTyConApp altFTyCon [typeOf1 (f t)] where
+    f :: AltF f a -> f a
+    f = undefined
+
+altTyCon, altFTyCon :: TyCon
 #if __GLASGOW_HASKELL__ < 704
 altTyCon = mkTyCon "Control.Alternative.Free.Alt"
+altFTyCon = mkTyCon "Control.Alternative.Free.AltF"
 #else
 altTyCon = mkTyCon3 "free" "Control.Alternative.Free" "Alt"
+altFTyCon = mkTyCon3 "free" "Control.Alternative.Free" "AltF"
 #endif
 {-# NOINLINE altTyCon #-}
-
+{-# NOINLINE altFTyCon #-}
 #endif
-

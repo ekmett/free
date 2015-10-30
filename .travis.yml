@@ -1,8 +1,42 @@
-language: haskell
+env:
+ - GHCVER=7.4.2 CABALVER=1.16
+ - GHCVER=7.6.3 CABALVER=1.16
+ - GHCVER=7.8.4 CABALVER=1.18
+ - GHCVER=7.10.1 CABALVER=1.22
+ - GHCVER=head CABALVER=1.22
+
+matrix:
+  allow_failures:
+   - env: GHCVER=head CABALVER=1.22
+
+before_install:
+ - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
+ - travis_retry sudo apt-get update
+ - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER
+ - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
+ - cabal --version
+
+install:
+ - travis_retry cabal update
+ - cabal install --enable-tests --only-dependencies
+
+script:
+ - cabal configure -v2 --enable-tests
+ - cabal build
+ - cabal sdist
+ - export SRC_TGZ=$(cabal info . | awk '{print $2 ".tar.gz";exit}') ;
+   cd dist/;
+   if [ -f "$SRC_TGZ" ]; then
+      cabal install "$SRC_TGZ";
+   else
+      echo "expected '$SRC_TGZ' not found";
+      exit 1;
+   fi
+
 notifications:
   irc:
     channels:
       - "irc.freenode.org#haskell-lens"
     skip_join: true
     template:
-      - "\x0313free\x03/\x0306%{branch}\x03 \x0314%{commit}\x03 %{build_url} %{message}"
+      - "\x0313free\x0f/\x0306%{branch}\x0f \x0314%{commit}\x0f %{message} \x0302\x1f%{build_url}\x0f"

@@ -7,10 +7,13 @@
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
+#ifndef MIN_VERSION_base
+#define MIN_VERSION_base(x,y,z) 1
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free
--- Copyright   :  (C) 2008-2013 Edward Kmett
+-- Copyright   :  (C) 2008-2015 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  Edward Kmett <ekmett@gmail.com>
@@ -25,14 +28,20 @@ module Control.Monad.Free
   , retract
   , liftF
   , iter
+  , iterA
   , iterM
   , hoistFree
+  , foldFree
   , toFreeT
+  , cutoff
+  , unfold
+  , unfoldM
   , _Pure, _Free
   ) where
 
 import Control.Applicative
-import Control.Monad (liftM, MonadPlus(..))
+import Control.Arrow ((>>>))
+import Control.Monad (liftM, MonadPlus(..), (>=>))
 import Control.Monad.Fix
 import Control.Monad.Trans.Class
 import qualified Control.Monad.Trans.Free as FreeT
@@ -48,10 +57,9 @@ import Data.Profunctor
 import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
-
-#ifdef GHC_TYPEABLE
 import Data.Data
-#endif
+import Prelude hiding (foldr)
+import Prelude.Extras
 
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
 --
@@ -102,10 +110,21 @@ data Free f a = Pure a | Free (f (Free f a))
   deriving (Typeable)
 #endif
 
+instance (Functor f, Eq1 f) => Eq1 (Free f) where
+  Pure a  ==# Pure b  = a == b
+  Free fa ==# Free fb = fmap Lift1 fa ==# fmap Lift1 fb
+  _       ==# _ = False
+
 instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where
   Pure a == Pure b = a == b
   Free fa == Free fb = fa == fb
   _ == _ = False
+
+instance (Functor f, Ord1 f) => Ord1 (Free f) where
+  Pure a `compare1` Pure b = a `compare` b
+  Pure _ `compare1` Free _ = LT
+  Free _ `compare1` Pure _ = GT
+  Free fa `compare1` Free fb = fmap Lift1 fa `compare1` fmap Lift1 fb
 
 instance (Ord (f (Free f a)), Ord a) => Ord (Free f a) where
   Pure a `compare` Pure b = a `compare` b
@@ -113,11 +132,27 @@ instance (Ord (f (Free f a)), Ord a) => Ord (Free f a) where
   Free _ `compare` Pure _ = GT
   Free fa `compare` Free fb = fa `compare` fb
 
+instance (Functor f, Show1 f) => Show1 (Free f) where
+  showsPrec1 d (Pure a) = showParen (d > 10) $
+    showString "Pure " . showsPrec 11 a
+  showsPrec1 d (Free m) = showParen (d > 10) $
+    showString "Free " . showsPrec1 11 (fmap Lift1 m)
+
 instance (Show (f (Free f a)), Show a) => Show (Free f a) where
   showsPrec d (Pure a) = showParen (d > 10) $
     showString "Pure " . showsPrec 11 a
   showsPrec d (Free m) = showParen (d > 10) $
     showString "Free " . showsPrec 11 m
+
+instance (Functor f, Read1 f) => Read1 (Free f) where
+  readsPrec1 d r = readParen (d > 10)
+      (\r' -> [ (Pure m, t)
+             | ("Pure", s) <- lex r'
+             , (m, t) <- readsPrec 11 s]) r
+    ++ readParen (d > 10)
+      (\r' -> [ (Free (fmap lower1 m), t)
+             | ("Free", s) <- lex r'
+             , (m, t) <- readsPrec1 11 s]) r
 
 instance (Read (f (Free f a)), Read a) => Read (Free f a) where
   readsPrec d r = readParen (d > 10)
@@ -184,6 +219,22 @@ instance Foldable f => Foldable (Free f) where
     go (Pure a) = f a
     go (Free fa) = foldMap go fa
   {-# INLINE foldMap #-}
+
+  foldr f = go where
+    go r free =
+      case free of
+        Pure a -> f a r
+        Free fa -> foldr (flip go) r fa
+  {-# INLINE foldr #-}
+
+#if MIN_VERSION_base(4,6,0)
+  foldl' f = go where
+    go r free =
+      case free of
+        Pure a -> f r a
+        Free fa -> foldl' go r fa
+  {-# INLINE foldl' #-}
+#endif
 
 instance Foldable1 f => Foldable1 (Free f) where
   foldMap1 f = go where
@@ -253,21 +304,57 @@ iter :: Functor f => (f a -> a) -> Free f a -> a
 iter _ (Pure a) = a
 iter phi (Free m) = phi (iter phi <$> m)
 
--- | Like iter for monadic values.
+-- | Like 'iter' for applicative values.
+iterA :: (Applicative p, Functor f) => (f (p a) -> p a) -> Free f a -> p a
+iterA _   (Pure x) = pure x
+iterA phi (Free f) = phi (iterA phi <$> f)
+
+-- | Like 'iter' for monadic values.
 iterM :: (Monad m, Functor f) => (f (m a) -> m a) -> Free f a -> m a
 iterM _   (Pure x) = return x
-iterM phi (Free f) = phi $ fmap (iterM phi) f
+iterM phi (Free f) = phi (iterM phi <$> f)
 
 -- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'FreeT' f@ to @'FreeT' g@.
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
 hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
 
+-- | The very definition of a free monad is that given a natural transformation you get a monad homomorphism.
+foldFree :: (Functor m, Monad m) => (forall x . f x -> m x) -> Free f a -> m a
+foldFree _ (Pure a)  = return a
+foldFree f (Free as) = f as >>= foldFree f
+
 -- | Convert a 'Free' monad from "Control.Monad.Free" to a 'FreeT.FreeT' monad
 -- from "Control.Monad.Trans.Free".
 toFreeT :: (Functor f, Monad m) => Free f a -> FreeT.FreeT f m a
 toFreeT (Pure a) = FreeT.FreeT (return (FreeT.Pure a))
 toFreeT (Free f) = FreeT.FreeT (return (FreeT.Free (fmap toFreeT f)))
+
+-- | Cuts off a tree of computations at a given depth.
+-- If the depth is 0 or less, no computation nor
+-- monadic effects will take place.
+--
+-- Some examples (n ≥ 0):
+--
+-- prop> cutoff 0     _        == return Nothing
+-- prop> cutoff (n+1) . return == return . Just
+-- prop> cutoff (n+1) . lift   ==   lift . liftM Just
+-- prop> cutoff (n+1) . wrap   ==  wrap . fmap (cutoff n)
+--
+-- Calling 'retract . cutoff n' is always terminating, provided each of the
+-- steps in the iteration is terminating.
+cutoff :: (Functor f) => Integer -> Free f a -> Free f (Maybe a)
+cutoff n _ | n <= 0 = return Nothing
+cutoff n (Free f) = Free $ fmap (cutoff (n - 1)) f
+cutoff _ m = Just <$> m
+
+-- | Unfold a free monad from a seed.
+unfold :: Functor f => (b -> Either a (f b)) -> b -> Free f a
+unfold f = f >>> either Pure (Free . fmap (unfold f))
+
+-- | Unfold a free monad from a seed, monadically.
+unfoldM :: (Traversable f, Applicative m, Monad m) => (b -> m (Either a (f b))) -> b -> m (Free f a)
+unfoldM f = f >=> either (pure . pure) (fmap Free . traverse (unfoldM f))
 
 -- | This is @Prism' (Free f a) a@ in disguise
 --
@@ -302,7 +389,7 @@ _Free = dimap unfree (either pure (fmap Free)) . right'
 {-# INLINE _Free #-}
 
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if __GLASGOW_HASKELL__ < 707
 instance Typeable1 f => Typeable1 (Free f) where
   typeOf1 t = mkTyConApp freeTyCon [typeOf1 (f t)] where
     f :: Free f a -> f a

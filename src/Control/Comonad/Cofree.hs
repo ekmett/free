@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -24,7 +25,10 @@ module Control.Comonad.Cofree
   , ComonadCofree(..)
   , section
   , coiter
+  , coiterW
   , unfold
+  , unfoldM
+  , hoistCofree
   -- * Lenses into cofree comonads
   , _extract
   , _unwrap
@@ -38,11 +42,13 @@ import Control.Comonad.Cofree.Class
 import Control.Comonad.Env.Class
 import Control.Comonad.Store.Class as Class
 import Control.Comonad.Traced.Class
+import Control.Comonad.Hoist.Class
 import Control.Category
-import Control.Monad(ap)
+import Control.Monad(ap, (>=>), liftM)
 import Control.Monad.Zip
 import Data.Functor.Bind
 import Data.Functor.Extend
+import Data.Data
 import Data.Distributive
 import Data.Foldable
 import Data.Semigroup
@@ -50,10 +56,8 @@ import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Prelude hiding (id,(.))
+import Prelude.Extras
 
-#ifdef GHC_TYPEABLE
-import Data.Data
-#endif
 
 infixr 5 :<
 
@@ -62,7 +66,7 @@ infixr 5 :<
 -- /Formally/
 --
 -- A 'Comonad' @v@ is a cofree 'Comonad' for @f@ if every comonad homomorphism
--- another comonad @w@ to @v@ is equivalent to a natural transformation
+-- from another comonad @w@ to @v@ is equivalent to a natural transformation
 -- from @w@ to @f@.
 --
 -- A 'cofree' functor is right adjoint to a forgetful functor.
@@ -108,10 +112,21 @@ data Cofree f a = a :< f (Cofree f a)
 coiter :: Functor f => (a -> f a) -> a -> Cofree f a
 coiter psi a = a :< (coiter psi <$> psi a)
 
+-- | Like coiter for comonadic values.
+coiterW :: (Comonad w, Functor f) => (w a -> f (w a)) -> w a -> Cofree f a
+coiterW psi a = extract a :< (coiterW psi <$> psi a)
+
 -- | Unfold a cofree comonad from a seed.
 unfold :: Functor f => (b -> (a, f b)) -> b -> Cofree f a
 unfold f c = case f c of
   (x, d) -> x :< fmap (unfold f) d
+
+-- | Unfold a cofree comonad from a seed, monadically.
+unfoldM :: (Traversable f, Monad m) => (b -> m (a, f b)) -> b -> m (Cofree f a)
+unfoldM f = f >=> \ (x, t) -> (x :<) `liftM` Data.Traversable.mapM (unfoldM f) t
+
+hoistCofree :: Functor f => (forall x . f x -> g x) -> Cofree f a -> Cofree g a
+hoistCofree f (x :< y) = x :< f (hoistCofree f <$> y)
 
 instance Functor f => ComonadCofree f (Cofree f) where
   unwrap (_ :< as) = as
@@ -178,9 +193,20 @@ instance Alternative f => Applicative (Cofree f) where
   (<*>) = ap
   {-# INLINE (<*>) #-}
 
+instance (Functor f, Show1 f) => Show1 (Cofree f) where
+  showsPrec1 d (a :< as) = showParen (d > 5) $
+    showsPrec 6 a . showString " :< " . showsPrec1 5 (fmap Lift1 as)
+
 instance (Show (f (Cofree f a)), Show a) => Show (Cofree f a) where
   showsPrec d (a :< as) = showParen (d > 5) $
     showsPrec 6 a . showString " :< " . showsPrec 5 as
+
+instance (Functor f, Read1 f) => Read1 (Cofree f) where
+  readsPrec1 d r = readParen (d > 5)
+                          (\r' -> [(u :< fmap lower1 v,w) |
+                                  (u, s) <- readsPrec 6 r',
+                                  (":<", t) <- lex s,
+                                  (v, w) <- readsPrec1 5 t]) r
 
 instance (Read (f (Cofree f a)), Read a) => Read (Cofree f a) where
   readsPrec d r = readParen (d > 5)
@@ -194,16 +220,31 @@ instance (Eq (f (Cofree f a)), Eq a) => Eq (Cofree f a) where
   a :< as == b :< bs = a == b && as == bs
 #endif
 
+instance (Functor f, Eq1 f) => Eq1 (Cofree f) where
+#ifndef HLINT
+  a :< as ==# b :< bs = a == b && fmap Lift1 as ==# fmap Lift1 bs
+#endif
+
 instance (Ord (f (Cofree f a)), Ord a) => Ord (Cofree f a) where
   compare (a :< as) (b :< bs) = case compare a b of
     LT -> LT
     EQ -> compare as bs
     GT -> GT
 
+instance (Functor f, Ord1 f) => Ord1 (Cofree f) where
+  compare1 (a :< as) (b :< bs) = case compare a b of
+    LT -> LT
+    EQ -> compare1 (fmap Lift1 as) (fmap Lift1 bs)
+    GT -> GT
+
 instance Foldable f => Foldable (Cofree f) where
   foldMap f = go where
     go (a :< as) = f a `mappend` foldMap go as
   {-# INLINE foldMap #-}
+#if __GLASGOW_HASKELL__ >= 709
+  length = go 0 where
+    go s (_ :< as) = foldl' go (s + 1) as
+#endif
 
 instance Foldable1 f => Foldable1 (Cofree f) where
   foldMap1 f = go where
@@ -220,7 +261,7 @@ instance Traversable1 f => Traversable1 (Cofree f) where
     go (a :< as) = (:<) <$> f a <.> traverse1 go as
   {-# INLINE traverse1 #-}
 
-#if defined(GHC_TYPEABLE) && __GLASGOW_HASKELL__ < 707
+#if __GLASGOW_HASKELL__ < 707
 instance (Typeable1 f) => Typeable1 (Cofree f) where
   typeOf1 dfa = mkTyConApp cofreeTyCon [typeOf1 (f dfa)]
     where
@@ -259,6 +300,9 @@ cofreeDataType :: DataType
 cofreeDataType = mkDataType "Control.Comonad.Cofree.Cofree" [cofreeConstr]
 {-# NOINLINE cofreeDataType #-}
 #endif
+
+instance ComonadHoist Cofree where
+  cohoist = hoistCofree
 
 instance ComonadEnv e w => ComonadEnv e (Cofree w) where
   ask = ask . lower
@@ -300,12 +344,24 @@ _unwrap :: Functor f => (g (Cofree g a) -> f (g (Cofree g a))) -> Cofree g a -> 
 _unwrap  f (a :< as) = (a :<) <$> f as
 {-# INLINE _unwrap #-}
 
--- | Construct a @Lens@ into a @'Cofree' f@ given a list of lenses into the base functor.
+-- | Construct an @Lens@ into a @'Cofree' g@ given a list of lenses into the base functor.
+-- When the input list is empty, this is equivalent to '_extract'.
+-- When the input list is non-empty, this composes the input lenses
+-- with '_unwrap' to walk through the @'Cofree' g@ before using
+-- '_extract' to get the element at the final location.
 --
 -- For more on lenses see the 'lens' package on hackage.
 --
--- @telescoped :: 'Functor' g => [Lens' ('Cofree' g a) (g ('Cofree' g a))] -> Lens' ('Cofree' g a) a@
-telescoped :: (Functor f, Functor g) =>
+-- @telescoped :: [Lens' (g ('Cofree' g a)) ('Cofree' g a)]      -> Lens' ('Cofree' g a) a@
+--
+-- @telescoped :: [Traversal' (g ('Cofree' g a)) ('Cofree' g a)] -> Traversal' ('Cofree' g a) a@
+--
+-- @telescoped :: [Getter (g ('Cofree' g a)) ('Cofree' g a)]     -> Getter ('Cofree' g a) a@
+--
+-- @telescoped :: [Fold (g ('Cofree' g a)) ('Cofree' g a)]       -> Fold ('Cofree' g a) a@
+--
+-- @telescoped :: [Setter' (g ('Cofree' g a)) ('Cofree' g a)]    -> Setter' ('Cofree' g a) a@
+telescoped :: Functor f =>
              [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
               (a -> f a) -> Cofree g a -> f (Cofree g a)
 telescoped = Prelude.foldr (\l r -> _unwrap . l . r) _extract

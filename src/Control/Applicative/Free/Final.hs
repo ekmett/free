@@ -1,17 +1,12 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE GADTs #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
-#endif
-{-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE RankNTypes #-}
 
 #ifndef MIN_VERSION_base
 #define MIN_VERSION_base(x,y,z) 1
 #endif
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Control.Applicative.Free
+-- Module      :  Control.Applicative.Free.Final
 -- Copyright   :  (C) 2012-2013 Edward Kmett
 -- License     :  BSD-style (see the file LICENSE)
 --
@@ -19,16 +14,13 @@
 -- Stability   :  provisional
 -- Portability :  GADTs, Rank2Types
 --
--- 'Applicative' functors for free
+-- Final encoding of free 'Applicative' functors.
 ----------------------------------------------------------------------------
-module Control.Applicative.Free
+module Control.Applicative.Free.Final
   (
   -- | Compared to the free monad, they are less expressive. However, they are also more
   -- flexible to inspect and interpret, as the number of ways in which
   -- the values can be nested is more limited.
-  --
-  -- See <http://arxiv.org/abs/1403.0749 Free Applicative Functors>,
-  -- by Paolo Capriotti and Ambrus Kaposi, for some applications.
 
     Ap(..)
   , runAp
@@ -43,26 +35,19 @@ module Control.Applicative.Free
 
 import Control.Applicative
 import Data.Functor.Apply
-import Data.Typeable
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid
 #endif
 
 -- | The free 'Applicative' for a 'Functor' @f@.
-data Ap f a where
-  Pure :: a -> Ap f a
-  Ap   :: f a -> Ap f (a -> b) -> Ap f b
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
+newtype Ap f a = Ap { _runAp :: forall g. Applicative g => (forall x. f x -> g x) -> g a }
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
 --
 -- prop> runAp t == retractApp . hoistApp t
 runAp :: Applicative g => (forall x. f x -> g x) -> Ap f a -> g a
-runAp _ (Pure x) = pure x
-runAp u (Ap f x) = flip id <$> u f <*> runAp u x
+runAp phi m = _runAp m phi
 
 -- | Perform a monoidal analysis over free applicative value.
 --
@@ -76,51 +61,29 @@ runAp_ :: Monoid m => (forall a. f a -> m) -> Ap f b -> m
 runAp_ f = getConst . runAp (Const . f)
 
 instance Functor (Ap f) where
-  fmap f (Pure a)   = Pure (f a)
-  fmap f (Ap x y)   = Ap x ((f .) <$> y)
+  fmap f (Ap g) = Ap (\k -> fmap f (g k))
 
 instance Apply (Ap f) where
-  Pure f <.> y = fmap f y
-  Ap x y <.> z = Ap x (flip <$> y <.> z)
+  Ap f <.> Ap x = Ap (\k -> f k <*> x k)
 
 instance Applicative (Ap f) where
-  pure = Pure
-  Pure f <*> y = fmap f y
-  Ap x y <*> z = Ap x (flip <$> y <*> z)
+  pure x = Ap (\_ -> pure x)
+  Ap f <*> Ap x = Ap (\k -> f k <*> x k)
 
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftAp :: f a -> Ap f a
-liftAp x = Ap x (Pure id)
-{-# INLINE liftAp #-}
+liftAp x = Ap (\k -> k x)
 
 -- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @Ap f@ to @Ap g@.
 hoistAp :: (forall a. f a -> g a) -> Ap f b -> Ap g b
-hoistAp _ (Pure a) = Pure a
-hoistAp f (Ap x y) = Ap (f x) (hoistAp f y)
+hoistAp f (Ap g) = Ap (\k -> g (k . f))
 
 -- | Interprets the free applicative functor over f using the semantics for
 --   `pure` and `<*>` given by the Applicative instance for f.
 --
 --   prop> retractApp == runAp id
 retractAp :: Applicative f => Ap f a -> f a
-retractAp (Pure a) = pure a
-retractAp (Ap x y) = x <**> retractAp y
-
-#if __GLASGOW_HASKELL__ < 707
-instance Typeable1 f => Typeable1 (Ap f) where
-  typeOf1 t = mkTyConApp apTyCon [typeOf1 (f t)] where
-    f :: Ap f a -> f a
-    f = undefined
-
-apTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-apTyCon = mkTyCon "Control.Applicative.Free.Ap"
-#else
-apTyCon = mkTyCon3 "free" "Control.Applicative.Free" "Ap"
-#endif
-{-# NOINLINE apTyCon #-}
-
-#endif
+retractAp (Ap g) = g id
 
 {- $examples
 
