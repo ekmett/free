@@ -33,6 +33,9 @@ module Control.Comonad.Cofree
   , _extract
   , _unwrap
   , telescoped
+  , telescoped_
+  , shoots
+  , leaves
   ) where
 
 import Control.Applicative
@@ -366,3 +369,57 @@ telescoped :: Functor f =>
               (a -> f a) -> Cofree g a -> f (Cofree g a)
 telescoped = Prelude.foldr (\l r -> _unwrap . l . r) _extract
 {-# INLINE telescoped #-}
+
+-- not actually named 'eats'
+-- | Construct an @Lens@ into a @'Cofree' g@ given a list of lenses into the base functor.
+-- The only difference between this and 'telescoped' is that 'telescoped' focuses on a single value, but this focuses on the entire remaining subtree.
+-- When the input list is empty, this is equivalent to 'id'.
+-- When the input list is non-empty, this composes the input lenses
+-- with '_unwrap' to walk through the @'Cofree' g@.
+--
+-- For more on lenses see the 'lens' package on hackage.
+--
+-- @telescoped :: [Lens' (g ('Cofree' g a)) ('Cofree' g a)]      -> Lens' ('Cofree' g a) ('Cofree' g a)@
+--
+-- @telescoped :: [Traversal' (g ('Cofree' g a)) ('Cofree' g a)] -> Traversal' ('Cofree' g a) ('Cofree' g a)@
+--
+-- @telescoped :: [Getter (g ('Cofree' g a)) ('Cofree' g a)]     -> Getter ('Cofree' g a) ('Cofree' g a)@
+--
+-- @telescoped :: [Fold (g ('Cofree' g a)) ('Cofree' g a)]       -> Fold ('Cofree' g a) ('Cofree' g a)@
+--
+-- @telescoped :: [Setter' (g ('Cofree' g a)) ('Cofree' g a)]    -> Setter' ('Cofree' g a) ('Cofree' g a)@
+telescoped_ :: Functor f =>
+              [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
+              (Cofree g a -> f (Cofree g a)) -> Cofree g a -> f (Cofree g a)
+telescoped_ = foldr (\l r -> _unwrap . l . r) id
+{-# INLINE telescoped_ #-}
+
+-- | A @Traversal'@ that gives access to all non-leaf @a@ elements of a
+-- @'Cofree' g@ a, where non-leaf is defined as @x@ from @(x :< xs)@ where
+-- @null xs@ is @False@.
+--
+-- Because this doesn't give access to all values in the @'Cofree' g@,
+-- it cannot be used to change types.
+--
+-- @shoots :: Traversable g => Traversal' (Cofree g a) a@
+shoots :: (Applicative f, Traversable g) => (a -> f a) -> Cofree g a -> f (Cofree g a)
+shoots f = go
+  where
+    go xss@(x :< xs) | null xs   = pure xss
+                     | otherwise = (:<) <$> f x <*> traverse go xs
+{-# INLINE shoots #-}
+
+-- | A @Traversal'@ that gives access to all leaf @a@ elements of a
+-- @'Cofree' g@ a, where leaf is defined as @x@ from @(x :< xs)@ where
+-- @null xs@ is @True@.
+--
+-- Because this doesn't give access to all values in the @'Cofree' g@,
+-- it cannot be used to change types.
+--
+-- @shoots :: Traversable g => Traversal' (Cofree g a) a@
+leaves :: (Applicative f, Traversable g) => (a -> f a) -> Cofree g a -> f (Cofree g a)
+leaves f = go
+  where
+    go (x :< xs) | null xs   = (:< xs) <$> f x
+                 | otherwise = (x :<) <$> traverse go xs
+{-# INLINE leaves #-}
