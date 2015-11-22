@@ -172,7 +172,7 @@ instance Monad m => Applicative (IterT m) where
   {-# INLINE (<*>) #-}
 
 instance Monad m => Monad (IterT m) where
-  return = IterT . return . Left
+  return = pure
   {-# INLINE return #-}
   IterT m >>= k = IterT $ m >>= either (runIterT . k) (return . Right . (>>= k))
   {-# INLINE (>>=) #-}

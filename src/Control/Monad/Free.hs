@@ -187,7 +187,7 @@ instance Functor f => Bind (Free f) where
   Free m >>- f = Free ((>>- f) <$> m)
 
 instance Functor f => Monad (Free f) where
-  return = Pure
+  return = pure
   {-# INLINE return #-}
   Pure a >>= f = f a
   Free m >>= f = Free ((>>= f) <$> m)

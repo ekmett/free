@@ -110,7 +110,7 @@ instance Bind (F f) where
   (>>-) = (>>=)
 
 instance Monad (F f) where
-  return a = F (\kp _ -> kp a)
+  return = pure
   F m >>= f = F (\kp kf -> m (\a -> runF (f a) kp kf) kf)
 
 instance MonadFix (F f) where
