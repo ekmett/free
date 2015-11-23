@@ -168,8 +168,10 @@ instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
   compare (CofreeT a) (CofreeT b) = compare a b
 
 instance (Alternative f, Monad w) => Monad (CofreeT f w) where
+#if __GLASGOW_HASKELL__ < 710
   return = CofreeT . return . (:< empty)
   {-# INLINE return #-}
+#endif
   CofreeT cx >>= f = CofreeT $ do
     a :< m <- cx
     b :< n <- runCofreeT $ f a

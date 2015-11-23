@@ -157,7 +157,7 @@ instance ComonadTrans Cofree where
   {-# INLINE lower #-}
 
 instance Alternative f => Monad (Cofree f) where
-  return x = x :< empty
+  return = pure
   {-# INLINE return #-}
   (a :< m) >>= k = case k a of
                      b :< n -> b :< (n <|> fmap (>>= k) m)
@@ -188,7 +188,7 @@ instance ComonadApply f => ComonadApply (Cofree f) where
   {-# INLINE (@>) #-}
 
 instance Alternative f => Applicative (Cofree f) where
-  pure = return
+  pure x = x :< empty
   {-# INLINE pure #-}
   (<*>) = ap
   {-# INLINE (<*>) #-}
