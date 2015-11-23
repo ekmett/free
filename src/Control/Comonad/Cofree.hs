@@ -409,9 +409,9 @@ shoots :: (Applicative f, Traversable g) => (a -> f a) -> Cofree g a -> f (Cofre
 shoots f = go
   where
 #if __GLASGOW_HASKELL__ < 709
-    go xss@(x :< xs) | null (toList xs) = pure xxs
+    go xxs@(x :< xs) | null (toList xs) = pure xxs
 #else
-    go xss@(x :< xs) | null xs          = pure xss
+    go xxs@(x :< xs) | null xs          = pure xxs
 #endif
                      | otherwise        = (:<) <$> f x <*> traverse go xs
 {-# INLINE shoots #-}
