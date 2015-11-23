@@ -402,11 +402,18 @@ telescoped_ = foldr (\l r -> _unwrap . l . r) id
 -- it cannot be used to change types.
 --
 -- @shoots :: Traversable g => Traversal' (Cofree g a) a@
+--
+-- N.B. On GHC < 7.9, this is slightly less flexible, as it has to
+-- use @null (toList xs)@ instead.
 shoots :: (Applicative f, Traversable g) => (a -> f a) -> Cofree g a -> f (Cofree g a)
 shoots f = go
   where
-    go xss@(x :< xs) | null xs   = pure xss
-                     | otherwise = (:<) <$> f x <*> traverse go xs
+#if __GLASGOW_HASKELL__ < 709
+    go xss@(x :< xs) | null (toList xs) = pure xxs
+#else
+    go xss@(x :< xs) | null xs          = pure xss
+#endif
+                     | otherwise        = (:<) <$> f x <*> traverse go xs
 {-# INLINE shoots #-}
 
 -- | A @Traversal'@ that gives access to all leaf @a@ elements of a
@@ -417,9 +424,16 @@ shoots f = go
 -- it cannot be used to change types.
 --
 -- @shoots :: Traversable g => Traversal' (Cofree g a) a@
+--
+-- N.B. On GHC < 7.9, this is slightly less flexible, as it has to
+-- use @null (toList xs)@ instead.
 leaves :: (Applicative f, Traversable g) => (a -> f a) -> Cofree g a -> f (Cofree g a)
 leaves f = go
   where
-    go (x :< xs) | null xs   = (:< xs) <$> f x
-                 | otherwise = (x :<) <$> traverse go xs
+#if __GLASGOW_HASKELL__ < 709
+    go (x :< xs) | null (toList xs) = (:< xs) <$> f x
+#else
+    go (x :< xs) | null xs          = (:< xs) <$> f x
+#endif
+                 | otherwise        = (x :<) <$> traverse go xs
 {-# INLINE leaves #-}
