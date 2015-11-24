@@ -232,7 +232,11 @@ genFreeCon :: Bool         -- ^ Include type signature?
 genFreeCon typeSig cname = do
   info <- reify cname
   case info of
-    DataConI _ _ tname _ -> genFree typeSig (Just [cname]) tname
+    DataConI _ _ tname
+#if !(MIN_VERSION_template_haskell(2,11,0))
+                       _
+#endif
+                         -> genFree typeSig (Just [cname]) tname
     _ -> fail "makeFreeCon expects a data constructor"
 
 -- | @$('makeFree' ''T)@ provides free monadic actions for the
