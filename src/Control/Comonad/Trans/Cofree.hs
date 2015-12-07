@@ -221,7 +221,7 @@ instance (Plus f) => BindTrans (CofreeT f) where
 
 instance (Plus f, Monad w) => Monad (CofreeT f w) where
 #if __GLASGOW_HASKELL__ < 710
-  return = CofreeT . return . (:< empty)
+  return = CofreeT . return . (:< zero)
   {-# INLINE return #-}
 #endif
   cx >>= f =
@@ -255,7 +255,7 @@ instance (Plus f, Reader.MonadReader env m) => Reader.MonadReader env (CofreeT f
     local f =
         CofreeT .
         Reader.local f .
-        fmap (second (Reader.local f)) .
+        liftM (second (Reader.local f)) .
         runCofreeT
     reader = lift . Reader.reader
 
@@ -273,13 +273,13 @@ instance (Plus f, Writer.MonadWriter l m) => Writer.MonadWriter l (CofreeT f m) 
 
     listen c =
         CofreeT $
-        fmap (\(x :< rx, l) -> (x, l) :< fmap Writer.listen rx)
-             (Writer.listen (runCofreeT c))
+        liftM (\(x :< rx, l) -> (x, l) :< fmap Writer.listen rx)
+              (Writer.listen (runCofreeT c))
 
     pass c =
         CofreeT . Writer.pass $ do
-            fmap (\((x, f) :< rx) -> (x :< fmap Writer.pass rx, f))
-                 (runCofreeT c)
+            liftM (\((x, f) :< rx) -> (x :< fmap Writer.pass rx, f))
+                  (runCofreeT c)
 
 -- instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
 --   mzip (CofreeT ma) (CofreeT mb) = CofreeT $ do
