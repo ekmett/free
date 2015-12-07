@@ -31,25 +31,31 @@ module Control.Comonad.Trans.Cofree
   , coiterT
   ) where
 
-import Control.Applicative
-import Control.Comonad
-import Control.Comonad.Trans.Class
-import Control.Comonad.Cofree.Class
-import Control.Comonad.Env.Class
-import Control.Comonad.Hoist.Class
-import Control.Category
-import Data.Bifunctor
-import Data.Bifoldable
-import Data.Bitraversable
-import Data.Foldable
-import Data.Functor.Identity
-import Data.Semigroup
-import Data.Traversable
-import Control.Monad (liftM)
-import Control.Monad.Trans
-import Control.Monad.Zip
-import Prelude hiding (id,(.))
-import Data.Data
+import           Control.Applicative
+import           Control.Category
+import           Control.Comonad
+import           Control.Comonad.Cofree.Class
+import           Control.Comonad.Env.Class
+import           Control.Comonad.Hoist.Class
+import           Control.Comonad.Trans.Class
+import           Control.Monad
+import           Control.Monad.Fix
+import qualified Control.Monad.Reader.Class as Reader
+import qualified Control.Monad.State.Class as State
+import           Control.Monad.Trans
+import qualified Control.Monad.Writer.Class as Writer
+import           Data.Bifoldable
+import           Data.Bifunctor
+import           Data.Bitraversable
+import           Data.Data
+import           Data.Foldable
+import           Data.Functor.Bind
+import           Data.Functor.Bind.Trans
+import           Data.Functor.Identity
+import           Data.Functor.Plus
+import           Data.Semigroup
+import           Data.Traversable
+import           Prelude hiding (id,(.))
 
 infixr 5 :<
 
@@ -148,7 +154,7 @@ instance (Functor f, Comonad w) => ComonadCofree f (CofreeT f w) where
 
 instance (Functor f, ComonadEnv e w) => ComonadEnv e (CofreeT f w) where
   ask = ask . lower
-  {-# INLINE ask #-} 
+  {-# INLINE ask #-}
 
 instance Functor f => ComonadHoist (CofreeT f) where
   cohoist g = CofreeT . fmap (second (cohoist g)) . g . runCofreeT
@@ -167,32 +173,121 @@ instance Eq (w (CofreeF f a (CofreeT f w a))) => Eq (CofreeT f w a) where
 instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
   compare (CofreeT a) (CofreeT b) = compare a b
 
-instance (Alternative f, Monad w) => Monad (CofreeT f w) where
+instance (Functor f, Alt m) => Alt (CofreeT f m) where
+    cx <!> cy =
+        CofreeT $
+            fmap (second (<!> cy)) (runCofreeT cx) <!>
+            fmap (second (cx <!>)) (runCofreeT cy)
+
+instance (Plus f, Alternative m) => Alternative (CofreeT f m) where
+    empty = CofreeT empty
+
+    cx <|> cy =
+        CofreeT $
+            fmap (second (<|> cy)) (runCofreeT cx) <|>
+            fmap (second (cx <|>)) (runCofreeT cy)
+
+instance (Plus f, Applicative w) => Applicative (CofreeT f w) where
+  pure = CofreeT . pure . (:< zero)
+  {-# INLINE pure #-}
+
+  wf <*> wx =
+      CofreeT $
+      liftA2 (\(f :< rf) (x :< rx) ->
+                  (f x :< (fmap (fmap f) rx <!>
+                           fmap (<*> wx) rf)))
+             (runCofreeT wf)
+             (runCofreeT wx)
+  {-# INLINE (<*>) #-}
+
+instance (Alt f, Apply m) => Apply (CofreeT f m) where
+    cf <.> cx =
+        CofreeT $
+        liftF2 (\(f :< rf) (x :< rx) ->
+                    f x :< (fmap (fmap f) rx <!>
+                            fmap (<.> cx) rf))
+               (runCofreeT cf)
+               (runCofreeT cx)
+
+instance (Alt f, Bind m) => Bind (CofreeT f m) where
+    cx >>- f =
+        CofreeT $
+            runCofreeT cx >>- \(x :< rx) ->
+            fmap (\(y :< ry) -> y :< (ry <!> fmap (>>- f) rx))
+                 (runCofreeT (f x))
+
+instance (Plus f) => BindTrans (CofreeT f) where
+    liftB = CofreeT . fmap (:< zero)
+
+instance (Plus f, Monad w) => Monad (CofreeT f w) where
 #if __GLASGOW_HASKELL__ < 710
   return = CofreeT . return . (:< empty)
   {-# INLINE return #-}
 #endif
-  CofreeT cx >>= f = CofreeT $ do
-    a :< m <- cx
-    b :< n <- runCofreeT $ f a
-    return $ b :< (n <|> fmap (>>= f) m)
+  cx >>= f =
+      CofreeT $ do
+          (x :< rx) <- runCofreeT cx
+          liftM (\(y :< ry) -> y :< (ry <!> fmap (>>= f) rx))
+                (runCofreeT (f x))
 
+instance (Plus f, MonadFix m) => MonadFix (CofreeT f m) where
+    mfix f =
+        CofreeT $
+        mfix (\ ~(x :< _) -> runCofreeT (f x))
 
-instance (Alternative f, Applicative w) => Applicative (CofreeT f w) where
-  pure = CofreeT . pure . (:< empty)
-  {-# INLINE pure #-}
-  wf <*> wa = CofreeT $ go <$> runCofreeT wf <*> runCofreeT wa where
-    go (f :< t) a = case bimap f (fmap f) a of
-      b :< n -> b :< (n <|> fmap (<*> wa) t)
-  {-# INLINE (<*>) #-}
+instance (Plus f, MonadIO m) => MonadIO (CofreeT f m) where
+    liftIO = CofreeT . liftIO . fmap (:< zero)
 
-instance Alternative f => MonadTrans (CofreeT f) where
-  lift = CofreeT . liftM (:< empty)
+#if __GLASGOW_HASKELL__ >= 710
+instance (Plus f, Alternative m, Monad m) => MonadPlus (CofreeT f m) where
+#else
+instance (Plus f, MonadPlus m) => MonadPlus (CofreeT f m) where
+    mzero = CofreeT mzero
 
-instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
-  mzip (CofreeT ma) (CofreeT mb) = CofreeT $ do
-                                     (a :< fa, b :< fb) <- mzip ma mb
-                                     return $ (a, b) :< (uncurry mzip <$> mzip fa fb)
+    mplus cx cy =
+        CofreeT $
+            liftM (second (`mplus` cy)) (runCofreeT cx) `mplus`
+            liftM (second (cx `mplus`)) (runCofreeT cy)
+#endif
+
+instance (Plus f, Reader.MonadReader env m) => Reader.MonadReader env (CofreeT f m) where
+    ask = lift Reader.ask
+    local f =
+        CofreeT .
+        Reader.local f .
+        fmap (second (Reader.local f)) .
+        runCofreeT
+    reader = lift . Reader.reader
+
+instance (Plus f, State.MonadState s m) => State.MonadState s (CofreeT f m) where
+    get = lift State.get
+    put = lift . State.put
+    state = lift . State.state
+
+instance Plus f => MonadTrans (CofreeT f) where
+  lift = CofreeT . liftM (:< zero)
+
+instance (Plus f, Writer.MonadWriter l m) => Writer.MonadWriter l (CofreeT f m) where
+    writer = lift . Writer.writer
+    tell = lift . Writer.tell
+
+    listen c =
+        CofreeT $
+        fmap (\(x :< rx, l) -> (x, l) :< fmap Writer.listen rx)
+             (Writer.listen (runCofreeT c))
+
+    pass c =
+        CofreeT . Writer.pass $ do
+            fmap (\((x, f) :< rx) -> (x :< fmap Writer.pass rx, f))
+                 (runCofreeT c)
+
+-- instance (Alternative f, MonadZip f, MonadZip m) => MonadZip (CofreeT f m) where
+--   mzip (CofreeT ma) (CofreeT mb) = CofreeT $ do
+--                                      (a :< fa, b :< fb) <- mzip ma mb
+--                                      return $ (a, b) :< (uncurry mzip <$> mzip fa fb)
+
+instance (Functor f, Plus m) => Plus (CofreeT f m) where
+    zero = CofreeT zero
 
 -- | Lift a natural transformation from @f@ to @g@ into a comonad homomorphism from @'CofreeT' f w@ to @'CofreeT' g w@
 transCofreeT :: (Functor g, Comonad w) => (forall x. f x -> g x) -> CofreeT f w a -> CofreeT g w a
