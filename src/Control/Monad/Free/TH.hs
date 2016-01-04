@@ -195,7 +195,11 @@ liftDec :: Bool             -- ^ Include type signature?
         -> Maybe [Name]     -- ^ Include only mentioned constructor names. Use all constructors when @Nothing@.
         -> Dec              -- ^ Data type declaration.
         -> Q [Dec]
+#if MIN_VERSION_template_haskell(2,11,0)
+liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs _ cons _)
+#else
 liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs cons _)
+#endif
   | null tyVarBndrs = fail $ "Type " ++ show tyName ++ " needs at least one free variable"
   | otherwise = concat <$> mapM (liftCon typeSig [] [] con nextTyName (init tyNames)) cons'
     where
