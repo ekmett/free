@@ -43,6 +43,7 @@ import Control.Monad.Trans.Cont
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.List
 import Control.Monad.Trans.Error
+import Control.Monad.Trans.Except
 import Control.Monad.Trans.Identity
 
 #if !(MIN_VERSION_base(4,8,0))
@@ -143,6 +144,9 @@ instance (Functor f, MonadFree f m) => MonadFree f (ListT m) where
 
 instance (Functor f, MonadFree f m, Error e) => MonadFree f (ErrorT e m) where
   wrap = ErrorT . wrap . fmap runErrorT
+
+instance (Functor f, MonadFree f m) => MonadFree f (ExceptT e m) where
+  wrap = ExceptT . wrap . fmap runExceptT
 
 -- instance (Functor f, MonadFree f m) => MonadFree f (EitherT e m) where
 --   wrap = EitherT . wrap . fmap runEitherT
