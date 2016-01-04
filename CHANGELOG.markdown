@@ -1,3 +1,7 @@
+4.12.2
+------
+* Add instances for `ExceptT`: like `ErrorT`, but without an `Error` constraint.
+
 4.12.1
 ------
 * Support GHC 7.4
