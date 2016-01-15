@@ -76,7 +76,7 @@ library
     profunctors          >= 4 && < 6,
     semigroupoids        >= 4 && < 6,
     semigroups           >= 0.8.3.1 && < 1,
-    transformers         >= 0.2.0   && < 0.5,
+    transformers         >= 0.2.0   && < 0.6,
     transformers-compat  >= 0.3     && < 1,
     template-haskell     >= 2.7.0.0 && < 3,
     exceptions           >= 0.6 && < 0.9,
