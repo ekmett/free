@@ -252,7 +252,11 @@ cutoff n = toFT . FreeT.cutoff n . fromFT
 -- @
 -- 'retract' . 'liftF' = 'id'
 -- @
+#if __GLASGOW_HASKELL__ < 710
+retract :: (Functor f, Monad f) => F f a -> f a
+#else
 retract :: Monad f => F f a -> f a
+#endif
 retract m = runF m return join
 {-# INLINE retract #-}
 
