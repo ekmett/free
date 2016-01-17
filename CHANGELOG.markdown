@@ -1,6 +1,7 @@
 4.12.4
 ------
 * Removed a number of spurious class constraints.
+* Support GHC 8
 
 4.12.3
 ------
