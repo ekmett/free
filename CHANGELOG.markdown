@@ -1,8 +1,13 @@
+4.12.3
+------
+* Support `comonad` 5
+
 4.12.2
 ------
 * Add instances for `ExceptT`: like `ErrorT`, but without an `Error` constraint.
 * Support `containers`
 * Support `transformers` 0.5
+
 
 4.12.1
 ------

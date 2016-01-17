@@ -69,7 +69,7 @@ library
   build-depends:
     base                 == 4.*,
     bifunctors           >= 4 && < 6,
-    comonad              == 4.*,
+    comonad              >= 4 && < 6,
     distributive         >= 0.2.1,
     mtl                  >= 2.0.1.0 && < 2.3,
     prelude-extras       >= 0.4 && < 1,
