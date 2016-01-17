@@ -189,6 +189,7 @@ liftCon typeSig ts cx f n ns con =
     RecC    cName fields -> liftCon' typeSig ts cx f n ns cName $ map (\(_, _, ty) -> ty) fields
     InfixC  (_,t1) cName (_,t2) -> liftCon' typeSig ts cx f n ns cName [t1, t2]
     ForallC ts' cx' con' -> liftCon typeSig (ts ++ ts') (cx ++ cx') f n ns con'
+    _ -> fail "Unsupported constructor type"
 
 -- | Provide free monadic actions for a type declaration.
 liftDec :: Bool             -- ^ Include type signature?
@@ -217,6 +218,7 @@ constructorName (NormalC  name _)   = name
 constructorName (RecC     name _)   = name
 constructorName (InfixC   _ name _) = name
 constructorName (ForallC  _ _ c)    = constructorName c
+constructorName _ = error "Unsupported constructor type"
 
 -- | Generate monadic actions for a data type.
 genFree :: Bool         -- ^ Include type signature?
