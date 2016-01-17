@@ -140,7 +140,7 @@ instance (Foldable f, Foldable w) => Foldable (CofreeT f w) where
 instance (Traversable f, Traversable w) => Traversable (CofreeT f w) where
   traverse f = fmap CofreeT . traverse (bitraverse f (traverse f)) . runCofreeT
 
-instance Functor f => ComonadTrans (CofreeT f) where
+instance ComonadTrans (CofreeT f) where
   lower = fmap headF . runCofreeT
 
 instance (Functor f, Comonad w) => ComonadCofree f (CofreeT f w) where

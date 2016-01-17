@@ -69,7 +69,7 @@ instance Functor f => Applicative (Alt f) where
 
   (Alt xs) <*> ys = Alt (xs >>= alternatives . (`ap'` ys))
     where
-      ap' :: (Functor f) => AltF f (a -> b) -> Alt f a -> Alt f b
+      ap' :: AltF f (a -> b) -> Alt f a -> Alt f b
 
       Pure f `ap'` u      = fmap f u
       (u `Ap` f) `ap'` v  = Alt [u `Ap` (flip <$> f) <*> v]

@@ -146,10 +146,10 @@ instance (Functor f, MonadError e m) => MonadError e (FT f m) where
   {-# INLINE throwError #-}
   m `catchError` f = toFT $ fromFT m `catchError` (fromFT . f)
 
-instance (MonadCont m) => MonadCont (FT f m) where
+instance MonadCont m => MonadCont (FT f m) where
   callCC f = join . lift $ callCC (\k -> return $ f (lift . k . return))
 
-instance (Functor f, MonadReader r m) => MonadReader r (FT f m) where
+instance MonadReader r m => MonadReader r (FT f m) where
   ask = lift ask
   {-# INLINE ask #-}
   local f = hoistFT (local f)
@@ -165,7 +165,7 @@ instance (Functor f, MonadWriter w m) => MonadWriter w (FT f m) where
   {-# INLINE writer #-}
 #endif
 
-instance (Functor f, MonadState s m) => MonadState s (FT f m) where
+instance MonadState s m => MonadState s (FT f m) where
   get = lift get
   {-# INLINE get #-}
   put = lift . put
@@ -223,7 +223,7 @@ hoistFT :: (Monad m, Monad n) => (forall a. m a -> n a) -> FT f m b -> FT f n b
 hoistFT phi (FT m) = FT (\kp kf -> join . phi $ m (return . kp) (\xg -> return . kf (join . phi . xg)))
 
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FT' f m@ to @'FT' g n@
-transFT :: Monad m => (forall a. f a -> g a) -> FT f m b -> FT g m b
+transFT :: (forall a. f a -> g a) -> FT f m b -> FT g m b
 transFT phi (FT m) = FT (\kp kf -> m kp (\xg -> kf xg . phi))
 
 -- | Pull out and join @m@ layers of @'FreeT' f m a@.
@@ -252,7 +252,7 @@ cutoff n = toFT . FreeT.cutoff n . fromFT
 -- @
 -- 'retract' . 'liftF' = 'id'
 -- @
-retract :: (Functor f, Monad f) => F f a -> f a
+retract :: Monad f => F f a -> f a
 retract m = runF m return join
 {-# INLINE retract #-}
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -24,7 +25,9 @@ import Control.Comonad.Trans.Traced
 import Control.Comonad.Trans.Identity
 import Data.List.NonEmpty
 import Data.Tree
-import Data.Semigroup
+#if __GLASGOW_HASKELL__ < 710
+import Data.Monoid
+#endif
 
 -- | Allows you to peel a layer off a cofree comonad.
 class (Functor f, Comonad w) => ComonadCofree f w | w -> f where
@@ -50,5 +53,5 @@ instance ComonadCofree f w => ComonadCofree f (EnvT e w) where
 instance ComonadCofree f w => ComonadCofree f (StoreT s w) where
   unwrap (StoreT wsa s) = flip StoreT s <$> unwrap wsa
 
-instance (ComonadCofree f w, Semigroup m, Monoid m) => ComonadCofree f (TracedT m w) where
+instance (ComonadCofree f w, Monoid m) => ComonadCofree f (TracedT m w) where
   unwrap (TracedT wma) = TracedT <$> unwrap wma

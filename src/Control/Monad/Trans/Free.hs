@@ -431,7 +431,11 @@ retractT (FreeT m) = do
 -- @
 -- 'intercalateT' f ≡ 'retractT' . 'intersperseT' f
 -- @
+#if __GLASGOW_HASKELL__ < 710
 intercalateT :: (Monad m, MonadTrans t, Monad (t m), Functor (t m)) => t m a -> FreeT (t m) m b -> t m b
+#else
+intercalateT :: (Monad m, MonadTrans t, Monad (t m)) => t m a -> FreeT (t m) m b -> t m b
+#endif
 intercalateT f (FreeT m) = do
   val <- lift m
   case val of

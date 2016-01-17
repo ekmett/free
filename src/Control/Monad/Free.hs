@@ -320,7 +320,7 @@ hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
 
 -- | The very definition of a free monad is that given a natural transformation you get a monad homomorphism.
-foldFree :: (Functor m, Monad m) => (forall x . f x -> m x) -> Free f a -> m a
+foldFree :: Monad m => (forall x . f x -> m x) -> Free f a -> m a
 foldFree _ (Pure a)  = return a
 foldFree f (Free as) = f as >>= foldFree f
 

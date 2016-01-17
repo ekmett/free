@@ -89,11 +89,11 @@ import Prelude hiding (foldr)
 newtype F f a = F { runF :: forall r. (a -> r) -> (f r -> r) -> r }
 
 -- | Tear down a 'Free' 'Monad' using iteration.
-iter :: Functor f => (f a -> a) -> F f a -> a
+iter :: (f a -> a) -> F f a -> a
 iter phi xs = runF xs id phi
 
 -- | Like iter for monadic values.
-iterM :: (Monad m, Functor f) => (f (m a) -> m a) -> F f a -> m a
+iterM :: Monad m => (f (m a) -> m a) -> F f a -> m a
 iterM phi xs = runF xs return phi
 
 instance Functor (F f) where
@@ -123,7 +123,7 @@ instance MonadFix (F f) where
     a = f (impure a)
     impure (F x) = x id (error "MonadFix (F f): wrap")
 
-instance (Foldable f, Functor f) => Foldable (F f) where
+instance Foldable f => Foldable (F f) where
     foldr f r xs = runF xs f (foldr (.) id) r
     {-# INLINE foldr #-}
 
