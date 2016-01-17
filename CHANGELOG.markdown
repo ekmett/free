@@ -1,3 +1,7 @@
+4.12.4
+------
+* Removed a number of spurious class constraints.
+
 4.12.3
 ------
 * Support `comonad` 5
