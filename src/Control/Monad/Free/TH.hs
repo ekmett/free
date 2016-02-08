@@ -79,7 +79,7 @@ findValueOrFail s = lookupValueName s >>= maybe (fail $ s ++ "is not in scope") 
 mkOpName :: String -> Q String
 mkOpName (':':name) = return name
 mkOpName ( c :name) = return $ toLower c : name
-mkOpName _ = fail "null constructor name"
+mkOpName _ = fail "impossible happened: empty (null) constructor name"
 
 -- | Check if parameter is used in type.
 usesTV :: Name -> Type -> Bool
@@ -102,19 +102,37 @@ mkArg (VarT n) t
         -- expression is an N-tuple secion (,...,).
         AppT (AppT ArrowT _) _ -> do
           (ts, name) <- arrowsToTuple t
-          when (name /= n) $ fail "return type is not the parameter"
+          when (any (usesTV n) ts) $ fail $ unlines
+            [ "type variable " ++ pprint n ++ " is forbidden"
+            , "in a type like (a1 -> ... -> aN -> " ++ pprint n ++ ")"
+            , "in a constructor's argument type: " ++ pprint t ]
+          when (name /= n) $ fail $ unlines
+            [ "expected final return type `" ++ pprint n ++ "'"
+            , "but got `" ++ pprint name ++ "'"
+            , "in a constructor's argument type: `" ++ pprint t ++ "'" ]
           let tup = foldl AppT (TupleT $ length ts) ts
           xs <- mapM (const $ newName "x") ts
           return $ Captured tup (LamE (map VarP xs) (TupE (map VarE xs)))
-        _ -> fail "don't know how to make Arg"
+        _ -> fail $ unlines
+              [ "expected a type variable `" ++ pprint n ++ "'"
+              , "or a type like (a1 -> ... -> aN -> " ++ pprint n ++ ")"
+              , "but got `" ++ pprint t ++ "'"
+              , "in a constructor's argument" ]
   | otherwise = return $ Param t
   where
-    arrowsToTuple (AppT (AppT ArrowT t1) (VarT name)) = return ([t1], name)
     arrowsToTuple (AppT (AppT ArrowT t1) t2) = do
       (ts, name) <- arrowsToTuple t2
       return (t1:ts, name)
-    arrowsToTuple _ = fail "return type is not a variable"
-mkArg _ _ = fail "parameter is not a type variable"
+    arrowsToTuple (VarT name) = return ([], name)
+    arrowsToTuple rt = fail $ unlines
+      [ "expected final return type `" ++ pprint n ++ "'"
+      , "but got `" ++ pprint rt ++ "'"
+      , "in a constructor's argument type: `" ++ pprint t ++ "'" ]
+
+mkArg n _ = fail $ unlines
+  [ "expected a type variable"
+  , "but got `" ++ pprint n ++ "'"
+  , "as the last parameter of the type constructor" ]
 
 -- | Apply transformation to the return value independently of how many
 -- parameters does @e@ have.
@@ -147,7 +165,11 @@ unifyCaptured :: Name -> [(Type, Exp)] -> Q (Type, [Exp])
 unifyCaptured a []       = return (VarT a, [])
 unifyCaptured _ [(t, e)] = return (t, [e])
 unifyCaptured _ [x, y]   = unifyT x y
-unifyCaptured _ _ = fail "can't unify more than 2 arguments that use type parameter"
+unifyCaptured _ xs = fail $ unlines
+  [ "can't unify more than 2 return types"
+  , "that use type parameter"
+  , "when unifying return types: "
+  , unlines (map (pprint . fst) xs) ]
 
 extractVars :: Type -> [Name]
 extractVars (ForallT bs _ t) = extractVars t \\ map bndrName bs
@@ -227,7 +249,7 @@ liftCon typeSig ts cx f n ns onlyCons con
                   liftGadtC cName fields' resType typeSig ts cx f
         return (concat decs)
 #endif
-      _ -> fail "Unsupported constructor type"
+      _ -> fail $ "Unsupported constructor type: `" ++ pprint con ++ "'"
 
 #if MIN_VERSION_template_haskell(2,11,0)
 splitAppT :: Type -> [Type]
@@ -256,7 +278,7 @@ constructorNames (ForallC  _ _ c)     = constructorNames c
 constructorNames (GadtC names _ _)    = names
 constructorNames (RecGadtC names _ _) = names
 #endif
-constructorNames _ = error "Unsupported constructor type"
+constructorNames con' = fail $ "Unsupported constructor type: `" ++ pprint con' ++ "'"
 
 -- | Provide free monadic actions for a type declaration.
 liftDec :: Bool             -- ^ Include type signature?
@@ -268,13 +290,16 @@ liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs _ cons _)
 #else
 liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs cons _)
 #endif
-  | null tyVarBndrs = fail $ "Type " ++ show tyName ++ " needs at least one free variable"
+  | null tyVarBndrs = fail $ "Type constructor " ++ pprint tyName ++ " needs at least one type parameter"
   | otherwise = concat <$> mapM (liftCon typeSig [] [] con nextTy (init tys) onlyCons) cons
     where
       tys     = map (VarT . tyVarBndrName) tyVarBndrs
       nextTy  = last tys
       con        = ConT tyName
-liftDec _ _ dec = fail $ "liftDec: Don't know how to lift " ++ show dec
+liftDec _ _ dec = fail $ unlines
+  [ "failed to derive makeFree operations:"
+  , "expected a data type constructor"
+  , "but got " ++ pprint dec ]
 
 -- | Generate monadic actions for a data type.
 genFree :: Bool         -- ^ Include type signature?
@@ -299,7 +324,9 @@ genFreeCon typeSig cname = do
                        _
 #endif
                          -> genFree typeSig (Just [cname]) tname
-    _ -> fail "makeFreeCon expects a data constructor"
+    _ -> fail $ unlines
+          [ "expected a data constructor"
+          , "but got " ++ pprint info ]
 
 -- | @$('makeFree' ''T)@ provides free monadic actions for the
 -- constructors of the given data type @T@.
