@@ -187,7 +187,7 @@ liftCon' typeSig tvbs cx f n ns cn ts = do
       exprs = zipExprs (map VarE xs) es args  -- this is what ctor would be applied to
       fval = foldl AppE (ConE cn) exprs       -- this is RHS without liftF
       ns' = nub (concatMap extractVars ns)
-      q = tvbs ++ map PlainTV (qa ++ m : ns')
+      q = filter nonNext tvbs ++ map PlainTV (qa ++ m : ns')
       qa = case retType of VarT b | a == b -> [a]; _ -> []
       f' = foldl AppT f ns
   return $ concat
@@ -199,6 +199,9 @@ liftCon' typeSig tvbs cx f n ns cn ts = do
 #endif
         else []
     , [ FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ] ]
+  where
+    nonNext (PlainTV pn) = VarT pn /= n
+    nonNext (KindedTV kn _) = VarT kn /= n
 
 -- | Provide free monadic actions for a single value constructor.
 liftCon :: Bool -> [TyVarBndr] -> Cxt -> Type -> Type -> [Type] -> Maybe [Name] -> Con -> Q [Dec]
