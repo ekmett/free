@@ -35,7 +35,9 @@ module Control.Monad.Free.TH
 import Control.Arrow
 import Control.Monad
 import Data.Char (toLower)
+import Data.List ((\\), nub)
 import Language.Haskell.TH
+import Language.Haskell.TH.Syntax
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
@@ -88,8 +90,8 @@ usesTV n (ForallT bs _ t) = usesTV n t && n `notElem` map tyVarBndrName bs
 usesTV _ _ = False
 
 -- | Analyze constructor argument.
-mkArg :: Name -> Type -> Q Arg
-mkArg n t
+mkArg :: Type -> Type -> Q Arg
+mkArg (VarT n) t
   | usesTV n t =
       case t of
         -- if parameter is used as is, the return type should be ()
@@ -112,6 +114,7 @@ mkArg n t
       (ts, name) <- arrowsToTuple t2
       return (t1:ts, name)
     arrowsToTuple _ = fail "return type is not a variable"
+mkArg _ _ = fail "parameter is not a type variable"
 
 -- | Apply transformation to the return value independently of how many
 -- parameters does @e@ have.
@@ -146,7 +149,20 @@ unifyCaptured _ [(t, e)] = return (t, [e])
 unifyCaptured _ [x, y]   = unifyT x y
 unifyCaptured _ _ = fail "can't unify more than 2 arguments that use type parameter"
 
-liftCon' :: Bool -> [TyVarBndr] -> Cxt -> Type -> Name -> [Name] -> Name -> [Type] -> Q [Dec]
+extractVars :: Type -> [Name]
+extractVars (ForallT bs _ t) = extractVars t \\ map bndrName bs
+  where
+    bndrName (PlainTV n) = n
+    bndrName (KindedTV n _) = n
+extractVars (VarT n) = [n]
+extractVars (AppT x y) = extractVars x ++ extractVars y
+extractVars (SigT x k) = extractVars x ++ extractVars k
+extractVars (InfixT x _ y) = extractVars x ++ extractVars y
+extractVars (UInfixT x _ y) = extractVars x ++ extractVars y
+extractVars (ParensT x) = extractVars x
+extractVars _ = []
+
+liftCon' :: Bool -> [TyVarBndr] -> Cxt -> Type -> Type -> [Type] -> Name -> [Type] -> Q [Dec]
 liftCon' typeSig tvbs cx f n ns cn ts = do
   -- prepare some names
   opName <- mkName <$> mkOpName (nameBase cn)
@@ -168,9 +184,10 @@ liftCon' typeSig tvbs cx f n ns cn ts = do
   let pat  = map VarP xs                      -- this is LHS
       exprs = zipExprs (map VarE xs) es args  -- this is what ctor would be applied to
       fval = foldl AppE (ConE cn) exprs       -- this is RHS without liftF
-      q = tvbs ++ map PlainTV (qa ++ m : ns)
+      ns' = nub (concatMap extractVars ns)
+      q = tvbs ++ map PlainTV (qa ++ m : ns')
       qa = case retType of VarT b | a == b -> [a]; _ -> []
-      f' = foldl AppT f (map VarT ns)
+      f' = foldl AppT f ns
   return $ concat
     [ if typeSig
 #if MIN_VERSION_template_haskell(2,10,0)
@@ -182,14 +199,55 @@ liftCon' typeSig tvbs cx f n ns cn ts = do
     , [ FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ] ]
 
 -- | Provide free monadic actions for a single value constructor.
-liftCon :: Bool -> [TyVarBndr] -> Cxt -> Type -> Name -> [Name] -> Con -> Q [Dec]
-liftCon typeSig ts cx f n ns con =
-  case con of
-    NormalC cName fields -> liftCon' typeSig ts cx f n ns cName $ map snd fields
-    RecC    cName fields -> liftCon' typeSig ts cx f n ns cName $ map (\(_, _, ty) -> ty) fields
-    InfixC  (_,t1) cName (_,t2) -> liftCon' typeSig ts cx f n ns cName [t1, t2]
-    ForallC ts' cx' con' -> liftCon typeSig (ts ++ ts') (cx ++ cx') f n ns con'
-    _ -> fail "Unsupported constructor type"
+liftCon :: Bool -> [TyVarBndr] -> Cxt -> Type -> Type -> [Type] -> Maybe [Name] -> Con -> Q [Dec]
+liftCon typeSig ts cx f n ns onlyCons con
+  | not (any (`melem` onlyCons) (constructorNames con)) = return []
+  | otherwise = case con of
+      NormalC cName fields -> liftCon' typeSig ts cx f n ns cName $ map snd fields
+      RecC    cName fields -> liftCon' typeSig ts cx f n ns cName $ map (\(_, _, ty) -> ty) fields
+      InfixC  (_,t1) cName (_,t2) -> liftCon' typeSig ts cx f n ns cName [t1, t2]
+      ForallC ts' cx' con' -> liftCon typeSig (ts ++ ts') (cx ++ cx') f n ns onlyCons con'
+#if __GLASGOW_HASKELL__ >= 800
+      GadtC cNames fields resType -> do
+        decs <- forM (filter (`melem` onlyCons) cNames) $ \cName ->
+                  liftGadtC cName fields resType typeSig ts cx f
+        return (concat decs)
+      RecGadtC cNames fields resType -> do
+        let fields' = map (\(_, x, y) -> (x, y)) fields
+        decs <- forM (filter (`melem` onlyCons) cNames) $ \cName ->
+                  liftGadtC cName fields' resType typeSig ts cx f
+        return (concat decs)
+#endif
+      _ -> fail "Unsupported constructor type"
+
+#if __GLASGOW_HASKELL__ >= 800
+splitAppT :: Type -> [Type]
+splitAppT (AppT x y) = splitAppT x ++ [y]
+splitAppT t = [t]
+
+liftGadtC :: Name -> [BangType] -> Type -> Bool -> [TyVarBndr] -> Cxt -> Type -> Q [Dec]
+liftGadtC cName fields resType typeSig ts cx f =
+  liftCon typeSig ts cx f nextTy (init tys) Nothing (NormalC cName fields)
+  where
+    (_f : tys) = splitAppT resType
+    nextTy = last tys
+#endif
+
+melem :: Eq a => a -> Maybe [a] -> Bool
+melem _ Nothing   = True
+melem x (Just xs) = x `elem` xs
+
+-- | Get construstor name(s).
+constructorNames :: Con -> [Name]
+constructorNames (NormalC  name _)    = [name]
+constructorNames (RecC     name _)    = [name]
+constructorNames (InfixC   _ name _)  = [name]
+constructorNames (ForallC  _ _ c)     = constructorNames c
+#if __GLASGOW_HASKELL__ >= 800
+constructorNames (GadtC names _ _)    = names
+constructorNames (RecGadtC names _ _) = names
+#endif
+constructorNames _ = error "Unsupported constructor type"
 
 -- | Provide free monadic actions for a type declaration.
 liftDec :: Bool             -- ^ Include type signature?
@@ -202,23 +260,12 @@ liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs _ cons _)
 liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs cons _)
 #endif
   | null tyVarBndrs = fail $ "Type " ++ show tyName ++ " needs at least one free variable"
-  | otherwise = concat <$> mapM (liftCon typeSig [] [] con nextTyName (init tyNames)) cons'
+  | otherwise = concat <$> mapM (liftCon typeSig [] [] con nextTy (init tys) onlyCons) cons
     where
-      cons' = case onlyCons of
-                Nothing -> cons
-                Just ns -> filter (\c -> constructorName c `elem` ns) cons
-      tyNames    = map tyVarBndrName tyVarBndrs
-      nextTyName = last tyNames
+      tys     = map (VarT . tyVarBndrName) tyVarBndrs
+      nextTy  = last tys
       con        = ConT tyName
 liftDec _ _ dec = fail $ "liftDec: Don't know how to lift " ++ show dec
-
--- | Get construstor name.
-constructorName :: Con -> Name
-constructorName (NormalC  name _)   = name
-constructorName (RecC     name _)   = name
-constructorName (InfixC   _ name _) = name
-constructorName (ForallC  _ _ c)    = constructorName c
-constructorName _ = error "Unsupported constructor type"
 
 -- | Generate monadic actions for a data type.
 genFree :: Bool         -- ^ Include type signature?
