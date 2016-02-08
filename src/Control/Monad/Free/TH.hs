@@ -157,9 +157,11 @@ extractVars (ForallT bs _ t) = extractVars t \\ map bndrName bs
 extractVars (VarT n) = [n]
 extractVars (AppT x y) = extractVars x ++ extractVars y
 extractVars (SigT x k) = extractVars x ++ extractVars k
+#if __GLASGOW_HASKELL__ >= 800
 extractVars (InfixT x _ y) = extractVars x ++ extractVars y
 extractVars (UInfixT x _ y) = extractVars x ++ extractVars y
 extractVars (ParensT x) = extractVars x
+#endif
 extractVars _ = []
 
 liftCon' :: Bool -> [TyVarBndr] -> Cxt -> Type -> Type -> [Type] -> Name -> [Type] -> Q [Dec]
