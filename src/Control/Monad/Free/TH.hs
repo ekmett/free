@@ -157,7 +157,7 @@ extractVars (ForallT bs _ t) = extractVars t \\ map bndrName bs
 extractVars (VarT n) = [n]
 extractVars (AppT x y) = extractVars x ++ extractVars y
 extractVars (SigT x k) = extractVars x ++ extractVars k
-#if __GLASGOW_HASKELL__ >= 800
+#if MIN_VERSION_template_haskell(2,11,0)
 extractVars (InfixT x _ y) = extractVars x ++ extractVars y
 extractVars (UInfixT x _ y) = extractVars x ++ extractVars y
 extractVars (ParensT x) = extractVars x
@@ -212,7 +212,7 @@ liftCon typeSig ts cx f n ns onlyCons con
       RecC    cName fields -> liftCon' typeSig ts cx f n ns cName $ map (\(_, _, ty) -> ty) fields
       InfixC  (_,t1) cName (_,t2) -> liftCon' typeSig ts cx f n ns cName [t1, t2]
       ForallC ts' cx' con' -> liftCon typeSig (ts ++ ts') (cx ++ cx') f n ns onlyCons con'
-#if __GLASGOW_HASKELL__ >= 800
+#if MIN_VERSION_template_haskell(2,11,0)
       GadtC cNames fields resType -> do
         decs <- forM (filter (`melem` onlyCons) cNames) $ \cName ->
                   liftGadtC cName fields resType typeSig ts cx f
@@ -225,7 +225,7 @@ liftCon typeSig ts cx f n ns onlyCons con
 #endif
       _ -> fail "Unsupported constructor type"
 
-#if __GLASGOW_HASKELL__ >= 800
+#if MIN_VERSION_template_haskell(2,11,0)
 splitAppT :: Type -> [Type]
 splitAppT (AppT x y) = splitAppT x ++ [y]
 splitAppT t = [t]
@@ -248,7 +248,7 @@ constructorNames (NormalC  name _)    = [name]
 constructorNames (RecC     name _)    = [name]
 constructorNames (InfixC   _ name _)  = [name]
 constructorNames (ForallC  _ _ c)     = constructorNames c
-#if __GLASGOW_HASKELL__ >= 800
+#if MIN_VERSION_template_haskell(2,11,0)
 constructorNames (GadtC names _ _)    = names
 constructorNames (RecGadtC names _ _) = names
 #endif
