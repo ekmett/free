@@ -156,7 +156,11 @@ extractVars (ForallT bs _ t) = extractVars t \\ map bndrName bs
     bndrName (KindedTV n _) = n
 extractVars (VarT n) = [n]
 extractVars (AppT x y) = extractVars x ++ extractVars y
+#if MIN_VERSION_template_haskell(2,8,0)
 extractVars (SigT x k) = extractVars x ++ extractVars k
+#else
+extractVars (SigT x k) = extractVars x
+#endif
 #if MIN_VERSION_template_haskell(2,11,0)
 extractVars (InfixT x _ y) = extractVars x ++ extractVars y
 extractVars (UInfixT x _ y) = extractVars x ++ extractVars y
