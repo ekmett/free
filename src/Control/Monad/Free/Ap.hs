@@ -11,6 +11,28 @@
 #define MIN_VERSION_base(x,y,z) 1
 #endif
 
+--------------------------------------------------------------------------------
+-- |
+-- \"Applicative Effects in Free Monads\"
+--
+-- Often times, the '(<*>)' operator can be more efficient than 'ap'.
+-- Conventional free monads don't provide any means of modeling this.
+-- The free monad can be modified to make use of an underlying applicative.
+-- But it does require some laws, or else the '(<*>)' = 'ap' law is broken.
+-- When interpreting this free monad with 'foldFree',
+-- the natural transformation must be an applicative homomorphism.
+-- An applicative homomorphism @hm :: (Applicative f, Applicative g) => f x -> g x@
+-- will satisfy these laws.
+--
+-- * @hm (pure a) = pure a@
+-- * @hm (f <*> a) = hm f <*> hm a@
+--
+-- This is based on the \"Applicative Effects in Free Monads\" series of articles by Will Fancher
+--
+-- * <http://elvishjerricco.github.io/2016/04/08/applicative-effects-in-free-monads.html Applicative Effects in Free Monads>
+--
+-- * <http://elvishjerricco.github.io/2016/04/13/more-on-applicative-effects-in-free-monads.html More on Applicative Effects in Free Monads>
+--------------------------------------------------------------------------------
 module Control.Monad.Free.Ap
   ( MonadFree(..)
   , Free(..)

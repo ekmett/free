@@ -17,6 +17,11 @@
 #define MIN_VERSION_mtl(x,y,z) 1
 #endif
 
+--------------------------------------------------------------------------------
+-- |
+-- Given an applicative, the free monad transformer.
+--------------------------------------------------------------------------------
+
 module Control.Monad.Trans.Free.Ap
   (
   -- * The base functor
