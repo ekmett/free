@@ -203,7 +203,7 @@ instance (Functor f, Monad m) => Functor (FreeT f m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
-instance (Applicative f, Monad m) => Applicative (FreeT f m) where
+instance (Applicative f, Applicative m, Monad m) => Applicative (FreeT f m) where
   pure a = FreeT (return (Pure a))
   {-# INLINE pure #-}
   FreeT f <*> FreeT a = FreeT $ g <$> f <*> a where
@@ -213,14 +213,14 @@ instance (Applicative f, Monad m) => Applicative (FreeT f m) where
     g (Free fs) (Free as) = Free $ (<*>) <$> fs <*> as
   {-# INLINE (<*>) #-}
 
-instance (Apply f, Monad m) => Apply (FreeT f m) where
-  FreeT f <.> FreeT a = FreeT $ g <$> f <*> a where
+instance (Apply f, Apply m, Monad m) => Apply (FreeT f m) where
+  FreeT f <.> FreeT a = FreeT $ g <$> f <.> a where
     g (Pure f') (Pure a') = Pure (f' a')
     g (Pure f') (Free as) = Free $ fmap f' <$> as
     g (Free fs) (Pure a') = Free $ fmap ($ a') <$> fs
     g (Free fs) (Free as) = Free $ (<.>) <$> fs <.> as
 
-instance (Apply f, Monad m) => Bind (FreeT f m) where
+instance (Apply f, Apply m, Monad m) => Bind (FreeT f m) where
   FreeT m >>- f = FreeT $ m >>= \v -> case v of
     Pure a -> runFreeT (f a)
     Free w -> return (Free (fmap (>>- f) w))
