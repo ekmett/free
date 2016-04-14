@@ -93,10 +93,12 @@ library
     Control.Comonad.Trans.Cofree
     Control.Comonad.Trans.Coiter
     Control.Monad.Free
+    Control.Monad.Free.Ap
     Control.Monad.Free.Church
     Control.Monad.Free.Class
     Control.Monad.Free.TH
     Control.Monad.Trans.Free
+    Control.Monad.Trans.Free.Ap
     Control.Monad.Trans.Free.Church
     Control.Monad.Trans.Iter
 
