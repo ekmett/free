@@ -145,11 +145,11 @@ instance Typeable1 f => Typeable1 (ASeq f) where
     f :: ASeq f a -> f a
     f = undefined
 
-apTyCon :: TyCon
+apSeqTyCon :: TyCon
 #if __GLASGOW_HASKELL__ < 704
-apTyCon = mkTyCon "Control.Applicative.Free.Fast.ASeq"
+apSeqTyCon = mkTyCon "Control.Applicative.Free.Fast.ASeq"
 #else
-apTyCon = mkTyCon3 "free" "Control.Applicative.Free.Fast" "ASeq"
+apSeqTyCon = mkTyCon3 "free" "Control.Applicative.Free.Fast" "ASeq"
 #endif
 {-# NOINLINE apTyCon #-}
 
