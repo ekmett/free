@@ -151,6 +151,6 @@ apSeqTyCon = mkTyCon "Control.Applicative.Free.Fast.ASeq"
 #else
 apSeqTyCon = mkTyCon3 "free" "Control.Applicative.Free.Fast" "ASeq"
 #endif
-{-# NOINLINE apTyCon #-}
+{-# NOINLINE apSeqTyCon #-}
 
 #endif
