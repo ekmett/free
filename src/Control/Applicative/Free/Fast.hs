@@ -15,16 +15,19 @@
 -- Based on <https://www.eyrie.org/~zednenem/2013/05/27/freeapp Dave Menendez's work>.
 --------------------------------------------------------------------------------
 module Control.Applicative.Free.Fast
-  ( ASeq(..)
+  (
+  -- * The Sequence of Effects
+    ASeq(..)
   , reduceASeq
+  , hoistASeq
+  , traverseASeq
+  , rebaseASeq
+  -- * The Faster Free Applicative
   , Ap(..)
   , liftAp
   , retractAp
   , runAp
   , runAp_
-  , hoistASeq
-  , traverseASeq
-  , rebaseASeq
   , hoistAp
   ) where
 
@@ -36,6 +39,11 @@ import           Data.Typeable
 import           Data.Monoid
 #endif
 
+-- | The free applicative is composed of a sequence of effects,
+-- and a pure function to apply that sequence to.
+-- The fast free applicative separates these from each other,
+-- so that the sequence may be built up independently,
+-- and so that 'fmap' can run in constant time by having immediate access to the pure function.
 data ASeq f a where
   ANil :: ASeq f ()
   ACons :: f a -> ASeq f u -> ASeq f (a,u)
@@ -43,12 +51,13 @@ data ASeq f a where
   deriving Typeable
 #endif
 
--- | reduceASeq a sequence of applicative effects into an applicative.
+-- | Interprets the sequence of effects using the semantics for
+--   `pure` and `<*>` given by the Applicative instance for 'f'.
 reduceASeq :: Applicative f => ASeq f u -> f u
 reduceASeq ANil         = pure ()
 reduceASeq (ACons x xs) = (,) <$> x <*> reduceASeq xs
 
--- | Transform a sequence of 'f' into a sequence of 'g'.
+-- | Given a natural transformation from @f@ to @g@ this gives a natural transformation from @ASeq f@ to @ASeq g@.
 hoistASeq :: (forall x. f x -> g x) -> ASeq f a -> ASeq g a
 hoistASeq _ ANil = ANil
 hoistASeq u (ACons x xs) = ACons (u x) (u `hoistASeq` xs)
@@ -58,8 +67,11 @@ traverseASeq :: Applicative h => (forall x. f x -> h (g x)) -> ASeq f a -> h (AS
 traverseASeq _ ANil      = pure ANil
 traverseASeq f (ACons x xs) = ACons <$> f x <*> traverseASeq f xs
 
--- | It may not look like it, but this appends two sequences.
--- See <https://www.eyrie.org/~zednenem/2013/05/27/freeapp Dave Menendez's work> for more explanation.
+-- | It may not be obvious, but this essentially acts like ++,
+-- traversing the first sequence and creating a new one by appending the second sequence.
+-- The difference is that this also has to modify the return functions and that the return type depends on the input types.
+--
+-- See the source of 'hoistAp' as an example usage.
 rebaseASeq :: ASeq f u -> (forall x. (x -> y) -> ASeq f x -> z) ->
   (v -> u -> y) -> ASeq f v -> z
 rebaseASeq ANil         k f = k (\v -> f v ())
