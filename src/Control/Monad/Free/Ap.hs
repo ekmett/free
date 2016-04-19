@@ -265,7 +265,7 @@ instance Applicative f => MonadFree f (Free f) where
 -- 'retract' . 'lift' = 'id'
 -- 'retract' . 'liftF' = 'id'
 -- @
-retract :: Monad f => Free f a -> f a
+retract :: (Applicative f, Monad f) => Free f a -> f a
 retract = foldFree id
 
 -- | Given an applicative homomorphism from @f@ to 'Identity', tear down a 'Free' 'Monad' using iteration.
@@ -279,7 +279,7 @@ iterA _   (Pure x) = pure x
 iterA phi (Free f) = phi (iterA phi <$> f)
 
 -- | Like 'iter' for monadic values.
-iterM :: (Monad m, Applicative f) => (f (m a) -> m a) -> Free f a -> m a
+iterM :: (Applicative m, Monad m, Applicative f) => (f (m a) -> m a) -> Free f a -> m a
 iterM _   (Pure x) = return x
 iterM phi (Free f) = phi (iterM phi <$> f)
 
@@ -288,14 +288,14 @@ hoistFree :: (Applicative f, Applicative g) => (forall a. f a -> g a) -> Free f 
 hoistFree f = foldFree (liftF . f)
 
 -- | Given an applicative homomorphism, you get a monad homomorphism.
-foldFree :: (Applicative f, Monad m) => (forall x . f x -> m x) -> Free f a -> m a
+foldFree :: (Applicative f, Applicative m, Monad m) => (forall x . f x -> m x) -> Free f a -> m a
 foldFree _ (Pure a)  = return a
 foldFree f (Free as) = f as >>= foldFree f
 
 -- | Convert a 'Free' monad from "Control.Monad.Free.Ap" to a 'FreeT.FreeT' monad
 -- from "Control.Monad.Trans.Free.Ap".
 -- WARNING: This assumes that 'liftF' is an applicative homomorphism.
-toFreeT :: (Applicative f, Monad m) => Free f a -> FreeT.FreeT f m a
+toFreeT :: (Applicative f, Applicative m, Monad m) => Free f a -> FreeT.FreeT f m a
 toFreeT = foldFree liftF
 
 -- | Cuts off a tree of computations at a given depth.
