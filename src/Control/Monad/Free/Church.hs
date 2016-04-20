@@ -78,7 +78,10 @@ import Control.Monad.Cont.Class
 import Control.Monad.Trans.Class
 import Control.Monad.State.Class
 import Data.Foldable
+import Data.Traversable
 import Data.Functor.Bind
+import Data.Semigroup.Foldable
+import Data.Semigroup.Traversable
 import Prelude hiding (foldr)
 
 -- | The Church-encoded free monad for a functor @f@.
@@ -124,6 +127,9 @@ instance MonadFix (F f) where
     impure (F x) = x id (error "MonadFix (F f): wrap")
 
 instance Foldable f => Foldable (F f) where
+    foldMap f xs = runF xs f fold
+    {-# INLINE foldMap #-}
+
     foldr f r xs = runF xs f (foldr (.) id) r
     {-# INLINE foldr #-}
 
@@ -131,6 +137,16 @@ instance Foldable f => Foldable (F f) where
     foldl' f z xs = runF xs (\a !r -> f r a) (flip $ foldl' $ \r g -> g r) z
     {-# INLINE foldl' #-}
 #endif
+
+instance Traversable f => Traversable (F f) where
+    traverse f m = runF m (fmap return . f) (fmap wrap . sequenceA)
+    {-# INLINE traverse #-}
+
+instance Foldable1 f => Foldable1 (F f) where
+    foldMap1 f m = runF m f fold1
+
+instance Traversable1 f => Traversable1 (F f) where
+    traverse1 f m = runF m (fmap return . f) (fmap wrap . sequence1)
 
 -- | This violates the MonadPlus laws, handle with care.
 instance MonadPlus f => MonadPlus (F f) where
@@ -216,6 +232,23 @@ improve m = fromF m
 --
 -- Calling @'retract' . 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
+{-# INLINE cutoff #-}
 cutoff :: (Functor f) => Integer -> F f a -> F f (Maybe a)
-cutoff n = toF . Free.cutoff n . fromF
+cutoff n m
+    | n <= 0 = return Nothing
+    | n <= toInteger (maxBound :: Int) = cutoffI (fromInteger n :: Int) m
+    | otherwise = cutoffI n m
 
+{-# SPECIALIZE cutoffI :: (Functor f) => Int -> F f a -> F f (Maybe a) #-}
+{-# SPECIALIZE cutoffI :: (Functor f) => Integer -> F f a -> F f (Maybe a) #-}
+cutoffI :: (Functor f, Integral n) => n -> F f a -> F f (Maybe a)
+cutoffI n m = F m' where
+    m' kp kf = runF m kpn kfn n where
+        kpn a i
+            | i <= 0 = kp Nothing
+            | otherwise = kp (Just a)
+        kfn fr i
+            | i <= 0 = kp Nothing
+            | otherwise = let
+                i' = i - 1
+                in i' `seq` kf (fmap ($ i') fr)
