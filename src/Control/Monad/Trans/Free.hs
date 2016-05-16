@@ -52,6 +52,7 @@ module Control.Monad.Trans.Free
 
 import Control.Applicative
 import Control.Monad (liftM, MonadPlus(..), ap, join)
+import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
@@ -309,6 +310,10 @@ instance MonadTrans (FreeT f) where
 instance (Functor f, MonadIO m) => MonadIO (FreeT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
+
+instance (Functor f, MonadBase b m) => MonadBase b (FreeT f m) where
+  liftBase = lift . liftBase
+  {-# INLINE liftBase #-}
 
 instance (Functor f, MonadReader r m) => MonadReader r (FreeT f m) where
   ask = lift ask
