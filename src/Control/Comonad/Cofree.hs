@@ -6,6 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE StandaloneDeriving #-}
 #endif
 -----------------------------------------------------------------------------
 -- |
@@ -104,6 +105,8 @@ infixr 5 :<
 data Cofree f a = a :< f (Cofree f a)
 #if __GLASGOW_HASKELL__ >= 707
   deriving (Typeable)
+
+deriving instance (Typeable f, Data (f (Cofree f a)), Data a) => Data (Cofree f a)
 #endif
 
 -- | Use coiteration to generate a cofree comonad from a seed.

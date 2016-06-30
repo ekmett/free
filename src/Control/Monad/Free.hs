@@ -6,6 +6,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE StandaloneDeriving #-}
 #endif
 #ifndef MIN_VERSION_base
 #define MIN_VERSION_base(x,y,z) 1
@@ -108,6 +109,8 @@ import Prelude.Extras
 data Free f a = Pure a | Free (f (Free f a))
 #if __GLASGOW_HASKELL__ >= 707
   deriving (Typeable)
+
+deriving instance (Typeable f, Data (f (Free f a)), Data a) => Data (Free f a)
 #endif
 
 instance (Functor f, Eq1 f) => Eq1 (Free f) where
