@@ -34,6 +34,7 @@ module Control.Applicative.Free
   , runAp
   , runAp_
   , liftAp
+  , iterAp
   , hoistAp
   , retractAp
 
@@ -92,6 +93,12 @@ instance Applicative (Ap f) where
 liftAp :: f a -> Ap f a
 liftAp x = Ap x (Pure id)
 {-# INLINE liftAp #-}
+
+-- | Tear down a free 'Applicative' using iteration.
+iterAp :: Functor g => (g a -> a) -> Ap g a -> a
+iterAp algebra = go
+  where go (Pure a) = a
+        go (Ap underlying apply) = algebra (go . (apply <*>) . pure <$> underlying)
 
 -- | Given a natural transformation from @f@ to @g@ this gives a monoidal natural transformation from @Ap f@ to @Ap g@.
 hoistAp :: (forall a. f a -> g a) -> Ap f b -> Ap g b
