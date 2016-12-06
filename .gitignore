@@ -13,3 +13,4 @@ wip
 *#
 .cabal-sandbox/
 cabal.sandbox.config
+/shell.nix

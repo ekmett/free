@@ -37,25 +37,25 @@ module Control.Comonad.Cofree
   ) where
 
 import Control.Applicative
+import Control.Category
 import Control.Comonad
-import Control.Comonad.Trans.Class
 import Control.Comonad.Cofree.Class
 import Control.Comonad.Env.Class
+import Control.Comonad.Hoist.Class
 import Control.Comonad.Store.Class as Class
 import Control.Comonad.Traced.Class
-import Control.Comonad.Hoist.Class
-import Control.Category
-import Control.Monad(ap, (>=>), liftM)
-import Control.Monad.Zip
-import Data.Functor.Bind
-import Data.Functor.Extend
+import Control.Comonad.Trans.Class
+import Control.Monad ((>=>), liftM)
 import Data.Data
 import Data.Distributive
 import Data.Foldable
+import Data.Functor.Bind
+import Data.Functor.Extend
+import Data.Functor.Plus
 import Data.Semigroup
-import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
+import Data.Traversable
 import Prelude hiding (id,(.))
 import Prelude.Extras
 
@@ -159,14 +159,26 @@ instance ComonadTrans Cofree where
   lower (_ :< as) = fmap extract as
   {-# INLINE lower #-}
 
-instance Alternative f => Monad (Cofree f) where
+instance Plus f => Monad (Cofree f) where
   return = pure
   {-# INLINE return #-}
-  (a :< m) >>= k = case k a of
-                     b :< n -> b :< (n <|> fmap (>>= k) m)
+  (x :< rx) >>= f =
+      let (y :< ry) = f x
+      in y :< (ry <!> fmap (>>= f) rx)
 
-instance (Alternative f, MonadZip f) => MonadZip (Cofree f) where
-  mzip (a :< as) (b :< bs) = (a, b) :< fmap (uncurry mzip) (mzip as bs)
+-- TODO: The following instance violates the MonadZip laws:
+--
+-- > let r1 = 1 :< [10 :< zero, 11 :< zero]
+-- > let r2 = 2 :< [20 :< zero, 21 :< zero]
+--
+-- >>> mzip (liftM (1000*) r1) (liftM (2000*) r2)
+-- (1000,4000) :< [(10000,40000) :< [],(11000,42000) :< []]
+--
+-- >>> liftM (\(x, y) -> (100*x, 1000*y)) $ mzip r1 r2
+-- (100,2000) :< [(1000,20000) :< [],(1100,21000) :< []]
+--
+-- instance (Plus f, MonadZip f) => MonadZip (Cofree f) where
+--   mzip (a :< as) (b :< bs) = (a, b) :< fmap (uncurry mzip) (mzip as bs)
 
 -- |
 --
@@ -174,13 +186,10 @@ instance (Alternative f, MonadZip f) => MonadZip (Cofree f) where
 section :: Comonad f => f a -> Cofree f a
 section as = extract as :< extend section as
 
-instance Apply f => Apply (Cofree f) where
-  (f :< fs) <.> (a :< as) = f a :< ((<.>) <$> fs <.> as)
+instance Plus f => Apply (Cofree f) where
+  (f :< fs) <.> cx@(x :< xs) =
+      f x :< (fmap (fmap f) xs <!> fmap (<.> cx) fs)
   {-# INLINE (<.>) #-}
-  (f :< fs) <.  (_ :< as) = f :< ((<. ) <$> fs <.> as)
-  {-# INLINE (<.) #-}
-  (_ :< fs)  .> (a :< as) = a :< (( .>) <$> fs <.> as)
-  {-# INLINE (.>) #-}
 
 instance ComonadApply f => ComonadApply (Cofree f) where
   (f :< fs) <@> (a :< as) = f a :< ((<@>) <$> fs <@> as)
@@ -190,10 +199,13 @@ instance ComonadApply f => ComonadApply (Cofree f) where
   (_ :< fs)  @> (a :< as) = a :< (( @>) <$> fs <@> as)
   {-# INLINE (@>) #-}
 
-instance Alternative f => Applicative (Cofree f) where
-  pure x = x :< empty
+instance Plus f => Applicative (Cofree f) where
+  pure x = x :< zero
   {-# INLINE pure #-}
-  (<*>) = ap
+
+  (f :< fs) <*> cx@(x :< xs) =
+      f x :< (fmap (fmap f) xs <!>
+              fmap (<*> cx) fs)
   {-# INLINE (<*>) #-}
 
 instance (Functor f, Show1 f) => Show1 (Cofree f) where
