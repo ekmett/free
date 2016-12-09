@@ -125,10 +125,12 @@ instance (Functor f, Eq1 f) => Eq1 (Free f) where
   _       `eq1` _ = False
 #endif
 
-instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where
-  Pure a == Pure b = a == b
-  Free fa == Free fb = fa == fb
-  _ == _ = False
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Eq1 f, Eq a) => Eq (Free f a) where
+#else
+instance (Eq1 f, Functor f, Eq a) => Eq (Free f a) where
+#endif
+  (==) = eq1
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Ord1 f => Ord1 (Free f) where
@@ -146,11 +148,12 @@ instance (Functor f, Ord1 f) => Ord1 (Free f) where
   Free fa `compare1` Free fb = fmap Lift1 fa `compare1` fmap Lift1 fb
 #endif
 
-instance (Ord (f (Free f a)), Ord a) => Ord (Free f a) where
-  Pure a `compare` Pure b = a `compare` b
-  Pure _ `compare` Free _ = LT
-  Free _ `compare` Pure _ = GT
-  Free fa `compare` Free fb = fa `compare` fb
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Ord1 f, Ord a) => Ord (Free f a) where
+#else
+instance (Ord1 f, Functor f, Ord a) => Ord (Free f a) where
+#endif
+  compare = compare1
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Show1 f => Show1 (Free f) where
@@ -166,11 +169,12 @@ instance (Functor f, Show1 f) => Show1 (Free f) where
     showString "Free " . showsPrec1 11 (fmap Lift1 m)
 #endif
 
-instance (Show (f (Free f a)), Show a) => Show (Free f a) where
-  showsPrec d (Pure a) = showParen (d > 10) $
-    showString "Pure " . showsPrec 11 a
-  showsPrec d (Free m) = showParen (d > 10) $
-    showString "Free " . showsPrec 11 m
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Show1 f, Show a) => Show (Free f a) where
+#else
+instance (Show1 f, Functor f, Show a) => Show (Free f a) where
+#endif
+  showsPrec = showsPrec1
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Read1 f => Read1 (Free f) where
@@ -191,15 +195,12 @@ instance (Functor f, Read1 f) => Read1 (Free f) where
              , (m, t) <- readsPrec1 11 s]) r
 #endif
 
-instance (Read (f (Free f a)), Read a) => Read (Free f a) where
-  readsPrec d r = readParen (d > 10)
-      (\r' -> [ (Pure m, t)
-             | ("Pure", s) <- lex r'
-             , (m, t) <- readsPrec 11 s]) r
-    ++ readParen (d > 10)
-      (\r' -> [ (Free m, t)
-             | ("Free", s) <- lex r'
-             , (m, t) <- readsPrec 11 s]) r
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Read1 f, Read a) => Read (Free f a) where
+#else
+instance (Read1 f, Functor f, Read a) => Read (Free f a) where
+#endif
+  readsPrec = readsPrec1
 
 instance Functor f => Functor (Free f) where
   fmap f = go where
