@@ -51,7 +51,7 @@ import Control.Monad.State.Class
 import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind
-import Data.Functor.Classes
+import Data.Functor.Classes.Compat
 import Data.Foldable
 import Data.Profunctor
 import Data.Traversable
@@ -62,13 +62,6 @@ import Prelude hiding (foldr)
 
 import qualified Prelude.Extras as PE
 
-#ifdef LIFTED_FUNCTOR_CLASSES
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (mappend)
-#endif
-#else
-import Data.Functor.Classes.Lift
-#endif
 
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
 --

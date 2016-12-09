@@ -1,9 +1,22 @@
+#include "free-common.h"
 #ifdef LIFTED_FUNCTOR_CLASSES
-module Data.Functor.Classes.Lift () where
+module Data.Functor.Classes.Compat (
+    mappend,
+    module Data.Functor.Classes,
+    ) where
+
+import Data.Functor.Classes
+
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (mappend)
+#endif
 #else
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Data.Functor.Classes.Lift (Lift1 (..)) where
+module Data.Functor.Classes.Compat (
+    Lift1 (..),
+    module Data.Functor.Classes,
+    ) where
 
 -------------------------------------------------------------------------------
 -- transformers-0.4 helpers, copied from prelude-extras

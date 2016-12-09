@@ -105,6 +105,6 @@ library
     Control.Monad.Trans.Iter
 
   other-modules:
-    Data.Functor.Classes.Lift
+    Data.Functor.Classes.Compat
 
   ghc-options: -Wall
