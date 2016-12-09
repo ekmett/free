@@ -60,9 +60,6 @@ import Data.Semigroup.Traversable
 import Data.Data
 import Prelude hiding (foldr)
 
-import qualified Prelude.Extras as PE
-
-
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
 --
 -- /Formally/
@@ -114,11 +111,6 @@ data Free f a = Pure a | Free (f (Free f a))
 deriving instance (Typeable f, Data (f (Free f a)), Data a) => Data (Free f a)
 #endif
 
-instance (Functor f, PE.Eq1 f) => PE.Eq1 (Free f) where
-  Pure a  ==# Pure b  = a == b
-  Free fa ==# Free fb = fmap PE.Lift1 fa PE.==# fmap PE.Lift1 fb
-  _       ==# _ = False
-
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Eq1 f => Eq1 (Free f) where
   liftEq eq = go
@@ -137,12 +129,6 @@ instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where
   Pure a == Pure b = a == b
   Free fa == Free fb = fa == fb
   _ == _ = False
-
-instance (Functor f, PE.Ord1 f) => PE.Ord1 (Free f) where
-  Pure a `compare1` Pure b = a `compare` b
-  Pure _ `compare1` Free _ = LT
-  Free _ `compare1` Pure _ = GT
-  Free fa `compare1` Free fb = fmap PE.Lift1 fa `PE.compare1` fmap PE.Lift1 fb
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Ord1 f => Ord1 (Free f) where
@@ -166,12 +152,6 @@ instance (Ord (f (Free f a)), Ord a) => Ord (Free f a) where
   Free _ `compare` Pure _ = GT
   Free fa `compare` Free fb = fa `compare` fb
 
-instance (Functor f, PE.Show1 f) => PE.Show1 (Free f) where
-  showsPrec1 d (Pure a) = showParen (d > 10) $
-    showString "Pure " . showsPrec 11 a
-  showsPrec1 d (Free m) = showParen (d > 10) $
-    showString "Free " . PE.showsPrec1 11 (fmap PE.Lift1 m)
-
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Show1 f => Show1 (Free f) where
   liftShowsPrec sp sl = go
@@ -191,16 +171,6 @@ instance (Show (f (Free f a)), Show a) => Show (Free f a) where
     showString "Pure " . showsPrec 11 a
   showsPrec d (Free m) = showParen (d > 10) $
     showString "Free " . showsPrec 11 m
-
-instance (Functor f, PE.Read1 f) => PE.Read1 (Free f) where
-  readsPrec1 d r = readParen (d > 10)
-      (\r' -> [ (Pure m, t)
-             | ("Pure", s) <- lex r'
-             , (m, t) <- readsPrec 11 s]) r
-    ++ readParen (d > 10)
-      (\r' -> [ (Free (fmap PE.lower1 m), t)
-             | ("Free", s) <- lex r'
-             , (m, t) <- PE.readsPrec1 11 s]) r
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Read1 f => Read1 (Free f) where
