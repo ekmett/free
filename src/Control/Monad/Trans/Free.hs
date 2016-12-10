@@ -8,14 +8,8 @@
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
+#include "free-common.h"
 
-#ifndef MIN_VERSION_base
-#define MIN_VERSION_base(x,y,z) 1
-#endif
-
-#ifndef MIN_VERSION_mtl
-#define MIN_VERSION_mtl(x,y,z) 1
-#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.Free
@@ -69,6 +63,7 @@ import Control.Monad.State.Class
 import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind hiding (join)
+import Data.Functor.Classes.Compat
 import Data.Monoid
 import Data.Function (on)
 import Data.Functor.Identity
@@ -77,7 +72,6 @@ import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
 import Data.Data
-import Prelude.Extras
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable
@@ -91,13 +85,17 @@ data FreeF f a b = Pure a | Free (f b)
 #endif
            )
 
+#ifdef LIFTED_FUNCTOR_CLASSES
 instance Show1 f => Show2 (FreeF f) where
   showsPrec2 d (Pure a)  = showParen (d > 10) $ showString "Pure " . showsPrec 11 a
   showsPrec2 d (Free as) = showParen (d > 10) $ showString "Free " . showsPrec1 11 as
-
+#else
 instance (Show1 f, Show a) => Show1 (FreeF f a) where
-  showsPrec1 = showsPrec2
+  showsPrec1 d (Pure a)  = showParen (d > 10) $ showString "Pure " . showsPrec 11 a
+  showsPrec1 d (Free as) = showParen (d > 10) $ showString "Free " . showsPrec1 11 as
+#endif
 
+#ifdef LIFTED_FUNCTOR_CLASSES
 instance Read1 f => Read2 (FreeF f) where
   readsPrec2 d r = readParen (d > 10)
       (\r' -> [ (Pure m, t)
@@ -107,26 +105,43 @@ instance Read1 f => Read2 (FreeF f) where
       (\r' -> [ (Free m, t)
              | ("Free", s) <- lex r'
              , (m, t) <- readsPrec1 11 s]) r
-
+#else
 instance (Read1 f, Read a) => Read1 (FreeF f a) where
-  readsPrec1 = readsPrec2
+  readsPrec1 d r = readParen (d > 10)
+      (\r' -> [ (Pure m, t)
+             | ("Pure", s) <- lex r'
+             , (m, t) <- readsPrec 11 s]) r
+    ++ readParen (d > 10)
+      (\r' -> [ (Free m, t)
+             | ("Free", s) <- lex r'
+             , (m, t) <- readsPrec1 11 s]) r
+#endif
 
+#ifdef LIFTED_FUNCTOR_CLASSES
 instance Eq1 f => Eq2 (FreeF f) where
   Pure a  ==## Pure b = a == b
   Free as ==## Free bs = as ==# bs
   _       ==## _ = False
-
+#else
 instance (Eq1 f, Eq a) => Eq1 (FreeF f a) where
-  (==#) = (==##)
+  Pure a  `eq1` Pure b = a == b
+  Free as `eq1` Free bs = as `eq1` bs
+  _       `eq1` _ = False
+#endif
 
+#ifdef LIFTED_FUNCTOR_CLASSES
 instance Ord1 f => Ord2 (FreeF f) where
   Pure a `compare2` Pure b = a `compare` b
   Pure _ `compare2` Free _ = LT
   Free _ `compare2` Pure _ = GT
   Free fa `compare2` Free fb = fa `compare1` fb
-
+#else
 instance (Ord1 f, Ord a) => Ord1 (FreeF f a) where
-  compare1 = compare2
+  Pure a `compare1` Pure b = a `compare` b
+  Pure _ `compare1` Free _ = LT
+  Free _ `compare1` Pure _ = GT
+  Free fa `compare1` Free fb = fa `compare1` fb
+#endif
 
 instance Functor f => Functor (FreeF f a) where
   fmap _ (Pure a)  = Pure a
@@ -182,7 +197,7 @@ free = FreeT . Identity
 deriving instance Eq (m (FreeF f a (FreeT f m a))) => Eq (FreeT f m a)
 
 instance (Functor f, Eq1 f, Functor m, Eq1 m) => Eq1 (FreeT f m) where
-  (==#) = on (==#) (fmap (Lift1 . fmap Lift1) . runFreeT)
+  eq1 = on eq1 (fmap (Lift1 . fmap Lift1) . runFreeT)
 
 deriving instance Ord (m (FreeF f a (FreeT f m a))) => Ord (FreeT f m a)
 

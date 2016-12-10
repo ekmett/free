@@ -5,14 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-
-#ifndef MIN_VERSION_base
-#define MIN_VERSION_base(x,y,z) 1
-#endif
-
-#ifndef MIN_VERSION_mtl
-#define MIN_VERSION_mtl(x,y,z) 1
-#endif
+#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -92,6 +85,7 @@ import Data.Bifunctor
 import Data.Bitraversable
 import Data.Either
 import Data.Functor.Bind hiding (join)
+import Data.Functor.Classes.Compat
 import Data.Functor.Identity
 import Data.Function (on)
 import Data.Monoid
@@ -99,7 +93,6 @@ import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Typeable
 import Data.Data
-import Prelude.Extras
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable hiding (fold)
@@ -134,7 +127,7 @@ runIter = runIdentity . runIterT
 {-# INLINE runIter #-}
 
 instance (Functor m, Eq1 m) => Eq1 (IterT m) where
-  (==#) = on (==#) (fmap (fmap Lift1) . runIterT)
+  eq1 = on eq1 (fmap (fmap Lift1) . runIterT)
 
 instance Eq (m (Either a (IterT m a))) => Eq (IterT m a) where
   IterT m == IterT n = m == n

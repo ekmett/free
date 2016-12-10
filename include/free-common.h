@@ -2,6 +2,10 @@
 #define MIN_VERSION_base(x,y,z) 1
 #endif
 
+#ifndef MIN_VERSION_mtl
+#define MIN_VERSION_mtl(x,y,z) 1
+#endif
+
 #if MIN_VERSION_base(4,9,0)
 #define LIFTED_FUNCTOR_CLASSES 1
 #else

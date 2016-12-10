@@ -7,9 +7,7 @@
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
-#ifndef MIN_VERSION_base
-#define MIN_VERSION_base(x,y,z) 1
-#endif
+#include "free-common.h"
 
 --------------------------------------------------------------------------------
 -- |
@@ -63,6 +61,7 @@ import Control.Monad.State.Class
 import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind
+import Data.Functor.Classes.Compat
 import Data.Foldable
 import Data.Profunctor
 import Data.Traversable
@@ -70,7 +69,6 @@ import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Data
 import Prelude hiding (foldr)
-import Prelude.Extras
 
 -- | A free monad given an applicative
 data Free f a = Pure a | Free (f (Free f a))
@@ -79,9 +77,9 @@ data Free f a = Pure a | Free (f (Free f a))
 #endif
 
 instance (Functor f, Eq1 f) => Eq1 (Free f) where
-  Pure a  ==# Pure b  = a == b
-  Free fa ==# Free fb = fmap Lift1 fa ==# fmap Lift1 fb
-  _       ==# _ = False
+  Pure a  `eq1` Pure b  = a == b
+  Free fa `eq1` Free fb = fmap Lift1 fa `eq1` fmap Lift1 fb
+  _       `eq1` _ = False
 
 instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where
   Pure a == Pure b = a == b

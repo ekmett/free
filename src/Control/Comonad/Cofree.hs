@@ -48,6 +48,7 @@ import Control.Category
 import Control.Monad(ap, (>=>), liftM)
 import Control.Monad.Zip
 import Data.Functor.Bind
+import Data.Functor.Classes.Compat
 import Data.Functor.Extend
 import Data.Data
 import Data.Distributive
@@ -57,7 +58,6 @@ import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Prelude hiding (id,(.))
-import Prelude.Extras
 
 
 infixr 5 :<
@@ -225,7 +225,7 @@ instance (Eq (f (Cofree f a)), Eq a) => Eq (Cofree f a) where
 
 instance (Functor f, Eq1 f) => Eq1 (Cofree f) where
 #ifndef HLINT
-  a :< as ==# b :< bs = a == b && fmap Lift1 as ==# fmap Lift1 bs
+  eq1 (a :< as) (b :< bs) = a == b && eq1 (fmap Lift1 as) (fmap Lift1 bs)
 #endif
 
 instance (Ord (f (Cofree f a)), Ord a) => Ord (Cofree f a) where
