@@ -64,7 +64,6 @@ import Control.Monad.Cont.Class
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Classes.Compat
 import Data.Monoid
-import Data.Function (on)
 import Data.Functor.Identity
 import Data.Traversable
 import Data.Bifunctor
@@ -86,8 +85,13 @@ data FreeF f a b = Pure a | Free (f b)
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Show1 f => Show2 (FreeF f) where
-  showsPrec2 d (Pure a)  = showParen (d > 10) $ showString "Pure " . showsPrec 11 a
-  showsPrec2 d (Free as) = showParen (d > 10) $ showString "Free " . showsPrec1 11 as
+  liftShowsPrec2 spa _sla _spb _slb d (Pure a) =
+    showsUnaryWith spa "Pure" d a 
+  liftShowsPrec2 _spa _sla spb slb d (Free as) =
+    showsUnaryWith (liftShowsPrec spb slb) "Free" d as
+
+instance (Show1 f, Show a) => Show1 (FreeF f a) where
+  liftShowsPrec = liftShowsPrec2 showsPrec showList
 #else
 instance (Show1 f, Show a) => Show1 (FreeF f a) where
   showsPrec1 d (Pure a)  = showParen (d > 10) $ showString "Pure " . showsPrec 11 a
@@ -96,14 +100,12 @@ instance (Show1 f, Show a) => Show1 (FreeF f a) where
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Read1 f => Read2 (FreeF f) where
-  readsPrec2 d r = readParen (d > 10)
-      (\r' -> [ (Pure m, t)
-             | ("Pure", s) <- lex r'
-             , (m, t) <- readsPrec 11 s]) r
-    ++ readParen (d > 10)
-      (\r' -> [ (Free m, t)
-             | ("Free", s) <- lex r'
-             , (m, t) <- readsPrec1 11 s]) r
+  liftReadsPrec2 rpa _rla rpb rlb = readsData $
+    readsUnaryWith rpa "Pure" Pure `mappend`
+    readsUnaryWith (liftReadsPrec rpb rlb) "Free" Free
+
+instance (Read1 f, Read a) => Read1 (FreeF f a) where
+  liftReadsPrec = liftReadsPrec2 readsPrec readList
 #else
 instance (Read1 f, Read a) => Read1 (FreeF f a) where
   readsPrec1 d r = readParen (d > 10)
@@ -118,9 +120,12 @@ instance (Read1 f, Read a) => Read1 (FreeF f a) where
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Eq1 f => Eq2 (FreeF f) where
-  Pure a  ==## Pure b = a == b
-  Free as ==## Free bs = as ==# bs
-  _       ==## _ = False
+  liftEq2 eq _ (Pure a) (Pure b) = eq a b
+  liftEq2 _ eq (Free as) (Free bs) = liftEq eq as bs
+  liftEq2 _ _ _ _ = False
+
+instance (Eq1 f, Eq a) => Eq1 (FreeF f a) where
+  liftEq = liftEq2 (==)
 #else
 instance (Eq1 f, Eq a) => Eq1 (FreeF f a) where
   Pure a  `eq1` Pure b = a == b
@@ -130,10 +135,13 @@ instance (Eq1 f, Eq a) => Eq1 (FreeF f a) where
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Ord1 f => Ord2 (FreeF f) where
-  Pure a `compare2` Pure b = a `compare` b
-  Pure _ `compare2` Free _ = LT
-  Free _ `compare2` Pure _ = GT
-  Free fa `compare2` Free fb = fa `compare1` fb
+  liftCompare2 cmp _ (Pure a) (Pure b) = cmp a b
+  liftCompare2 _ _ (Pure _) (Free _) = LT
+  liftCompare2 _ _ (Free _) (Pure _) = GT
+  liftCompare2 _ cmp (Free fa) (Free fb) = liftCompare cmp fa fb
+
+instance (Ord1 f, Ord a) => Ord1 (FreeF f a) where
+  liftCompare = liftCompare2 compare
 #else
 instance (Ord1 f, Ord a) => Ord1 (FreeF f a) where
   Pure a `compare1` Pure b = a `compare` b
@@ -196,26 +204,50 @@ free = FreeT . Identity
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 f, Eq1 m, Eq a) => Eq (FreeT f m a) where
 #else
-instance (Eq1 f, Eq1 m, Functor f, Functor m, Eq a) => Eq (FreeT f m a) where
+instance (Functor f, Eq1 f, Functor m, Eq1 m, Eq a)=> Eq (FreeT f m a) where
 #endif
     (==) = eq1
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Eq1 f, Eq1 m) => Eq1 (FreeT f m) where
+  liftEq eq = go
+    where
+      go (FreeT x) (FreeT y) = liftEq (liftEq2 eq go) x y
+#else
 instance (Functor f, Eq1 f, Functor m, Eq1 m) => Eq1 (FreeT f m) where
   eq1 = on eq1 (fmap (Lift1 . fmap Lift1) . runFreeT)
+#endif
 
 #ifdef LIFTED_FUNCTOR_CLASSES
-instance Ord (FreeT f m a) where
+instance (Ord1 f, Ord1 m, Ord a) => Ord (FreeT f m a) where
 #else
-instance (Ord1 f, Ord1 m, Functor f, Functor m, Ord a) => Ord (FreeT f m a) where
+instance (Functor f, Ord1 f, Functor m, Ord1 m, Ord a) => Ord (FreeT f m a) where
 #endif
     compare = compare1
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Ord1 f, Ord1 m) => Ord1 (FreeT f m) where
+  liftCompare cmp = go
+    where
+      go (FreeT x) (FreeT y) = liftCompare (liftCompare2 cmp go) x y
+#else
 instance (Functor f, Ord1 f, Functor m, Ord1 m) => Ord1 (FreeT f m) where
   compare1 = on compare1 (fmap (Lift1 . fmap Lift1) . runFreeT)
+#endif
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Show1 f, Show1 m) => Show1 (FreeT f m) where
+  liftShowsPrec sp sl = go
+    where
+      goList = liftShowList sp sl
+      go d (FreeT x) = showsUnaryWith
+        (liftShowsPrec (liftShowsPrec2 sp sl go goList) (liftShowList2 sp sl go goList))
+        "FreeT" d x
+#else
 instance (Functor f, Show1 f, Functor m, Show1 m) => Show1 (FreeT f m) where
   showsPrec1 d (FreeT m) = showParen (d > 10) $
     showString "FreeT " . showsPrec1 11 (Lift1 . fmap Lift1 <$> m)
+#endif
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance (Show1 f, Show1 m, Show a) => Show (FreeT f m a) where
@@ -224,9 +256,19 @@ instance (Functor f, Show1 f, Functor m, Show1 m, Show a) => Show (FreeT f m a) 
 #endif
   showsPrec = showsPrec1
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Read1 f, Read1 m) => Read1 (FreeT f m) where
+  liftReadsPrec rp rl = go
+    where
+      goList = liftReadList rp rl
+      go = readsData $ readsUnaryWith
+        (liftReadsPrec (liftReadsPrec2 rp rl go goList) (liftReadList2 rp rl go goList))
+        "FreeT" FreeT
+#else
 instance (Functor f, Read1 f, Functor m, Read1 m) => Read1 (FreeT f m) where
   readsPrec1 d =  readParen (d > 10) $ \r ->
     [ (FreeT (fmap lower1 . lower1 <$> m),t) | ("FreeT",s) <- lex r, (m,t) <- readsPrec1 11 s]
+#endif
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance (Read1 f, Read1 m, Read a) => Read (FreeT f m a) where

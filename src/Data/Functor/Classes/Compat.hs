@@ -15,6 +15,7 @@ import Data.Monoid (mappend)
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Data.Functor.Classes.Compat (
     Lift1 (..),
+    on,
     module Data.Functor.Classes,
     ) where
 
@@ -25,6 +26,7 @@ module Data.Functor.Classes.Compat (
 import Data.Foldable
 import Data.Traversable
 import Data.Functor.Classes
+import Data.Function (on)
 
 -- If Show1 and Read1 are ever derived by the same mechanism as
 -- Show and Read, rather than GND, that will change their behavior

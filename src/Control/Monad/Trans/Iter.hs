@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -87,7 +86,6 @@ import Data.Either
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Classes.Compat
 import Data.Functor.Identity
-import Data.Function (on)
 import Data.Monoid
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
@@ -126,33 +124,81 @@ runIter :: Iter a -> Either a (Iter a)
 runIter = runIdentity . runIterT
 {-# INLINE runIter #-}
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Eq1 m) => Eq1 (IterT m) where
+  liftEq eq = go
+    where
+      go (IterT x) (IterT y) = liftEq (liftEq2 eq go) x y
+#else
 instance (Functor m, Eq1 m) => Eq1 (IterT m) where
   eq1 = on eq1 (fmap (fmap Lift1) . runIterT)
+#endif
 
-instance Eq (m (Either a (IterT m a))) => Eq (IterT m a) where
-  IterT m == IterT n = m == n
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Eq1 m, Eq a) => Eq (IterT m a) where
+#else
+instance (Functor m, Eq1 m, Eq a) => Eq (IterT m a) where
+#endif
+  (==) = eq1
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Ord1 m) => Ord1 (IterT m) where
+  liftCompare cmp = go
+    where
+      go (IterT x) (IterT y) = liftCompare (liftCompare2 cmp go) x y
+#else
 instance (Functor m, Ord1 m) => Ord1 (IterT m) where
   compare1 = on compare1 (fmap (fmap Lift1) . runIterT)
+#endif
 
-instance Ord (m (Either a (IterT m a))) => Ord (IterT m a) where
-  compare (IterT m) (IterT n) = compare m n
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Ord1 m, Ord a) => Ord (IterT m a) where
+#else
+instance (Functor m, Ord1 m, Ord a) => Ord (IterT m a) where
+#endif
+  compare = compare1
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Show1 m) => Show1 (IterT m) where
+  liftShowsPrec sp sl = go
+    where
+      goList = liftShowList sp sl
+      go d (IterT x) = showsUnaryWith
+        (liftShowsPrec (liftShowsPrec2 sp sl go goList) (liftShowList2 sp sl go goList))
+        "IterT" d x     
+#else
 instance (Functor m, Show1 m) => Show1 (IterT m) where
   showsPrec1 d (IterT m) = showParen (d > 10) $
     showString "IterT " . showsPrec1 11 (fmap (fmap Lift1) m)
+#endif
 
-instance Show (m (Either a (IterT m a))) => Show (IterT m a) where
-  showsPrec d (IterT m) = showParen (d > 10) $
-    showString "IterT " . showsPrec 11 m
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Show1 m, Show a) => Show (IterT m a) where
+#else
+instance (Functor m, Show1 m, Show a) => Show (IterT m a) where
+#endif
+  showsPrec = showsPrec1
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Read1 m) => Read1 (IterT m) where
+  liftReadsPrec rp rl = go
+    where
+      goList = liftReadList rp rl
+      go = readsData $ readsUnaryWith
+        (liftReadsPrec (liftReadsPrec2 rp rl go goList) (liftReadList2 rp rl go goList))
+        "IterT" IterT
+#else
 instance (Functor m, Read1 m) => Read1 (IterT m) where
   readsPrec1 d =  readParen (d > 10) $ \r ->
     [ (IterT (fmap (fmap lower1) m),t) | ("IterT",s) <- lex r, (m,t) <- readsPrec1 11 s]
+#endif
 
-instance Read (m (Either a (IterT m a))) => Read (IterT m a) where
-  readsPrec d =  readParen (d > 10) $ \r ->
-    [ (IterT m,t) | ("IterT",s) <- lex r, (m,t) <- readsPrec 11 s]
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Read1 m, Read a) => Read (IterT m a) where
+#else
+instance (Functor m, Read1 m, Read a) => Read (IterT m a) where
+#endif
+  readsPrec = readsPrec1
 
 instance Monad m => Functor (IterT m) where
   fmap f = IterT . liftM (bimap f (fmap f)) . runIterT
