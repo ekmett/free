@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -194,12 +193,22 @@ free :: FreeF f a (Free f a) -> Free f a
 free = FreeT . Identity
 {-# INLINE free #-}
 
-deriving instance Eq (m (FreeF f a (FreeT f m a))) => Eq (FreeT f m a)
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Eq1 f, Eq1 m, Eq a) => Eq (FreeT f m a) where
+#else
+instance (Eq1 f, Eq1 m, Functor f, Functor m, Eq a) => Eq (FreeT f m a) where
+#endif
+    (==) = eq1
 
 instance (Functor f, Eq1 f, Functor m, Eq1 m) => Eq1 (FreeT f m) where
   eq1 = on eq1 (fmap (Lift1 . fmap Lift1) . runFreeT)
 
-deriving instance Ord (m (FreeF f a (FreeT f m a))) => Ord (FreeT f m a)
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance Ord (FreeT f m a) where
+#else
+instance (Ord1 f, Ord1 m, Functor f, Functor m, Ord a) => Ord (FreeT f m a) where
+#endif
+    compare = compare1
 
 instance (Functor f, Ord1 f, Functor m, Ord1 m) => Ord1 (FreeT f m) where
   compare1 = on compare1 (fmap (Lift1 . fmap Lift1) . runFreeT)
@@ -208,17 +217,23 @@ instance (Functor f, Show1 f, Functor m, Show1 m) => Show1 (FreeT f m) where
   showsPrec1 d (FreeT m) = showParen (d > 10) $
     showString "FreeT " . showsPrec1 11 (Lift1 . fmap Lift1 <$> m)
 
-instance Show (m (FreeF f a (FreeT f m a))) => Show (FreeT f m a) where
-  showsPrec d (FreeT m) = showParen (d > 10) $
-    showString "FreeT " . showsPrec 11 m
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Show1 f, Show1 m, Show a) => Show (FreeT f m a) where
+#else
+instance (Functor f, Show1 f, Functor m, Show1 m, Show a) => Show (FreeT f m a) where
+#endif
+  showsPrec = showsPrec1
 
 instance (Functor f, Read1 f, Functor m, Read1 m) => Read1 (FreeT f m) where
   readsPrec1 d =  readParen (d > 10) $ \r ->
     [ (FreeT (fmap lower1 . lower1 <$> m),t) | ("FreeT",s) <- lex r, (m,t) <- readsPrec1 11 s]
 
-instance Read (m (FreeF f a (FreeT f m a))) => Read (FreeT f m a) where
-  readsPrec d =  readParen (d > 10) $ \r ->
-    [ (FreeT m,t) | ("FreeT",s) <- lex r, (m,t) <- readsPrec 11 s]
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Read1 f, Read1 m, Read a) => Read (FreeT f m a) where
+#else
+instance (Functor f, Read1 f, Functor m, Read1 m, Read a) => Read (FreeT f m a) where
+#endif
+  readsPrec = readsPrec1
 
 instance (Functor f, Monad m) => Functor (FreeT f m) where
   fmap f (FreeT m) = FreeT (liftM f' m) where
