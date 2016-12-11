@@ -101,7 +101,7 @@ infixr 5 :<
 -- In particular, if @f a ≡ [a]@, the
 -- resulting data structure is a <https://en.wikipedia.org/wiki/Rose_tree Rose tree>.
 -- For a practical application, check 
--- <https://personal.cis.strath.ac.uk/neil.ghani/papers/ghani-calco07 Higher Dimensional Trees, Algebraically> by Neil Ghani et al.
+-- <https://web.archive.org/web/20161208002902/http://www.cs.le.ac.uk/people/ak155/Papers/CALCO-07/GK07.pdf Higher Dimensional Trees, Algebraically> by Neil Ghani et al.
 data Cofree f a = a :< f (Cofree f a)
 #if __GLASGOW_HASKELL__ >= 707
   deriving (Typeable)
