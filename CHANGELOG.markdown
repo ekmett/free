@@ -1,3 +1,28 @@
+5
+-
+* Add `Control.Monad.Free.Ap` and `Control.Monad.Trans.Free.Ap` modules, based
+  on the "Applicative Effects in Free Monads" series of articles by Will
+  Fancher.
+* Derive `Data` instances for `Free` and `Cofree`.
+* `Control.Monad.Free.TH` now properly supports `template-haskell-2.11.0.0`. In
+  particular, it now supports `GadtC` and `RecGadtC`, which are new
+  `template-haskell` forms for representing GADTs.
+* The use of `prelude-extras` has been removed. `free` now uses the
+  `Data.Functor.Classes` module to give `free`'s datatypes instances of `Eq1`,
+  `Ord1`, `Read1`, and `Show1`. Their `Eq`, `Ord`, `Read`, and `Show` instances
+  have also been modified to incorporate these classes. For example, what
+  previously existed as:
+
+  ```haskell
+  instance (Eq (f (Free f a)), Eq a) => Eq (Free f a) where
+  ```
+
+  has now been changed to:
+
+  ```haskell
+  instance (Eq1 f, Eq a) => Eq (Free f a) where
+  ```
+
 4.12.4
 ------
 * Removed a number of spurious class constraints.
