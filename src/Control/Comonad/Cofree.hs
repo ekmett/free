@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -8,6 +7,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 #endif
+#include "free-common.h"
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree
@@ -48,6 +48,7 @@ import Control.Category
 import Control.Monad(ap, (>=>), liftM)
 import Control.Monad.Zip
 import Data.Functor.Bind
+import Data.Functor.Classes.Compat
 import Data.Functor.Extend
 import Data.Data
 import Data.Distributive
@@ -57,7 +58,6 @@ import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Prelude hiding (id,(.))
-import Prelude.Extras
 
 
 infixr 5 :<
@@ -196,49 +196,90 @@ instance Alternative f => Applicative (Cofree f) where
   (<*>) = ap
   {-# INLINE (<*>) #-}
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Show1 f) => Show1 (Cofree f) where
+  liftShowsPrec sp sl = go
+    where
+      goList = liftShowList sp sl
+      go d (a :< as) = showParen (d > 5) $
+        sp 6 a . showString " :< " . liftShowsPrec go goList 5 as
+#else
 instance (Functor f, Show1 f) => Show1 (Cofree f) where
   showsPrec1 d (a :< as) = showParen (d > 5) $
     showsPrec 6 a . showString " :< " . showsPrec1 5 (fmap Lift1 as)
+#endif
 
-instance (Show (f (Cofree f a)), Show a) => Show (Cofree f a) where
-  showsPrec d (a :< as) = showParen (d > 5) $
-    showsPrec 6 a . showString " :< " . showsPrec 5 as
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Show1 f, Show a) => Show (Cofree f a) where
+#else
+instance (Functor f, Show1 f, Show a) => Show (Cofree f a) where
+#endif
+  showsPrec = showsPrec1
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Read1 f) => Read1 (Cofree f) where
+  liftReadsPrec rp rl = go
+    where
+      goList = liftReadList rp rl
+      go d r = readParen (d > 5)
+        (\r' -> [(u :< v, w) |
+                (u, s) <- rp 6 r',
+                (":<", t) <- lex s,
+                (v, w) <- liftReadsPrec go goList 5 t]) r
+#else
 instance (Functor f, Read1 f) => Read1 (Cofree f) where
   readsPrec1 d r = readParen (d > 5)
                           (\r' -> [(u :< fmap lower1 v,w) |
                                   (u, s) <- readsPrec 6 r',
                                   (":<", t) <- lex s,
                                   (v, w) <- readsPrec1 5 t]) r
-
-instance (Read (f (Cofree f a)), Read a) => Read (Cofree f a) where
-  readsPrec d r = readParen (d > 5)
-                          (\r' -> [(u :< v,w) |
-                                  (u, s) <- readsPrec 6 r',
-                                  (":<", t) <- lex s,
-                                  (v, w) <- readsPrec 5 t]) r
-
-instance (Eq (f (Cofree f a)), Eq a) => Eq (Cofree f a) where
-#ifndef HLINT
-  a :< as == b :< bs = a == b && as == bs
 #endif
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Read1 f, Read a) => Read (Cofree f a) where
+#else
+instance (Functor f, Read1 f, Read a) => Read (Cofree f a) where
+#endif
+  readsPrec = readsPrec1
+
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Eq1 f, Eq a) => Eq (Cofree f a) where
+#else
+instance (Functor f, Eq1 f, Eq a) => Eq (Cofree f a) where
+#endif
+  (==) = eq1
+
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Eq1 f) => Eq1 (Cofree f) where
+  liftEq eq = go
+    where
+      go (a :< as) (b :< bs) = eq a b && liftEq go as bs
+#else
 instance (Functor f, Eq1 f) => Eq1 (Cofree f) where
 #ifndef HLINT
-  a :< as ==# b :< bs = a == b && fmap Lift1 as ==# fmap Lift1 bs
+  eq1 (a :< as) (b :< bs) = a == b && eq1 (fmap Lift1 as) (fmap Lift1 bs)
+#endif
 #endif
 
-instance (Ord (f (Cofree f a)), Ord a) => Ord (Cofree f a) where
-  compare (a :< as) (b :< bs) = case compare a b of
-    LT -> LT
-    EQ -> compare as bs
-    GT -> GT
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Ord1 f, Ord a) => Ord (Cofree f a) where
+#else
+instance (Functor f, Ord1 f, Ord a) => Ord (Cofree f a) where
+#endif
+  compare = compare1
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Ord1 f) => Ord1 (Cofree f) where
+  liftCompare cmp = go
+    where
+      go (a :< as) (b :< bs) = cmp a b `mappend` liftCompare go as bs
+#else
 instance (Functor f, Ord1 f) => Ord1 (Cofree f) where
   compare1 (a :< as) (b :< bs) = case compare a b of
     LT -> LT
     EQ -> compare1 (fmap Lift1 as) (fmap Lift1 bs)
     GT -> GT
+#endif
 
 instance Foldable f => Foldable (Cofree f) where
   foldMap f = go where

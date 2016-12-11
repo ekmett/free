@@ -45,6 +45,7 @@ extra-source-files:
   doc/proof/Control/Comonad/Trans/Cofree/*.md
   examples/*.hs
   examples/*.lhs
+  include/free-common.h
 extra-doc-files:
   examples/*.hs
   examples/*.lhs
@@ -55,6 +56,8 @@ source-repository head
 
 library
   hs-source-dirs: src
+  include-dirs: include
+  includes: free-common.h
 
   default-language:   Haskell2010
   default-extensions: CPP
@@ -72,7 +75,6 @@ library
     comonad              >= 4 && < 6,
     distributive         >= 0.2.1,
     mtl                  >= 2.0.1.0 && < 2.3,
-    prelude-extras       >= 0.4 && < 1,
     profunctors          >= 4 && < 6,
     semigroupoids        >= 4 && < 6,
     semigroups           >= 0.8.3.1 && < 1,
@@ -101,5 +103,8 @@ library
     Control.Monad.Trans.Free.Ap
     Control.Monad.Trans.Free.Church
     Control.Monad.Trans.Iter
+
+  other-modules:
+    Data.Functor.Classes.Compat
 
   ghc-options: -Wall
