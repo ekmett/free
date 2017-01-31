@@ -24,7 +24,7 @@ import Data.Functor.Alt ((<!>))
 import qualified Data.Functor.Alt as Alt
 import Data.Semigroup
 
--- | The free 'Alternative' for a 'Functor' @f@.
+-- | The free 'Alternative' for any @f@.
 newtype Alt f a = Alt { _runAlt :: forall g. Alternative g => (forall x. f x -> g x) -> g a }
 
 instance Functor (Alt f) where
