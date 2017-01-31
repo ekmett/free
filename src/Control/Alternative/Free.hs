@@ -48,14 +48,14 @@ newtype Alt f a = Alt { alternatives :: [AltF f a] }
   deriving Typeable
 #endif
 
-instance Functor f => Functor (AltF f) where
+instance Functor (AltF f) where
   fmap f (Pure a) = Pure $ f a
   fmap f (Ap x g) = x `Ap` fmap (f .) g
 
-instance Functor f => Functor (Alt f) where
+instance Functor (Alt f) where
   fmap f (Alt xs) = Alt $ map (fmap f) xs
 
-instance Functor f => Applicative (AltF f) where
+instance Applicative (AltF f) where
   pure = Pure
   {-# INLINE pure #-}
   (Pure f)   <*> y         = fmap f y      -- fmap
@@ -63,7 +63,7 @@ instance Functor f => Applicative (AltF f) where
   (Ap a f)   <*> b         = a `Ap` (flip <$> f <*> (Alt [b]))
   {-# INLINE (<*>) #-}
 
-instance Functor f => Applicative (Alt f) where
+instance Applicative (Alt f) where
   pure a = Alt [pure a]
   {-# INLINE pure #-}
 
@@ -75,12 +75,12 @@ instance Functor f => Applicative (Alt f) where
       (u `Ap` f) `ap'` v  = Alt [u `Ap` (flip <$> f) <*> v]
   {-# INLINE (<*>) #-}
 
-liftAltF :: (Functor f) => f a -> AltF f a
+liftAltF :: f a -> AltF f a
 liftAltF x = x `Ap` pure id
 {-# INLINE liftAltF #-}
 
--- | A version of 'lift' that can be used with just a 'Functor' for @f@.
-liftAlt :: (Functor f) => f a -> Alt f a
+-- | A version of 'lift' that can be used with any @f@.
+liftAlt :: f a -> Alt f a
 liftAlt = Alt . (:[]) . liftAltF
 {-# INLINE liftAlt #-}
 
@@ -96,25 +96,25 @@ runAlt u xs0 = go xs0 where
   go2 (Ap x f) = flip id <$> u x <*> go f
 {-# INLINABLE runAlt #-}
 
-instance (Functor f) => Apply (Alt f) where
+instance Apply (Alt f) where
   (<.>) = (<*>)
   {-# INLINE (<.>) #-}
 
-instance (Functor f) => Alt.Alt (Alt f) where
+instance Alt.Alt (Alt f) where
   (<!>) = (<|>)
   {-# INLINE (<!>) #-}
 
-instance (Functor f) => Alternative (Alt f) where
+instance Alternative (Alt f) where
   empty = Alt []
   {-# INLINE empty #-}
   Alt as <|> Alt bs = Alt (as ++ bs)
   {-# INLINE (<|>) #-}
 
-instance (Functor f) => Semigroup (Alt f a) where
+instance Semigroup (Alt f a) where
   (<>) = (<|>)
   {-# INLINE (<>) #-}
 
-instance (Functor f) => Monoid (Alt f a) where
+instance Monoid (Alt f a) where
   mempty = empty
   {-# INLINE mempty #-}
   mappend = (<|>)
