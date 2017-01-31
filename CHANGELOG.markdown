@@ -22,6 +22,7 @@
   ```haskell
   instance (Eq1 f, Eq a) => Eq (Free f a) where
   ```
+* Remove redundant `Functor` constraints from `Control.Alternative.Free`
 
 4.12.4
 ------
