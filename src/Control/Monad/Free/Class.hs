@@ -8,10 +8,8 @@
 {-# LANGUAGE TypeFamilies #-}
 #endif
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
+#include "free-common.h"
 
-#ifndef MIN_VERSION_base
-#define MIN_VERSION_base(x,y,z) 1
-#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free.Class

@@ -3,14 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
-
-#ifndef MIN_VERSION_base
-#define MIN_VERSION_base(x,y,z) 1
-#endif
-
-#ifndef MIN_VERSION_mtl
-#define MIN_VERSION_mtl(x,y,z) 1
-#endif
+#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -70,7 +63,7 @@ import qualified Control.Monad.Trans.Free as FreeT
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 import Data.Functor.Bind hiding (join)
-import Data.Function
+import Data.Functor.Classes.Compat
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable (Foldable)
@@ -80,11 +73,25 @@ import Data.Traversable (Traversable)
 -- | The \"free monad transformer\" for a functor @f@
 newtype FT f m a = FT { runFT :: forall r. (a -> m r) -> (forall x. (x -> m r) -> f x -> m r) -> m r }
 
-instance (Functor f, Monad m, Eq (FreeT f m a)) => Eq (FT f m a) where
-  (==) = (==) `on` fromFT
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Functor f, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
+  liftEq eq x y = liftEq eq (fromFT x) (fromFT y)
 
-instance (Functor f, Monad m, Ord (FreeT f m a)) => Ord (FT f m a) where
-  compare = compare `on` fromFT
+instance (Functor f, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
+  liftCompare cmp x y= liftCompare cmp (fromFT x) (fromFT y)
+#else
+instance (Functor f, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
+  eq1 x y = eq1 (fromFT x) (fromFT y)
+
+instance (Functor f, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
+  compare1 x y = compare1 (fromFT x) (fromFT y)
+#endif
+
+instance (Eq1 (FT f m), Eq a) => Eq (FT f m a) where
+  (==) = eq1
+
+instance (Ord1 (FT f m), Ord a) => Ord (FT f m a) where
+  compare = compare1
 
 instance Functor (FT f m) where
   fmap f (FT k) = FT $ \a fr -> k (a . f) fr

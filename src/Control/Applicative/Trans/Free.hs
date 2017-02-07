@@ -5,6 +5,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
 {-# OPTIONS_GHC -Wall #-}
+#include "free-common.h"
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Applicative.Trans.Free
