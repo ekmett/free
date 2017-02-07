@@ -1,9 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
+#include "free-common.h"
 
-#ifndef MIN_VERSION_base
-#define MIN_VERSION_base(x,y,z) 1
-#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Applicative.Free.Final

@@ -4,9 +4,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-#ifndef MIN_VERSION_base
-#define MIN_VERSION_base(x,y,z) 1
-#endif
+#include "free-common.h"
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Free.Church
