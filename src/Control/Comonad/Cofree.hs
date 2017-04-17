@@ -128,7 +128,7 @@ unfold f c = case f c of
 unfoldM :: (Traversable f, Monad m) => (b -> m (a, f b)) -> b -> m (Cofree f a)
 unfoldM f = f >=> \ (x, t) -> (x :<) `liftM` Data.Traversable.mapM (unfoldM f) t
 
-hoistCofree :: Functor f => (forall x . f x -> g x) -> Cofree f a -> Cofree g a
+hoistCofree :: Functor f => (f (Cofree g a) -> g (Cofree g a)) -> Cofree f a -> Cofree g a
 hoistCofree f (x :< y) = x :< f (hoistCofree f <$> y)
 
 instance Functor f => ComonadCofree f (Cofree f) where
