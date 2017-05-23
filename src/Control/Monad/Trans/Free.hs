@@ -35,6 +35,7 @@ module Control.Monad.Trans.Free
   , iterT
   , iterTM
   , hoistFreeT
+  , foldFreeT
   , transFreeT
   , joinFreeT
   , cutoff
@@ -403,6 +404,15 @@ instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) wher
 -- @'hoistFreeT' :: ('Monad' m, 'Functor' f) => (m ~> n) -> 'FreeT' f m ~> 'FreeT' f n@
 hoistFreeT :: (Monad m, Functor f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
 hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
+
+-- | The very definition of a free monad transformer is that given a natural
+-- transformation you get a monad transformer homomorphism.
+foldFreeT :: (MonadTrans t, Monad (t m), Monad m)
+          => (forall n x. Monad n => f x -> t n x) -> FreeT f m a -> t m a
+foldFreeT f (FreeT m) = lift m >>= foldFreeF
+  where
+    foldFreeF (Pure a) = return a
+    foldFreeF (Free as) = f as >>= foldFreeT f
 
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g m@
 transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
