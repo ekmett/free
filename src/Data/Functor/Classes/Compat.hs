@@ -7,7 +7,7 @@ module Data.Functor.Classes.Compat (
 
 import Data.Functor.Classes
 
-#if !MIN_VERSION_base(4,8,0)
+#if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (mappend)
 #endif
 #else
@@ -23,8 +23,10 @@ module Data.Functor.Classes.Compat (
 -- transformers-0.4 helpers, copied from prelude-extras
 -------------------------------------------------------------------------------
 
+# if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable
 import Data.Traversable
+# endif
 import Data.Functor.Classes
 import Data.Function (on)
 

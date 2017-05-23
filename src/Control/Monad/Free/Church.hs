@@ -70,7 +70,6 @@ import Control.Applicative
 import Control.Monad as Monad
 import Control.Monad.Fix
 import Control.Monad.Free hiding (retract, iter, iterM, cutoff)
-import qualified Control.Monad.Free as Free
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
 import Control.Monad.Cont.Class
