@@ -103,7 +103,7 @@ infixr 5 :<
 --
 -- In particular, if @f a ≡ [a]@, the
 -- resulting data structure is a <https://en.wikipedia.org/wiki/Rose_tree Rose tree>.
--- For a practical application, check 
+-- For a practical application, check
 -- <https://web.archive.org/web/20161208002902/http://www.cs.le.ac.uk/people/ak155/Papers/CALCO-07/GK07.pdf Higher Dimensional Trees, Algebraically> by Neil Ghani et al.
 data Cofree f a = a :< f (Cofree f a)
 #if __GLASGOW_HASKELL__ >= 707
@@ -435,7 +435,7 @@ telescoped = Prelude.foldr (\l r -> _unwrap . l . r) _extract
 telescoped_ :: Functor f =>
               [(Cofree g a -> f (Cofree g a)) -> g (Cofree g a) -> f (g (Cofree g a))] ->
               (Cofree g a -> f (Cofree g a)) -> Cofree g a -> f (Cofree g a)
-telescoped_ = foldr (\l r -> _unwrap . l . r) id
+telescoped_ = Prelude.foldr (\l r -> _unwrap . l . r) id
 {-# INLINE telescoped_ #-}
 
 -- | A @Traversal'@ that gives access to all non-leaf @a@ elements of a
