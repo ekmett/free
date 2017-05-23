@@ -7,6 +7,14 @@
 * `Control.Monad.Free.TH` now properly supports `template-haskell-2.11.0.0`. In
   particular, it now supports `GadtC` and `RecGadtC`, which are new
   `template-haskell` forms for representing GADTs.
+* Add `telescoped_`, `shoots`, and `leaves` to `Control.Comonad.Cofree`
+* Add the `Control.Applicative.Free.Fast` module, based on Dave Menendez's
+  article "Free Applicative Functors in Haskell"
+* Add `foldFreeT` to `Control.Monad.Trans.Free`
+* Improve the `foldMap` and `cutoff` functions for
+  `Control.Monad.Free.Church.F`, and add a `Traversable`
+* Add a `MonadBase` instance for `FreeT`
+* Add a performance test comparing Free and Church interpreters
 * The use of `prelude-extras` has been removed. `free` now uses the
   `Data.Functor.Classes` module to give `free`'s datatypes instances of `Eq1`,
   `Ord1`, `Read1`, and `Show1`. Their `Eq`, `Ord`, `Read`, and `Show` instances
