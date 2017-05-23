@@ -86,6 +86,7 @@ library
 
   exposed-modules:
     Control.Applicative.Free
+    Control.Applicative.Free.Fast
     Control.Applicative.Free.Final
     Control.Applicative.Trans.Free
     Control.Alternative.Free
