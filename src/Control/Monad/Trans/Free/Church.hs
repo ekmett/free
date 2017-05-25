@@ -74,10 +74,10 @@ import Data.Traversable (Traversable)
 newtype FT f m a = FT { runFT :: forall r. (a -> m r) -> (forall x. (x -> m r) -> f x -> m r) -> m r }
 
 #ifdef LIFTED_FUNCTOR_CLASSES
-instance (Functor f, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
+instance (Functor f, Functor m, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
   liftEq eq x y = liftEq eq (fromFT x) (fromFT y)
 
-instance (Functor f, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
+instance (Functor f, Functor m, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
   liftCompare cmp x y= liftCompare cmp (fromFT x) (fromFT y)
 #else
 instance (Functor f, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
@@ -148,7 +148,7 @@ instance (MonadIO m) => MonadIO (FT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
 
-instance (Functor f, MonadError e m) => MonadError e (FT f m) where
+instance (Functor f, Functor m, MonadError e m) => MonadError e (FT f m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
   m `catchError` f = toFT $ fromFT m `catchError` (fromFT . f)
@@ -162,7 +162,7 @@ instance MonadReader r m => MonadReader r (FT f m) where
   local f = hoistFT (local f)
   {-# INLINE local #-}
 
-instance (Functor f, MonadWriter w m) => MonadWriter w (FT f m) where
+instance (Functor f, Functor m, MonadWriter w m) => MonadWriter w (FT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen = toFT . listen . fromFT
@@ -186,7 +186,7 @@ instance MonadThrow m => MonadThrow (FT f m) where
   throwM = lift . throwM
   {-# INLINE throwM #-}
 
-instance (Functor f, MonadCatch m) => MonadCatch (FT f m) where
+instance (Functor f, Functor m, MonadCatch m) => MonadCatch (FT f m) where
   catch m f = toFT $ fromFT m `Control.Monad.Catch.catch` (fromFT . f)
   {-# INLINE catch #-}
 
@@ -200,7 +200,7 @@ toFT (FreeT f) = FT $ \ka kfr -> do
     Free fb -> kfr (\x -> runFT (toFT x) ka kfr) fb
 
 -- | Convert to a 'FreeT' free monad representation.
-fromFT :: (Monad m, Functor f) => FT f m a -> FreeT f m a
+fromFT :: (Functor m, Monad m, Functor f) => FT f m a -> FreeT f m a
 fromFT (FT k) = FreeT $ k (return . Pure) (\xg -> runFreeT . wrap . fmap (FreeT . xg))
 
 -- | The \"free monad\" for a functor @f@.
@@ -250,7 +250,7 @@ joinFT (FT m) = m (return . return) (\xg -> liftM wrap . T.mapM xg)
 --
 -- Calling 'retract . cutoff n' is always terminating, provided each of the
 -- steps in the iteration is terminating.
-cutoff :: (Functor f, Monad m) => Integer -> FT f m a -> FT f m (Maybe a)
+cutoff :: (Functor f, Functor m, Monad m) => Integer -> FT f m a -> FT f m (Maybe a)
 cutoff n = toFT . FreeT.cutoff n . fromFT
 
 -- |
@@ -308,7 +308,7 @@ improve m = fromF m
 -- with only binds and returns by using 'FT' behind the scenes.
 --
 -- Similar to 'improve'.
-improveT :: (Functor f, Monad m) => (forall t. MonadFree f (t m) => t m a) -> FreeT f m a
+improveT :: (Functor f, Functor m, Monad m) => (forall t. MonadFree f (t m) => t m a) -> FreeT f m a
 improveT m = fromFT m
 {-# INLINE improveT #-}
 
