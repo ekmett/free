@@ -279,8 +279,8 @@ instance (Functor f, Read1 f, Functor m, Read1 m, Read a) => Read (FreeT f m a) 
 #endif
   readsPrec = readsPrec1
 
-instance (Functor f, Monad m) => Functor (FreeT f m) where
-  fmap f (FreeT m) = FreeT (liftM f' m) where
+instance (Functor f, Functor m) => Functor (FreeT f m) where
+  fmap f (FreeT m) = FreeT (fmap f' m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
@@ -401,7 +401,7 @@ iterTM f (FreeT m) = do
 instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
   foldMap f (FreeT m) = foldMap (bifoldMap f (foldMap f)) m
 
-instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) where
+instance (Applicative m, Traversable m, Traversable f) => Traversable (FreeT f m) where
   traverse f (FreeT m) = FreeT <$> traverse (bitraverse f (traverse f)) m
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' f n@
