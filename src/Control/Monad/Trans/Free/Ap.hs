@@ -46,6 +46,7 @@ import Control.Applicative
 import Control.Monad (liftM, MonadPlus(..), join)
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.Free.Class
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
@@ -297,12 +298,15 @@ instance (Apply f, Apply m, Monad m) => Bind (FreeT f m) where
     Free w -> return (Free (fmap (>>- f) w))
 
 instance (Applicative f, Applicative m, Monad m) => Monad (FreeT f m) where
-  fail e = FreeT (fail e)
   return = pure
   {-# INLINE return #-}
   FreeT m >>= f = FreeT $ m >>= \v -> case v of
     Pure a -> runFreeT (f a)
     Free w -> return (Free (fmap (>>= f) w))
+  fail = Fail.fail
+
+instance (Applicative f, Applicative m, Monad m) => Fail.MonadFail (FreeT f m) where
+  fail e = FreeT (fail e)
 
 instance MonadTrans (FreeT f) where
   lift = FreeT . liftM Pure

@@ -50,7 +50,7 @@ instance Semigroup (Alt f a) where
 
 instance Monoid (Alt f a) where
   mempty = empty
-  mappend = (<|>)
+  mappend = (<>)
 
 -- | A version of 'lift' that can be used with @f@.
 liftAlt :: f a -> Alt f a
