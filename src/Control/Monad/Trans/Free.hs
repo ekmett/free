@@ -57,6 +57,7 @@ import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
 import Control.Monad.Free.Class
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
@@ -297,12 +298,16 @@ instance (Functor f, Monad m) => Bind (FreeT f m) where
   (>>-) = (>>=)
 
 instance (Functor f, Monad m) => Monad (FreeT f m) where
-  fail e = FreeT (fail e)
   return = pure
   {-# INLINE return #-}
   FreeT m >>= f = FreeT $ m >>= \v -> case v of
     Pure a -> runFreeT (f a)
     Free w -> return (Free (fmap (>>= f) w))
+
+  fail = Fail.fail
+
+instance (Functor f, Monad m) => Fail.MonadFail (FreeT f m) where
+  fail e = FreeT (fail e)
 
 instance MonadTrans (FreeT f) where
   lift = FreeT . liftM Pure

@@ -73,6 +73,7 @@ import Control.Monad.Catch (MonadCatch(..), MonadThrow(..))
 import Control.Monad (ap, liftM, MonadPlus(..), join)
 import Control.Monad.Fix
 import Control.Monad.Trans.Class
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.Free.Class
 import Control.Monad.State.Class
 import Control.Monad.Error.Class
@@ -86,7 +87,7 @@ import Data.Either
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Classes.Compat
 import Data.Functor.Identity
-import Data.Monoid
+import Data.Semigroup
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Typeable
@@ -215,6 +216,10 @@ instance Monad m => Monad (IterT m) where
   {-# INLINE return #-}
   IterT m >>= k = IterT $ m >>= either (runIterT . k) (return . Right . (>>= k))
   {-# INLINE (>>=) #-}
+  fail = Fail.fail
+  {-# INLINE fail #-}
+
+instance Monad m => Fail.MonadFail (IterT m) where
   fail _ = never
   {-# INLINE fail #-}
 
@@ -279,7 +284,7 @@ instance MonadWriter w m => MonadWriter w (IterT m) where
   listen (IterT m) = IterT $ liftM concat' $ listen (fmap listen `liftM` m)
     where
       concat' (Left  x, w) = Left (x, w)
-      concat' (Right y, w) = Right $ second (w <>) <$> y
+      concat' (Right y, w) = Right $ second (w `mappend`) <$> y
   pass m = IterT . pass' . runIterT . hoistIterT clean $ listen m
     where
       clean = pass . liftM (\x -> (x, const mempty))
@@ -427,17 +432,9 @@ interleave_ [] = return ()
 interleave_ xs = IterT $ liftM (Right . interleave_ . rights) $ mapM runIterT xs
 {-# INLINE interleave_ #-}
 
-instance (Monad m, Monoid a) => Monoid (IterT m a) where
+instance (Monad m, Semigroup a, Monoid a) => Monoid (IterT m a) where
   mempty = return mempty
-  x `mappend` y = IterT $ do
-    x' <- runIterT x
-    y' <- runIterT y
-    case (x', y') of
-      ( Left a, Left b)  -> return . Left  $ a `mappend` b
-      ( Left a, Right b) -> return . Right $ liftM (a `mappend`) b
-      (Right a, Left b)  -> return . Right $ liftM (`mappend` b) a
-      (Right a, Right b) -> return . Right $ a `mappend` b
-
+  mappend = (<>)
   mconcat = mconcat' . map Right
     where
       mconcat' :: (Monad m, Monoid a) => [Either a (IterT m a)] -> IterT m a
@@ -455,7 +452,17 @@ instance (Monad m, Monoid a) => Monoid (IterT m a) where
 
       compact' a []               = [Left a]
       compact' a (r@(Right _):xs) = (Left a):(r:(compact xs))
-      compact' a (  (Left a'):xs) = compact' (a <> a') xs
+      compact' a (  (Left a'):xs) = compact' (a `mappend` a') xs
+
+instance (Monad m, Semigroup a) => Semigroup (IterT m a) where
+  x <> y = IterT $ do
+    x' <- runIterT x
+    y' <- runIterT y
+    case (x', y') of
+      ( Left a, Left b)  -> return . Left  $ a <> b
+      ( Left a, Right b) -> return . Right $ liftM (a <>) b
+      (Right a, Left b)  -> return . Right $ liftM (<> b) a
+      (Right a, Right b) -> return . Right $ a <> b
 
 #if __GLASGOW_HASKELL__ < 707
 instance Typeable1 m => Typeable1 (IterT m) where

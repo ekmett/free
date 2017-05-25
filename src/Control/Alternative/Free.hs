@@ -119,7 +119,7 @@ instance Semigroup (Alt f a) where
 instance Monoid (Alt f a) where
   mempty = empty
   {-# INLINE mempty #-}
-  mappend = (<|>)
+  mappend = (<>)
   {-# INLINE mappend #-}
   mconcat as = Alt (as >>= alternatives)
   {-# INLINE mconcat #-}
