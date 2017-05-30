@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 #include "free-common.h"
 
 -----------------------------------------------------------------------------
@@ -48,9 +49,12 @@ module Control.Monad.Trans.Free.Church
 import Control.Applicative
 import Control.Category ((<<<), (>>>))
 import Control.Monad
+import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Catch (MonadCatch(..), MonadThrow(..))
 import Control.Monad.Identity
 import Control.Monad.Trans.Class
+import Control.Monad.Trans.Control (MonadTransControl(..), MonadBaseControl(..),
+                                    ComposeSt, defaultLiftBaseWith, defaultRestoreM)
 import Control.Monad.IO.Class
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
@@ -147,6 +151,22 @@ instance (Monad m, Traversable m, Traversable f) => Traversable (FT f m) where
 instance (MonadIO m) => MonadIO (FT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
+
+instance MonadBase b m => MonadBase b (FT f m) where
+  liftBase = lift . liftBase
+  {-# INLINE liftBase #-}
+
+instance (Traversable f) => MonadTransControl (FT f) where
+  type StT (FT f) a = F f a
+  liftWith mkFT = lift $ mkFT joinFT
+  {-# INLINE liftWith #-}
+  restoreT mstt = lift mstt >>= hoistFT (return . runIdentity)
+  {-# INLINE restoreT #-}
+
+instance (MonadBaseControl b m, Traversable f) => MonadBaseControl b (FT f m) where
+  type StM (FT f m) a = ComposeSt (FT f) m a
+  liftBaseWith = defaultLiftBaseWith
+  restoreM = defaultRestoreM
 
 instance (Functor f, MonadError e m) => MonadError e (FT f m) where
   throwError = lift . throwError
