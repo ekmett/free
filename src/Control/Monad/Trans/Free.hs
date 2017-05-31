@@ -338,10 +338,10 @@ liftWith (const m) >>= liftWith . const . f
   = lift m >>= lift . f
   = lift (m >>= f)
   = lift (const (m >>= f) joinFreeT)
-  = liftWith (const (m >>= f)
+  = liftWith (const (m >>= f))
 * liftWith (\run -> run t) >>= restoreT . return = t
 liftWith (\run -> run t) >>= restoreT . return
-  = lift (joinFreeT t) >>= lift return >>= hoistFreeT (return . runIdentity)
+  = lift (joinFreeT t) >>= lift . return >>= hoistFreeT (return . runIdentity)
   = lift (joinFreeT t) >>= hoistFreeT (return . runIdentity)
   = t
 -}
