@@ -66,8 +66,9 @@ count = getSum . runAp_ (\_ -> Sum 1)
 -- Repeats field input until it passes validation.
 -- Show help message on empty input.
 input :: Form a -> IO a
-input m = evalStateT (runAp inputField m) (1 :: Integer)
+input m = evalStateT (runAp inputField m) 1
   where
+    inputField :: Field a -> StateT Int IO a
     inputField f@(Field n g h) = do
       i <- get
       -- get field input with prompt
