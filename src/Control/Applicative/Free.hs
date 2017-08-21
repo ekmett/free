@@ -41,6 +41,7 @@ module Control.Applicative.Free
   ) where
 
 import Control.Applicative
+import Control.Comonad (Comonad(..))
 import Data.Functor.Apply
 import Data.Typeable
 
@@ -87,6 +88,12 @@ instance Applicative (Ap f) where
   Pure f <*> y = fmap f y
   Ap x y <*> z = Ap x (flip <$> y <*> z)
 
+instance Comonad f => Comonad (Ap f) where
+  extract (Pure a) = a
+  extract (Ap x y) = extract y (extract x)
+  duplicate (Pure a) = Pure (Pure a)
+  duplicate (Ap x y) = Ap (duplicate x) (extend (flip Ap) y)
+  
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftAp :: f a -> Ap f a
 liftAp x = Ap x (Pure id)
