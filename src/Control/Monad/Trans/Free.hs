@@ -45,6 +45,7 @@ module Control.Monad.Trans.Free
   , retractT
   , copy
   , copy'
+  , expand
   -- * Operations of free monad
   , retract
   , iter
@@ -407,17 +408,20 @@ iterTM f (FreeT m) = do
         Pure x -> return x
         Free y -> f y
 
+expand :: (Applicative m, Functor f)
+        => (forall a b. (g a -> b) -> f a -> h b)
+        -> FreeT f m r -> FreeT g (FreeT h m) r
+expand g = loop where
+  loop (FreeT t) = FreeT $ FreeT $ flip fmap t $
+    \str -> case str of
+      Pure r -> Pure (Pure r)
+      Free f -> Free $ g (FreeT . pure . Pure . Free) (fmap loop f)
+
 copy :: (Applicative m, Comonad f) => FreeT f m r -> FreeT f (FreeT f m) r
-copy (FreeT t) = FreeT $ FreeT $ flip fmap t $
-  \str -> case str of
-    Pure r -> Pure (Pure r)
-    Free f -> Free $ extend (FreeT . pure . Pure . Free) (fmap copy f)
+copy = expand extend
 
 copy' :: (Applicative m, Extend f) => FreeT f m r -> FreeT f (FreeT f m) r
-copy' (FreeT t) = FreeT $ FreeT $ flip fmap t $
-  \str -> case str of
-    Pure r -> Pure (Pure r)
-    Free f -> Free $ extended (FreeT . pure . Pure . Free) (fmap copy' f)
+copy' = expand extended
 
 instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
   foldMap f (FreeT m) = foldMap (bifoldMap f (foldMap f)) m
