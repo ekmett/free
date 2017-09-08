@@ -43,6 +43,8 @@ module Control.Monad.Trans.Free
   , intersperseT
   , intercalateT
   , retractT
+  , copy
+  , copy'
   -- * Operations of free monad
   , retract
   , iter
@@ -52,6 +54,7 @@ module Control.Monad.Trans.Free
   ) where
 
 import Control.Applicative
+import Control.Comonad (Comonad (..))
 import Control.Monad (liftM, MonadPlus(..), ap, join)
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
@@ -66,6 +69,7 @@ import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Classes.Compat
+import Data.Functor.Extend (Extend (..))
 import Data.Monoid
 import Data.Functor.Identity
 import Data.Traversable
@@ -402,6 +406,18 @@ iterTM f (FreeT m) = do
     case fmap (iterTM f) val of
         Pure x -> return x
         Free y -> f y
+
+copy :: (Applicative m, Comonad f) => FreeT f m r -> FreeT f (FreeT f m) r
+copy (FreeT t) = FreeT $ FreeT $ flip fmap t $
+  \str -> case str of
+    Pure r -> Pure (Pure r)
+    Free f -> Free $ extend (FreeT . pure . Pure . Free) (fmap copy f)
+
+copy' :: (Applicative m, Extend f) => FreeT f m r -> FreeT f (FreeT f m) r
+copy' (FreeT t) = FreeT $ FreeT $ flip fmap t $
+  \str -> case str of
+    Pure r -> Pure (Pure r)
+    Free f -> Free $ extended (FreeT . pure . Pure . Free) (fmap copy' f)
 
 instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
   foldMap f (FreeT m) = foldMap (bifoldMap f (foldMap f)) m
