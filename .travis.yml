@@ -103,6 +103,8 @@ install:
     fi
   - grep -Ev -- '^\s*--' ${HOME}/.cabal/config | grep -Ev '^\s*$'
   - "printf 'packages: \".\" \"./examples\"\\n' > cabal.project"
+  - echo 'package free-examples' >> cabal.project
+  - echo '  flags: -mandelbrot-iter' >> cabal.project"
   - cat cabal.project
   - if [ -f "./configure.ac" ]; then
       (cd "." && autoreconf -i);
