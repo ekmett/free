@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module PerfTH where
+module Main where
 
 import System.CPUTime.Rdtsc
 import System.IO
