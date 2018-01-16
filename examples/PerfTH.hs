@@ -1,7 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
@@ -55,8 +54,8 @@ g_print_time_since_prev_call = liftIO $ do
 
 -- | Free-based interpreter
 runPerfFree :: (MonadIO m) => [String] -> Free PerfF () -> m ()
-runPerfFree [] = const (return ())
-runPerfFree (s:ss) = \case
+runPerfFree [] _ = return ()
+runPerfFree (s:ss) x = case x of
   Free (Output o next) -> do
     runPerfFree (s:ss) next
   Free (Input next) -> do
