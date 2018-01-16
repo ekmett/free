@@ -127,6 +127,7 @@ script:
   - cd ${DISTDIR} || false
   - find . -maxdepth 1 -name '*.tar.gz' -exec tar -xvf '{}' \;
   - "printf 'packages: free-*/*.cabal free-examples-*/*.cabal\\n' > cabal.project"
+  - echo 'package free-examples' >> cabal.project
   - "echo '  flags: -mandelbrot-iter' >> cabal.project"
   - cat cabal.project
 
