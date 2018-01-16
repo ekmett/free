@@ -6,7 +6,7 @@ import Control.Monad.State
 
 import Data.Monoid
 
-import Text.Read (readEither)
+import Text.Read.Compat (readEither)
 import Text.Printf
 
 import System.IO

@@ -29,9 +29,10 @@ library
   exposed-modules: Cabbage
   ghc-options: -Wall
   build-depends:
-    base == 4.*,
+    base         == 4.*,
     free,
-    mtl  >= 2.0.1 && < 2.3
+    mtl          >= 2.0.1 && < 2.3,
+    transformers >= 0.2   && < 0.6
 
 executable free-mandelbrot-iter
   if !flag(mandelbrot-iter)
@@ -63,6 +64,7 @@ executable free-perf-th
   ghc-options: -Wall
   build-depends:
     base         == 4.*,
+    base-compat,
     free,
     mtl          >= 2.0.1 && < 2.3,
     rdtsc,
@@ -95,5 +97,6 @@ executable free-validation-form
   ghc-options: -Wall
   build-depends:
     base == 4.*,
+    base-compat,
     free,
     mtl  >= 2.0.1 && < 2.3

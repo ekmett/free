@@ -22,6 +22,8 @@ import Control.Category ((>>>))
 import qualified Data.Foldable as F
 import Text.Read (readMaybe)
 import Text.Printf
+import Prelude ()
+import Prelude.Compat
 
 -- | A data type representing basic commands for our performance-testing eDSL.
 data PerfF next where
