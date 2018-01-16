@@ -10,7 +10,7 @@ import Control.Monad.Free.TH
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
 import qualified Data.Foldable as F
-import Text.Read (readMaybe)
+import Text.Read.Compat (readMaybe)
 
 -- | A data type representing basic commands for a retriable eDSL.
 data RetryF next where

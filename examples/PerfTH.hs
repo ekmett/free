@@ -20,7 +20,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
 import Control.Category ((>>>))
 import qualified Data.Foldable as F
-import Text.Read (readMaybe)
+import Text.Read.Compat (readMaybe)
 import Text.Printf
 
 -- | A data type representing basic commands for our performance-testing eDSL.

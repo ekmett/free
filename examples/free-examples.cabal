@@ -64,6 +64,7 @@ executable free-perf-th
   ghc-options: -Wall
   build-depends:
     base         == 4.*,
+    base-compat,
     free,
     mtl          >= 2.0.1 && < 2.3,
     rdtsc,
@@ -76,6 +77,7 @@ executable free-retry-th
   ghc-options: -Wall
   build-depends:
     base         == 4.*,
+    base-compat,
     free,
     transformers >= 0.2 && < 0.6
 
