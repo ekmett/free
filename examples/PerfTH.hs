@@ -22,8 +22,6 @@ import Control.Category ((>>>))
 import qualified Data.Foldable as F
 import Text.Read (readMaybe)
 import Text.Printf
-import Prelude ()
-import Prelude.Compat
 
 -- | A data type representing basic commands for our performance-testing eDSL.
 data PerfF next where
@@ -71,7 +69,7 @@ runPerfFree (s:ss) = \case
 runPerfF :: (MonadIO m) => [String] -> Church.F PerfF () -> m ()
 runPerfF [] _ = return ()
 runPerfF ss0 f =
-  fst <$> do
+  fst `liftM` do
   flip runStateT ss0 $ Church.iterM go f where
     go (Output o next) = do
       next
