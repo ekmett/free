@@ -1,5 +1,8 @@
 5
 -
+* Add a `Semigroup` instance for `IterT`.
+* Add `MonadFail` instances for `IterT` and `FreeT`.
+* Add a `Comonad` instance for the free `Applicative`, `Ap`.
 * Add `Control.Monad.Free.Ap` and `Control.Monad.Trans.Free.Ap` modules, based
   on the "Applicative Effects in Free Monads" series of articles by Will
   Fancher.
