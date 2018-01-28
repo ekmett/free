@@ -1,5 +1,5 @@
-5
--
+5 [2018.01.28]
+--------------
 * Add a `Semigroup` instance for `IterT`.
 * Add `MonadFail` instances for `IterT` and `FreeT`.
 * Add a `Comonad` instance for the free `Applicative`, `Ap`.
