@@ -45,7 +45,8 @@ executable free-mandelbrot-iter
     base == 4.*,
     free,
     HGL,
-    mtl  >= 2.0.1 && < 2.3
+    mtl          >= 2.0.1 && < 2.3,
+    transformers >= 0.2   && < 0.6
 
 executable free-newton-coiter
   hs-source-dirs: .
