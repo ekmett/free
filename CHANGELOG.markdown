@@ -1,3 +1,7 @@
+5.0.1 [2018.03.07]
+------------------
+* Fix the build on old GHCs with `transformers-0.4`.
+
 5 [2018.01.28]
 --------------
 * Add a `Semigroup` instance for `IterT`.
