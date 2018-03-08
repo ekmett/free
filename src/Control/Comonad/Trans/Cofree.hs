@@ -42,13 +42,16 @@ import Data.Bifoldable
 import Data.Bitraversable
 import Data.Foldable
 import Data.Functor.Identity
-import Data.Semigroup
 import Data.Traversable
 import Control.Monad (liftM)
 import Control.Monad.Trans
 import Control.Monad.Zip
 import Prelude hiding (id,(.))
 import Data.Data
+
+#if !(MIN_VERSION_base(4,8,0))
+import Data.Monoid
+#endif
 
 infixr 5 :<
 
@@ -147,7 +150,7 @@ instance (Functor f, Comonad w) => ComonadCofree f (CofreeT f w) where
 
 instance (Functor f, ComonadEnv e w) => ComonadEnv e (CofreeT f w) where
   ask = ask . lower
-  {-# INLINE ask #-} 
+  {-# INLINE ask #-}
 
 instance Functor f => ComonadHoist (CofreeT f) where
   cohoist g = CofreeT . fmap (second (cohoist g)) . g . runCofreeT

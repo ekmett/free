@@ -33,8 +33,11 @@ import Control.Applicative
 import Data.Functor.Apply
 import Data.Functor.Alt ((<!>))
 import qualified Data.Functor.Alt as Alt
-import Data.Semigroup
 import Data.Typeable
+
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup
+#endif
 
 infixl 3 `Ap`
 
