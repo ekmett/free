@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE StandaloneDeriving #-}
 #endif
 #include "free-common.h"
@@ -61,6 +62,9 @@ import Data.Traversable
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Prelude hiding (id,(.))
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics hiding (Infix, Prefix)
+#endif
 
 
 infixr 5 :<
@@ -107,7 +111,7 @@ infixr 5 :<
 -- <https://web.archive.org/web/20161208002902/http://www.cs.le.ac.uk/people/ak155/Papers/CALCO-07/GK07.pdf Higher Dimensional Trees, Algebraically> by Neil Ghani et al.
 data Cofree f a = a :< f (Cofree f a)
 #if __GLASGOW_HASKELL__ >= 707
-  deriving (Typeable)
+  deriving (Typeable, Generic, Generic1)
 
 deriving instance (Typeable f, Data (f (Cofree f a)), Data a) => Data (Cofree f a)
 #endif

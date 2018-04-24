@@ -5,6 +5,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 
 -----------------------------------------------------------------------------
@@ -48,6 +49,9 @@ import Control.Monad.Trans
 import Control.Monad.Zip
 import Prelude hiding (id,(.))
 import Data.Data
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics hiding (Infix, Prefix)
+#endif
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid
@@ -59,7 +63,7 @@ infixr 5 :<
 data CofreeF f a b = a :< f b
   deriving (Eq,Ord,Show,Read
 #if __GLASGOW_HASKELL__ >= 707
-           ,Typeable
+           ,Typeable, Generic, Generic1
 #endif
            )
 

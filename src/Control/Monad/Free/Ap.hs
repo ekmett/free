@@ -5,6 +5,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #include "free-common.h"
 
@@ -68,11 +69,14 @@ import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Data
 import Prelude hiding (foldr)
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics
+#endif
 
 -- | A free monad given an applicative
 data Free f a = Pure a | Free (f (Free f a))
 #if __GLASGOW_HASKELL__ >= 707
-  deriving (Typeable)
+  deriving (Typeable, Generic, Generic1)
 #endif
 
 #ifdef LIFTED_FUNCTOR_CLASSES

@@ -5,6 +5,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE StandaloneDeriving #-}
 #endif
 #include "free-common.h"
@@ -58,6 +59,9 @@ import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Data
 import Prelude hiding (foldr)
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics
+#endif
 
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
 --
@@ -105,7 +109,7 @@ import Prelude hiding (foldr)
 -- * @'Free' 'Maybe'@ can be used to model a partiality monad where each layer represents running the computation for a while longer.
 data Free f a = Pure a | Free (f (Free f a))
 #if __GLASGOW_HASKELL__ >= 707
-  deriving (Typeable)
+  deriving (Typeable, Generic, Generic1)
 
 deriving instance (Typeable f, Data (f (Free f a)), Data a) => Data (Free f a)
 #endif
