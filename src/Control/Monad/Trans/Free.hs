@@ -6,6 +6,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #include "free-common.h"
 
@@ -72,6 +73,9 @@ import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
 import Data.Data
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics
+#endif
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable
@@ -82,7 +86,7 @@ import Data.Monoid
 data FreeF f a b = Pure a | Free (f b)
   deriving (Eq,Ord,Show,Read
 #if __GLASGOW_HASKELL__ >= 707
-           ,Typeable
+           ,Typeable ,Generic ,Generic1
 #endif
            )
 
