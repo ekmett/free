@@ -1,4 +1,5 @@
 5.0.2 [2018.04.25]
+------------------
 * Add `Generic` and `Generic1` instances where possible.
 
 5.0.1 [2018.03.07]
