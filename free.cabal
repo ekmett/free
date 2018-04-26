@@ -2,7 +2,7 @@ name:          free
 category:      Control, Monads
 version:       5.0.2
 license:       BSD3
-cabal-version: >= 1.18
+cabal-version: 1.18
 license-file:  LICENSE
 author:        Edward A. Kmett
 maintainer:    Edward A. Kmett <ekmett@gmail.com>
@@ -73,19 +73,24 @@ library
 
   build-depends:
     base                 == 4.*,
-    bifunctors           >= 4 && < 6,
     comonad              >= 4 && < 6,
     distributive         >= 0.2.1,
     mtl                  >= 2.0.1.0 && < 2.3,
     profunctors          >= 4 && < 6,
     semigroupoids        >= 4 && < 6,
-    semigroups           >= 0.8.3.1 && < 1,
     transformers         >= 0.2.0   && < 0.6,
     transformers-base    < 0.5,
-    transformers-compat  >= 0.3     && < 1,
     template-haskell     >= 2.7.0.0 && < 3,
     exceptions           >= 0.6 && < 0.11,
     containers           < 0.6
+
+  if impl(ghc < 8.2)
+    build-depends:
+      bifunctors         >= 4 && < 6
+
+  if impl(ghc < 8.0)
+    build-depends:
+      semigroups         >= 0.8.3.1 && < 1
 
   exposed-modules:
     Control.Applicative.Free
