@@ -6,6 +6,10 @@
 #define MIN_VERSION_mtl(x,y,z) 1
 #endif
 
+#ifndef MIN_VERSION_transformers_compat
+#define MIN_VERSION_transformers_compat(x,y,z) 0
+#endif
+
 #if MIN_VERSION_base(4,9,0)
 #define LIFTED_FUNCTOR_CLASSES 1
 #else
