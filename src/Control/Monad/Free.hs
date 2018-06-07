@@ -413,19 +413,19 @@ _Pure = dimap impure (either pure (fmap Pure)) . right'
   {-# INLINE impure #-}
 {-# INLINE _Pure #-}
 
--- | This is @Prism' (Free f a) (f (Free f a))@ in disguise
+-- | This is @Prism (Free f a) (Free g a) (f (Free f a)) (g (Free g a))@ in disguise
 --
 -- >>> preview _Free (review _Free (Just (Pure 3)))
 -- Just (Just (Pure 3))
 --
 -- >>> review _Free (Just (Pure 3))
 -- Free (Just (Pure 3))
-_Free :: forall f m a p. (Choice p, Applicative m)
-      => p (f (Free f a)) (m (f (Free f a))) -> p (Free f a) (m (Free f a))
+_Free :: forall f g m a p. (Choice p, Applicative m)
+      => p (f (Free f a)) (m (g (Free g a))) -> p (Free f a) (m (Free g a))
 _Free = dimap unfree (either pure (fmap Free)) . right'
  where
   unfree (Free x) = Right x
-  unfree x        = Left x
+  unfree (Pure x) = Left (Pure x)
   {-# INLINE unfree #-}
 {-# INLINE _Free #-}
 
