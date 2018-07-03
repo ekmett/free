@@ -1,6 +1,7 @@
 next [????.??.??]
 -----------------
 * Generalize the type of `_Free`.
+* Allow building with `containers-0.6`.
 * Avoid incurring some dependencies when using recent GHCs.
 
 5.0.2 [2018.04.25]
