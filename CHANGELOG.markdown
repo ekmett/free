@@ -1,3 +1,8 @@
+next [????.??.??]
+-----------------
+* Generalize the type of `_Free`.
+* Avoid incurring some dependencies when using recent GHCs.
+
 5.0.2 [2018.04.25]
 ------------------
 * Add `Generic` and `Generic1` instances where possible.
