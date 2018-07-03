@@ -1,5 +1,5 @@
-next [????.??.??]
------------------
+5.1 [2018.07.03]
+----------------
 * Generalize the type of `_Free`.
 * Allow building with `containers-0.6`.
 * Avoid incurring some dependencies when using recent GHCs.
