@@ -5,6 +5,7 @@
 module Main where
 
 import Control.Monad
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.Free
 import Control.Monad.Free.TH
 import Control.Monad.IO.Class
@@ -53,10 +54,10 @@ withRetry :: MonadFree RetryF m =>
 -- retry      :: MonadFree RetryF m => m a
 
 -- | We can run a retriable program in any MonadIO.
-runRetry :: MonadIO m => Retry a -> m a
+runRetry :: (MonadFail m, MonadIO m) => Retry a -> m a
 runRetry = iterM run
   where
-    run :: MonadIO m => RetryF (m a) -> m a
+    run :: (MonadFail m, MonadIO m) => RetryF (m a) -> m a
 
     run (Output s next) = do
       liftIO $ putStrLn s

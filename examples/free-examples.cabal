@@ -73,6 +73,7 @@ executable free-perf-th
   build-depends:
     base         == 4.*,
     base-compat,
+    fail         == 4.9.*,
     free,
     mtl          >= 2.0.1 && < 2.3,
     rdtsc,
@@ -86,6 +87,7 @@ executable free-retry-th
   build-depends:
     base         == 4.*,
     base-compat,
+    fail         == 4.9.*,
     free,
     transformers >= 0.2 && < 0.6
 
