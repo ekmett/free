@@ -12,6 +12,7 @@ import Data.IORef
 import Data.Word
 import Control.Monad
 import Control.Monad.State.Strict
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.Free
 import Control.Monad.Free.TH
 import qualified Control.Monad.Free.Church as Church
@@ -65,7 +66,7 @@ runPerfFree (s:ss) x = case x of
     return a
 
 -- | Church-based interpreter
-runPerfF :: (MonadIO m) => [String] -> Church.F PerfF () -> m ()
+runPerfF :: (MonadFail m, MonadIO m) => [String] -> Church.F PerfF () -> m ()
 runPerfF [] _ = return ()
 runPerfF ss0 f =
   fst `liftM` do

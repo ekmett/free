@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -5,6 +6,7 @@
 module Main where
 
 import Control.Monad
+import Control.Monad.Fail as Fail
 import Control.Monad.Free
 import Control.Monad.Free.TH
 import Control.Monad.IO.Class
@@ -53,10 +55,10 @@ withRetry :: MonadFree RetryF m =>
 -- retry      :: MonadFree RetryF m => m a
 
 -- | We can run a retriable program in any MonadIO.
-runRetry :: MonadIO m => Retry a -> m a
+runRetry :: (MonadFail m, MonadIO m) => Retry a -> m a
 runRetry = iterM run
   where
-    run :: MonadIO m => RetryF (m a) -> m a
+    run :: (MonadFail m, MonadIO m) => RetryF (m a) -> m a
 
     run (Output s next) = do
       liftIO $ putStrLn s
@@ -66,7 +68,7 @@ runRetry = iterM run
       s <- liftIO getLine
       case readMaybe s of
         Just x  -> next x
-        Nothing -> fail "invalid input"
+        Nothing -> Fail.fail "invalid input"
 
     run (WithRetry block next) = do
       -- Here we use
@@ -76,7 +78,7 @@ runRetry = iterM run
       Just x <- runMaybeT . F.msum $ repeat (runRetry block)
       next x
 
-    run Retry = fail "forced retry"
+    run Retry = Fail.fail "forced retry"
 
 -- | Sample program.
 test :: Retry ()
@@ -93,3 +95,8 @@ test = do
 main :: IO ()
 main = runRetry test
 
+#if !(MIN_VERSION_base(4,9,0))
+instance (Monad m) => MonadFail (MaybeT m) where
+    fail _ = MaybeT (return Nothing)
+    {-# INLINE fail #-}
+#endif
