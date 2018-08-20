@@ -373,8 +373,8 @@ instance (Applicative f, Applicative m, MonadPlus m) => MonadPlus (FreeT f m) wh
   mplus (FreeT ma) (FreeT mb) = FreeT (mplus ma mb)
   {-# INLINE mplus #-}
 
-instance (Applicative f, Applicative m, Monad m) => MonadFree f (FreeT f m) where
-  wrap = FreeT . return . Free
+instance (Applicative f, Applicative m) => MonadFree f (FreeT f m) where
+  wrap = FreeT . pure . Free
   {-# INLINE wrap #-}
 
 instance (Applicative f, Applicative m, MonadThrow m) => MonadThrow (FreeT f m) where
