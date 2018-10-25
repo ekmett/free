@@ -31,6 +31,7 @@ module Control.Monad.Free
   , iterM
   , hoistFree
   , foldFree
+  , fromFree
   , toFreeT
   , cutoff
   , unfold
@@ -364,6 +365,11 @@ hoistFree f (Free as) = Free (hoistFree f <$> f as)
 foldFree :: Monad m => (forall x . f x -> m x) -> Free f a -> m a
 foldFree _ (Pure a)  = return a
 foldFree f (Free as) = f as >>= foldFree f
+
+-- | Convert a 'Free' monad to an arbitrary 'MonadFree' instance.
+fromFree :: (Functor f, MonadFree f m) => Free f a -> m a
+fromFree (Pure x) = return x
+fromFree (Free ff) = wrap (fromFree <$> ff)
 
 -- | Convert a 'Free' monad from "Control.Monad.Free" to a 'FreeT.FreeT' monad
 -- from "Control.Monad.Trans.Free".

@@ -198,6 +198,8 @@ fromF (F m) = m return wrap
 {-# INLINE fromF #-}
 
 -- | Generate a Church-encoded free monad from a 'Free' monad.
+--
+-- @toF = fromFree@
 toF :: Functor f => Free f a -> F f a
 toF xs = F (\kp kf -> go kp kf xs) where
   go kp _  (Pure a) = kp a
