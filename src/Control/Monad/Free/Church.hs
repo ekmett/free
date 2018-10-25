@@ -56,6 +56,7 @@ module Control.Monad.Free.Church
   , improve
   , fromF
   , iter
+  , iterA
   , iterM
   , toF
   , retract
@@ -69,7 +70,7 @@ module Control.Monad.Free.Church
 import Control.Applicative
 import Control.Monad as Monad
 import Control.Monad.Fix
-import Control.Monad.Free hiding (retract, iter, iterM, cutoff)
+import Control.Monad.Free hiding (retract, iter, iterA, iterM, cutoff)
 import Control.Monad.Reader.Class
 import Control.Monad.Writer.Class
 import Control.Monad.Cont.Class
@@ -92,6 +93,10 @@ newtype F f a = F { runF :: forall r. (a -> r) -> (f r -> r) -> r }
 -- | Tear down a 'Free' 'Monad' using iteration.
 iter :: (f a -> a) -> F f a -> a
 iter phi xs = runF xs id phi
+
+-- | Like iter for applicative values.
+iterA :: Applicative m => (f (m a) -> m a) -> F f a -> m a
+iterA phi xs = runF xs pure phi
 
 -- | Like iter for monadic values.
 iterM :: Monad m => (f (m a) -> m a) -> F f a -> m a
