@@ -26,8 +26,11 @@ module Control.Monad.Free.Class
   ( MonadFree(..)
   , liftF
   , wrapT
+  , unfold
+  , unfoldM
   ) where
 
+import Control.Category ((>>>))
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
@@ -47,6 +50,7 @@ import Control.Monad.Trans.Identity
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 import Data.Monoid
+import Data.Traversable (Traversable (..))
 #endif
 
 -- |
@@ -159,3 +163,12 @@ liftF = wrap . fmap return
 -- @MonadFree f (t m)@.
 wrapT :: (Functor f, MonadFree f m, MonadTrans t, Monad (t m)) => f (t m a) -> t m a
 wrapT = join . lift . liftF
+
+-- | Unfold a free monad from a seed.
+unfold :: (Functor f, MonadFree f m) => (b -> Either a (f b)) -> b -> m a
+unfold f = f >>> either pure (wrap . fmap (unfold f))
+
+-- | Unfold a free monad from a seed, monadically.
+unfoldM :: (Traversable f, Applicative m, Monad m, MonadFree f ff) => (b -> m (Either a (f b))) -> b -> m (ff a)
+unfoldM f = f >=> either (pure . pure) (fmap wrap . traverse (unfoldM f))
+
