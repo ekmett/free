@@ -41,6 +41,9 @@ library
     mtl          >= 2.0.1 && < 2.3,
     transformers >= 0.2   && < 0.6
 
+-- This example depends on the HGL library which, unfortunately, fails to
+-- compile on GHC 8.4 or later. (See https://github.com/xpika/hgl/issues/3.)
+-- Build at your own risk.
 executable free-mandelbrot-iter
   if !flag(mandelbrot-iter)
     buildable: False
