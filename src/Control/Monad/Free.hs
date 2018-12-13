@@ -82,7 +82,7 @@ import GHC.Generics
 --
 -- then 'Free' is the left adjoint to @U@.
 --
--- Being 'Free' being left adjoint to @U@ means that there is an isomorphism between
+-- 'Free' being left adjoint to @U@ means that there is an isomorphism between
 --
 -- @'Free' f -> m@ in the category of monads and @f -> U m@ in the category of functors.
 --
