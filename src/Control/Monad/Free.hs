@@ -355,7 +355,7 @@ iterM :: (Monad m, Functor f) => (f (m a) -> m a) -> Free f a -> m a
 iterM _   (Pure x) = return x
 iterM phi (Free f) = phi (iterM phi <$> f)
 
--- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'FreeT' f@ to @'FreeT' g@.
+-- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'Free' f@ to @'Free' g@.
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
 hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
