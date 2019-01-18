@@ -204,8 +204,8 @@ instance (Functor m, Read1 m, Read a) => Read (IterT m a) where
 #endif
   readsPrec = readsPrec1
 
-instance Monad m => Functor (IterT m) where
-  fmap f = IterT . liftM (bimap f (fmap f)) . runIterT
+instance Functor m => Functor (IterT m) where
+  fmap f = IterT . fmap (bimap f (fmap f)) . runIterT
   {-# INLINE fmap #-}
 
 instance Monad m => Applicative (IterT m) where
