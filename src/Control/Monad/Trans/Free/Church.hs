@@ -132,17 +132,17 @@ instance MonadPlus m => MonadPlus (FT f m) where
   mzero = FT (\_ _ -> mzero)
   mplus (FT k1) (FT k2) = FT $ \a fr -> k1 a fr `mplus` k2 a fr
 
-instance (Foldable f, Foldable m, Monad m) => Foldable (FT f m) where
+instance (Foldable f, Foldable m, Applicative m) => Foldable (FT f m) where
   foldr f r xs = F.foldr (<<<) id inner r
     where
-      inner = runFT xs (return . f) (\xg xf -> F.foldr (liftM2 (<<<) . xg) (return id) xf)
+      inner = runFT xs (pure . f) (\xg xf -> F.foldr (liftA2 (<<<) . xg) (pure id) xf)
   {-# INLINE foldr #-}
 
 #if MIN_VERSION_base(4,6,0)
   foldl' f z xs = F.foldl' (!>>>) id inner z
     where
       (!>>>) h g = \r -> g $! h r
-      inner = runFT xs (return . flip f) (\xg xf -> F.foldr (liftM2 (>>>) . xg) (return id) xf)
+      inner = runFT xs (pure . flip f) (\xg xf -> F.foldr (liftA2 (>>>) . xg) (pure id) xf)
   {-# INLINE foldl' #-}
 #endif
 
@@ -242,8 +242,8 @@ transFT :: (forall a. f a -> g a) -> FT f m b -> FT g m b
 transFT phi (FT m) = FT (\kp kf -> m kp (\xg -> kf xg . phi))
 
 -- | Pull out and join @m@ layers of @'FreeT' f m a@.
-joinFT :: (Monad m, Traversable f) => FT f m a -> m (F f a)
-joinFT (FT m) = m (return . return) (\xg -> liftM wrap . T.mapM xg)
+joinFT :: (Applicative m, Traversable f) => FT f m a -> m (F f a)
+joinFT (FT m) = m (pure . pure) (\xg -> fmap wrap . traverse xg)
 
 -- | Cuts off a tree of computations at a given depth.
 -- If the depth is 0 or less, no computation nor
