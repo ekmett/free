@@ -53,7 +53,7 @@ module Control.Monad.Trans.Free
   ) where
 
 import Control.Applicative
-import Control.Monad (liftM, MonadPlus(..), ap, join)
+import Control.Monad (liftM, MonadPlus(..), join)
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
@@ -289,10 +289,14 @@ instance (Functor f, Functor m) => Functor (FreeT f m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
-instance (Functor f, Monad m) => Applicative (FreeT f m) where
-  pure a = FreeT (return (Pure a))
+instance (Functor f, Applicative m) => Applicative (FreeT f m) where
+  pure a = FreeT (pure (Pure a))
   {-# INLINE pure #-}
-  (<*>) = ap
+  FreeT mf <*> FreeT mx = FreeT $ liftA2 q mf mx
+    where
+      Pure a `q` Pure b  = Pure $ a b
+      Pure a `q` Free b  = Free $ fmap a <$> b
+      Free a `q` b       = Free $ (<*> FreeT (pure b)) <$> a
   {-# INLINE (<*>) #-}
 
 instance (Functor f, Monad m) => Apply (FreeT f m) where
