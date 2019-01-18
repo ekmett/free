@@ -433,8 +433,8 @@ foldFreeT f (FreeT m) = lift m >>= foldFreeF
     foldFreeF (Free as) = f as >>= foldFreeT f
 
 -- | Lift a natural transformation from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g m@
-transFreeT :: (Monad m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
-transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
+transFreeT :: (Functor m, Functor g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
+transFreeT nt = FreeT . fmap (fmap (transFreeT nt) . transFreeF nt) . runFreeT
 
 -- | Pull out and join @m@ layers of @'FreeT' f m a@.
 joinFreeT :: (Monad m, Traversable f) => FreeT f m a -> m (Free f a)
@@ -478,9 +478,9 @@ iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 --
 -- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
-cutoff :: (Functor f, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
-cutoff n _ | n <= 0 = return Nothing
-cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
+cutoff :: (Functor f, Applicative m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
+cutoff n _ | n <= 0 = pure Nothing
+cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) <$> m
 
 -- | @partialIterT n phi m@ interprets first @n@ layers of @m@ using @phi@.
 -- This is sort of the opposite for @'cutoff'@.
