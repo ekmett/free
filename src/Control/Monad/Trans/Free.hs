@@ -53,7 +53,7 @@ module Control.Monad.Trans.Free
   ) where
 
 import Control.Applicative
-import Control.Monad (liftM, MonadPlus(..), ap, join)
+import Control.Monad (liftM, MonadPlus(..), join)
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
@@ -284,24 +284,28 @@ instance (Functor f, Read1 f, Functor m, Read1 m, Read a) => Read (FreeT f m a) 
 #endif
   readsPrec = readsPrec1
 
-instance (Functor f, Monad m) => Functor (FreeT f m) where
-  fmap f (FreeT m) = FreeT (liftM f' m) where
+instance (Functor f, Functor m) => Functor (FreeT f m) where
+  fmap f (FreeT m) = FreeT (fmap f' m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
-instance (Functor f, Monad m) => Applicative (FreeT f m) where
-  pure a = FreeT (return (Pure a))
+instance (Functor f, Functor m, Applicative m) => Applicative (FreeT f m) where
+  pure a = FreeT (pure (Pure a))
   {-# INLINE pure #-}
-  (<*>) = ap
+  FreeT mf <*> FreeT mx = FreeT $ liftA2 q mf mx
+    where
+      Pure a `q` Pure b  = Pure $ a b
+      Pure a `q` Free b  = Free $ fmap a <$> b
+      Free a `q` b       = Free $ (<*> FreeT (pure b)) <$> a
   {-# INLINE (<*>) #-}
 
-instance (Functor f, Monad m) => Apply (FreeT f m) where
+instance (Functor f, Functor m, Applicative m) => Apply (FreeT f m) where
   (<.>) = (<*>)
 
-instance (Functor f, Monad m) => Bind (FreeT f m) where
+instance (Functor f, Functor m, Applicative m, Monad m) => Bind (FreeT f m) where
   (>>-) = (>>=)
 
-instance (Functor f, Monad m) => Monad (FreeT f m) where
+instance (Functor f, Functor m, Applicative m, Monad m) => Monad (FreeT f m) where
   return = pure
   {-# INLINE return #-}
   FreeT m >>= f = FreeT $ m >>= \v -> case v of
@@ -410,14 +414,14 @@ iterTM f (FreeT m) = do
 instance (Foldable m, Foldable f) => Foldable (FreeT f m) where
   foldMap f (FreeT m) = foldMap (bifoldMap f (foldMap f)) m
 
-instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) where
+instance (Applicative m, Traversable m, Traversable f) => Traversable (FreeT f m) where
   traverse f (FreeT m) = FreeT <$> traverse (bitraverse f (traverse f)) m
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' f n@
 --
 -- @'hoistFreeT' :: ('Monad' m, 'Functor' f) => (m ~> n) -> 'FreeT' f m ~> 'FreeT' f n@
-hoistFreeT :: (Monad m, Functor f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
-hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
+hoistFreeT :: (Functor m, Functor f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
+hoistFreeT mh = FreeT . mh . fmap (fmap (hoistFreeT mh)) . runFreeT
 
 -- | The very definition of a free monad transformer is that given a natural
 -- transformation you get a monad transformer homomorphism.
