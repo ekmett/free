@@ -44,7 +44,7 @@ module Control.Monad.Trans.Free.Ap
   ) where
 
 import Control.Applicative
-import Control.Monad (liftM, MonadPlus(..), join)
+import Control.Monad (MonadPlus(..), join)
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
 import qualified Control.Monad.Fail as Fail
@@ -274,13 +274,13 @@ instance (Functor f, Read1 f, Functor m, Read1 m, Read a) => Read (FreeT f m a) 
 #endif
   readsPrec = readsPrec1
 
-instance (Functor f, Monad m) => Functor (FreeT f m) where
-  fmap f (FreeT m) = FreeT (liftM f' m) where
+instance (Functor f, Functor m) => Functor (FreeT f m) where
+  fmap f (FreeT m) = FreeT (fmap f' m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
-instance (Applicative f, Applicative m, Monad m) => Applicative (FreeT f m) where
-  pure a = FreeT (return (Pure a))
+instance (Applicative f, Applicative m) => Applicative (FreeT f m) where
+  pure a = FreeT (pure (Pure a))
   {-# INLINE pure #-}
   FreeT f <*> FreeT a = FreeT $ g <$> f <*> a where
     g (Pure f') (Pure a') = Pure (f' a')
@@ -289,7 +289,7 @@ instance (Applicative f, Applicative m, Monad m) => Applicative (FreeT f m) wher
     g (Free fs) (Free as) = Free $ (<*>) <$> fs <*> as
   {-# INLINE (<*>) #-}
 
-instance (Apply f, Apply m, Monad m) => Apply (FreeT f m) where
+instance (Apply f, Apply m, Applicative m) => Apply (FreeT f m) where
   FreeT f <.> FreeT a = FreeT $ g <$> f <.> a where
     g (Pure f') (Pure a') = Pure (f' a')
     g (Pure f') (Free as) = Free $ fmap f' <$> as
@@ -313,7 +313,7 @@ instance (Applicative f, Applicative m, Monad m) => Fail.MonadFail (FreeT f m) w
   fail e = FreeT (fail e)
 
 instance MonadTrans (FreeT f) where
-  lift = FreeT . liftM Pure
+  lift = FreeT . fmap Pure
   {-# INLINE lift #-}
 
 instance (Applicative f, Applicative m, MonadIO m) => MonadIO (FreeT f m) where
@@ -329,14 +329,14 @@ instance (Applicative f, Applicative m, MonadReader r m) => MonadReader r (FreeT
 instance (Applicative f, Applicative m, MonadWriter w m) => MonadWriter w (FreeT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
-  listen (FreeT m) = FreeT $ liftM concat' $ listen (fmap listen `liftM` m)
+  listen (FreeT m) = FreeT $ fmap concat' $ listen (fmap listen <$> m)
     where
       concat' (Pure x, w) = Pure (x, w)
       concat' (Free y, w) = Free $ fmap (second (w `mappend`)) <$> y
   pass m = FreeT . pass' . runFreeT . hoistFreeT clean $ listen m
     where
-      clean = pass . liftM (\x -> (x, const mempty))
-      pass' = join . liftM g
+      clean = pass . fmap (\x -> (x, const mempty))
+      pass' = join . fmap g
       g (Pure ((x, f), w)) = tell (f w) >> return (Pure x)
       g (Free f)           = return . Free . fmap (FreeT . pass' . runFreeT) $ f
 #if MIN_VERSION_mtl(2,1,1)
@@ -357,7 +357,7 @@ instance (Applicative f, Applicative m, MonadState s m) => MonadState s (FreeT f
 instance (Applicative f, Applicative m, MonadError e m) => MonadError e (FreeT f m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
-  FreeT m `catchError` f = FreeT $ liftM (fmap (`catchError` f)) m `catchError` (runFreeT . f)
+  FreeT m `catchError` f = FreeT $ fmap (fmap (`catchError` f)) m `catchError` (runFreeT . f)
 
 instance (Applicative f, Applicative m, MonadCont m) => MonadCont (FreeT f m) where
   callCC f = FreeT $ callCC (\k -> runFreeT $ f (lift . k . Pure))
@@ -382,7 +382,7 @@ instance (Applicative f, Applicative m, MonadThrow m) => MonadThrow (FreeT f m) 
   {-# INLINE throwM #-}
 
 instance (Applicative f, Applicative m, MonadCatch m) => MonadCatch (FreeT f m) where
-  FreeT m `catch` f = FreeT $ liftM (fmap (`Control.Monad.Catch.catch` f)) m
+  FreeT m `catch` f = FreeT $ fmap (fmap (`Control.Monad.Catch.catch` f)) m
                                 `Control.Monad.Catch.catch` (runFreeT . f)
   {-# INLINE catch #-}
 
@@ -413,19 +413,19 @@ instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) wher
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' f n@
 --
 -- @'hoistFreeT' :: ('Monad' m, 'Functor' f) => (m ~> n) -> 'FreeT' f m ~> 'FreeT' f n@
-hoistFreeT :: (Monad m, Applicative f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
-hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
+hoistFreeT :: (Functor m, Applicative f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
+hoistFreeT mh = FreeT . mh . fmap (fmap (hoistFreeT mh)) . runFreeT
 
 -- | Lift an applicative homomorphism from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g m@
-transFreeT :: (Monad m, Applicative g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
-transFreeT nt = FreeT . liftM (fmap (transFreeT nt) . transFreeF nt) . runFreeT
+transFreeT :: (Functor m, Applicative g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b
+transFreeT nt = FreeT . fmap (fmap (transFreeT nt) . transFreeF nt) . runFreeT
 
 -- | Pull out and join @m@ layers of @'FreeT' f m a@.
 joinFreeT :: (Monad m, Traversable f, Applicative f) => FreeT f m a -> m (Free f a)
 joinFreeT (FreeT m) = m >>= joinFreeF
   where
     joinFreeF (Pure x) = return (return x)
-    joinFreeF (Free f) = wrap `liftM` Data.Traversable.mapM joinFreeT f
+    joinFreeF (Free f) = wrap <$> Data.Traversable.mapM joinFreeT f
 
 -- |
 -- 'retract' is the left inverse of 'liftF'
@@ -462,9 +462,9 @@ iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 --
 -- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
-cutoff :: (Applicative f, Applicative m, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
-cutoff n _ | n <= 0 = return Nothing
-cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
+cutoff :: (Applicative f, Applicative m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
+cutoff n _ | n <= 0 = pure Nothing
+cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) <$> m
 
 -- | @partialIterT n phi m@ interprets first @n@ layers of @m@ using @phi@.
 -- This is sort of the opposite for @'cutoff'@.
