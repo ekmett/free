@@ -44,7 +44,7 @@ module Control.Monad.Trans.Free.Ap
   ) where
 
 import Control.Applicative
-import Control.Monad (MonadPlus(..), join)
+import Control.Monad (MonadPlus(..), join, liftM)
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
 import qualified Control.Monad.Fail as Fail
@@ -296,7 +296,7 @@ instance (Apply f, Apply m, Applicative m) => Apply (FreeT f m) where
     g (Free fs) (Pure a') = Free $ fmap ($ a') <$> fs
     g (Free fs) (Free as) = Free $ (<.>) <$> fs <.> as
 
-instance (Apply f, Apply m, Monad m) => Bind (FreeT f m) where
+instance (Apply f, Apply m, Applicative m, Monad m) => Bind (FreeT f m) where
   FreeT m >>- f = FreeT $ m >>= \v -> case v of
     Pure a -> runFreeT (f a)
     Free w -> return (Free (fmap (>>- f) w))
@@ -312,8 +312,8 @@ instance (Applicative f, Applicative m, Monad m) => Monad (FreeT f m) where
 instance (Applicative f, Applicative m, Monad m) => Fail.MonadFail (FreeT f m) where
   fail e = FreeT (fail e)
 
-instance MonadTrans (FreeT f) where
-  lift = FreeT . fmap Pure
+instance Functor f => MonadTrans (FreeT f) where
+  lift = FreeT . liftM Pure
   {-# INLINE lift #-}
 
 instance (Applicative f, Applicative m, MonadIO m) => MonadIO (FreeT f m) where
@@ -421,7 +421,7 @@ transFreeT :: (Functor m, Applicative g) => (forall a. f a -> g a) -> FreeT f m 
 transFreeT nt = FreeT . fmap (fmap (transFreeT nt) . transFreeF nt) . runFreeT
 
 -- | Pull out and join @m@ layers of @'FreeT' f m a@.
-joinFreeT :: (Monad m, Traversable f, Applicative f) => FreeT f m a -> m (Free f a)
+joinFreeT :: (Functor m, Monad m, Traversable f, Applicative f) => FreeT f m a -> m (Free f a)
 joinFreeT (FreeT m) = m >>= joinFreeF
   where
     joinFreeF (Pure x) = return (return x)
