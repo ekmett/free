@@ -208,13 +208,13 @@ instance Functor m => Functor (IterT m) where
   fmap f = IterT . fmap (bimap f (fmap f)) . runIterT
   {-# INLINE fmap #-}
 
-instance Monad m => Applicative (IterT m) where
+instance (Functor m, Monad m) => Applicative (IterT m) where
   pure = IterT . return . Left
   {-# INLINE pure #-}
   (<*>) = ap
   {-# INLINE (<*>) #-}
 
-instance Monad m => Monad (IterT m) where
+instance (Functor m, Monad m) => Monad (IterT m) where
   return = pure
   {-# INLINE return #-}
   IterT m >>= k = IterT $ m >>= either (runIterT . k) (return . Right . (>>= k))
@@ -222,30 +222,30 @@ instance Monad m => Monad (IterT m) where
   fail = Fail.fail
   {-# INLINE fail #-}
 
-instance Monad m => Fail.MonadFail (IterT m) where
+instance (Functor m, Monad m) => Fail.MonadFail (IterT m) where
   fail _ = never
   {-# INLINE fail #-}
 
-instance Monad m => Apply (IterT m) where
+instance (Functor m, Monad m) => Apply (IterT m) where
   (<.>) = ap
   {-# INLINE (<.>) #-}
 
-instance Monad m => Bind (IterT m) where
+instance (Functor m, Monad m) => Bind (IterT m) where
   (>>-) = (>>=)
   {-# INLINE (>>-) #-}
 
-instance MonadFix m => MonadFix (IterT m) where
+instance (Functor m, MonadFix m) => MonadFix (IterT m) where
   mfix f = IterT $ mfix $ runIterT . f . either id (error "mfix (IterT m): Right")
   {-# INLINE mfix #-}
 
-instance Monad m => Alternative (IterT m) where
+instance (Functor m, Monad m) => Alternative (IterT m) where
   empty = mzero
   {-# INLINE empty #-}
   (<|>) = mplus
   {-# INLINE (<|>) #-}
 
 -- | Capretta's 'race' combinator. Satisfies left catch.
-instance Monad m => MonadPlus (IterT m) where
+instance (Functor m, Monad m) => MonadPlus (IterT m) where
   mzero = never
   {-# INLINE mzero #-}
   (IterT x) `mplus` (IterT y) = IterT $ x >>= either
@@ -275,13 +275,13 @@ instance (Monad m, Traversable1 m) => Traversable1 (IterT m) where
     go (Right a) = Right <$> traverse1 f a
   {-# INLINE traverse1 #-}
 
-instance MonadReader e m => MonadReader e (IterT m) where
+instance (Functor m, MonadReader e m) => MonadReader e (IterT m) where
   ask = lift ask
   {-# INLINE ask #-}
   local f = hoistIterT (local f)
   {-# INLINE local #-}
 
-instance MonadWriter w m => MonadWriter w (IterT m) where
+instance (Functor m, MonadWriter w m) => MonadWriter w (IterT m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen (IterT m) = IterT $ liftM concat' $ listen (fmap listen `liftM` m)
@@ -299,7 +299,7 @@ instance MonadWriter w m => MonadWriter w (IterT m) where
   {-# INLINE writer #-}
 #endif
 
-instance MonadState s m => MonadState s (IterT m) where
+instance (Functor m, MonadState s m) => MonadState s (IterT m) where
   get = lift get
   {-# INLINE get #-}
   put s = lift (put s)
@@ -309,26 +309,26 @@ instance MonadState s m => MonadState s (IterT m) where
   {-# INLINE state #-}
 #endif
 
-instance MonadError e m => MonadError e (IterT m) where
+instance (Functor m, MonadError e m) => MonadError e (IterT m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
   IterT m `catchError` f = IterT $ liftM (fmap (`catchError` f)) m `catchError` (runIterT . f)
 
-instance MonadIO m => MonadIO (IterT m) where
+instance (Functor m, MonadIO m) => MonadIO (IterT m) where
   liftIO = lift . liftIO
 
-instance MonadCont m => MonadCont (IterT m) where
+instance (Functor m, MonadCont m) => MonadCont (IterT m) where
   callCC f = IterT $ callCC (\k -> runIterT $ f (lift . k . Left))
 
-instance Monad m => MonadFree Identity (IterT m) where
+instance (Functor m, Monad m) => MonadFree Identity (IterT m) where
   wrap = IterT . return . Right . runIdentity
   {-# INLINE wrap #-}
 
-instance MonadThrow m => MonadThrow (IterT m) where
+instance (Functor m, MonadThrow m) => MonadThrow (IterT m) where
   throwM = lift . throwM
   {-# INLINE throwM #-}
 
-instance MonadCatch m => MonadCatch (IterT m) where
+instance (Functor m, MonadCatch m) => MonadCatch (IterT m) where
   catch (IterT m) f = IterT $ liftM (fmap (`Control.Monad.Catch.catch` f)) m `Control.Monad.Catch.catch` (runIterT . f)
   {-# INLINE catch #-}
 
@@ -383,7 +383,7 @@ never = delay never
 -- @
 -- 'retract' ('untilJust' genId) :: IO Id
 -- @
-untilJust :: (Monad m) => m (Maybe a) -> IterT m a
+untilJust :: (Functor m, Monad m) => m (Maybe a) -> IterT m a
 untilJust f = maybe (delay (untilJust f)) return =<< lift f
 {-# INLINE untilJust #-}
 
@@ -405,7 +405,7 @@ untilJust f = maybe (delay (untilJust f)) return =<< lift f
 --
 -- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
-cutoff :: (Monad m) => Integer -> IterT m a -> IterT m (Maybe a)
+cutoff :: (Functor m, Monad m) => Integer -> IterT m a -> IterT m (Maybe a)
 cutoff n | n <= 0 = const $ return Nothing
 cutoff n          = IterT . liftM (either (Left . Just)
                                        (Right . cutoff (n - 1))) . runIterT
@@ -415,7 +415,7 @@ cutoff n          = IterT . liftM (either (Left . Just)
 --
 --   The resulting computation has as many steps as the longest computation
 --   in the list.
-interleave :: Monad m => [IterT m a] -> IterT m [a]
+interleave :: (Functor m, Monad m) => [IterT m a] -> IterT m [a]
 interleave ms = IterT $ do
   xs <- mapM runIterT ms
   if null (rights xs)
@@ -430,12 +430,12 @@ interleave ms = IterT $ do
 --   in the list.
 --
 --   Equivalent to @'void' '.' 'interleave'@.
-interleave_ :: (Monad m) => [IterT m a] -> IterT m ()
+interleave_ :: (Functor m, Monad m) => [IterT m a] -> IterT m ()
 interleave_ [] = return ()
 interleave_ xs = IterT $ liftM (Right . interleave_ . rights) $ mapM runIterT xs
 {-# INLINE interleave_ #-}
 
-instance (Monad m, Semigroup a, Monoid a) => Monoid (IterT m a) where
+instance (Functor m, Monad m, Semigroup a, Monoid a) => Monoid (IterT m a) where
   mempty = return mempty
   mappend = (<>)
   mconcat = mconcat' . map Right
@@ -457,7 +457,7 @@ instance (Monad m, Semigroup a, Monoid a) => Monoid (IterT m a) where
       compact' a (r@(Right _):xs) = (Left a):(r:(compact xs))
       compact' a (  (Left a'):xs) = compact' (a `mappend` a') xs
 
-instance (Monad m, Semigroup a) => Semigroup (IterT m a) where
+instance (Functor m, Monad m, Semigroup a) => Semigroup (IterT m a) where
   x <> y = IterT $ do
     x' <- runIterT x
     y' <- runIterT y
