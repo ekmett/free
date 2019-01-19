@@ -74,10 +74,10 @@ import Data.Traversable (Traversable)
 newtype FT f m a = FT { runFT :: forall r. (a -> m r) -> (forall x. (x -> m r) -> f x -> m r) -> m r }
 
 #ifdef LIFTED_FUNCTOR_CLASSES
-instance (Functor f, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
+instance (Functor f, Applicative m, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
   liftEq eq x y = liftEq eq (fromFT x) (fromFT y)
 
-instance (Functor f, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
+instance (Functor f, Applicative m, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
   liftCompare cmp x y= liftCompare cmp (fromFT x) (fromFT y)
 #else
 instance ( Functor f, Monad m, Eq1 f, Eq1 m
@@ -146,7 +146,7 @@ instance (Foldable f, Foldable m, Applicative m) => Foldable (FT f m) where
   {-# INLINE foldl' #-}
 #endif
 
-instance (Monad m, Traversable m, Traversable f) => Traversable (FT f m) where
+instance (Applicative m, Monad m, Traversable m, Traversable f) => Traversable (FT f m) where
   traverse f (FT k) = fmap (join . lift) . T.sequenceA $ k traversePure traverseFree
     where
       traversePure = return . fmap return . f
@@ -156,7 +156,7 @@ instance (MonadIO m) => MonadIO (FT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
 
-instance (Functor f, MonadError e m) => MonadError e (FT f m) where
+instance (Functor f, Applicative m, MonadError e m) => MonadError e (FT f m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
   m `catchError` f = toFT $ fromFT m `catchError` (fromFT . f)
@@ -170,7 +170,7 @@ instance MonadReader r m => MonadReader r (FT f m) where
   local f = hoistFT (local f)
   {-# INLINE local #-}
 
-instance (Functor f, MonadWriter w m) => MonadWriter w (FT f m) where
+instance (Functor f, Applicative m, MonadWriter w m) => MonadWriter w (FT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen = toFT . listen . fromFT
@@ -194,7 +194,7 @@ instance MonadThrow m => MonadThrow (FT f m) where
   throwM = lift . throwM
   {-# INLINE throwM #-}
 
-instance (Functor f, MonadCatch m) => MonadCatch (FT f m) where
+instance (Functor f, Applicative m, MonadCatch m) => MonadCatch (FT f m) where
   catch m f = toFT $ fromFT m `Control.Monad.Catch.catch` (fromFT . f)
   {-# INLINE catch #-}
 
@@ -208,7 +208,7 @@ toFT (FreeT f) = FT $ \ka kfr -> do
     Free fb -> kfr (\x -> runFT (toFT x) ka kfr) fb
 
 -- | Convert to a 'FreeT' free monad representation.
-fromFT :: (Monad m, Functor f) => FT f m a -> FreeT f m a
+fromFT :: (Applicative m, Monad m, Functor f) => FT f m a -> FreeT f m a
 fromFT (FT k) = FreeT $ k (return . Pure) (\xg -> runFreeT . wrap . fmap (FreeT . xg))
 
 -- | The \"free monad\" for a functor @f@.
@@ -243,7 +243,7 @@ transFT phi (FT m) = FT (\kp kf -> m kp (\xg -> kf xg . phi))
 
 -- | Pull out and join @m@ layers of @'FreeT' f m a@.
 joinFT :: (Applicative m, Traversable f) => FT f m a -> m (F f a)
-joinFT (FT m) = m (pure . pure) (\xg -> fmap wrap . traverse xg)
+joinFT (FT m) = m (pure . pure) (\xg -> fmap wrap . T.traverse xg)
 
 -- | Cuts off a tree of computations at a given depth.
 -- If the depth is 0 or less, no computation nor
@@ -258,7 +258,7 @@ joinFT (FT m) = m (pure . pure) (\xg -> fmap wrap . traverse xg)
 --
 -- Calling 'retract . cutoff n' is always terminating, provided each of the
 -- steps in the iteration is terminating.
-cutoff :: (Functor f, Monad m) => Integer -> FT f m a -> FT f m (Maybe a)
+cutoff :: (Functor f, Applicative m, Monad m) => Integer -> FT f m a -> FT f m (Maybe a)
 cutoff n = toFT . FreeT.cutoff n . fromFT
 
 -- |
@@ -316,7 +316,7 @@ improve m = fromF m
 -- with only binds and returns by using 'FT' behind the scenes.
 --
 -- Similar to 'improve'.
-improveT :: (Functor f, Monad m) => (forall t. MonadFree f (t m) => t m a) -> FreeT f m a
+improveT :: (Functor f, Applicative m, Monad m) => (forall t. MonadFree f (t m) => t m a) -> FreeT f m a
 improveT m = fromFT m
 {-# INLINE improveT #-}
 
