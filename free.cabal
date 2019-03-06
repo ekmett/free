@@ -17,7 +17,7 @@ tested-with:   GHC == 7.4.2
              , GHC == 8.0.2
              , GHC == 8.2.2
              , GHC == 8.4.4
-             , GHC == 8.6.3
+             , GHC == 8.6.4
 synopsis:      Monads for free
 description:
   Free monads are useful for many tree-like structures and domain specific languages.
