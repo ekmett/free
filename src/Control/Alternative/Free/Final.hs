@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
 
 -----------------------------------------------------------------------------
@@ -23,7 +24,10 @@ import Control.Applicative
 import Data.Functor.Apply
 import Data.Functor.Alt ((<!>))
 import qualified Data.Functor.Alt as Alt
+
+#if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup
+#endif
 
 -- | The free 'Alternative' for any @f@.
 newtype Alt f a = Alt { _runAlt :: forall g. Alternative g => (forall x. f x -> g x) -> g a }

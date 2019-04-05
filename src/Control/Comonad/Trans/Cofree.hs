@@ -5,6 +5,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 
 -----------------------------------------------------------------------------
@@ -42,13 +43,19 @@ import Data.Bifoldable
 import Data.Bitraversable
 import Data.Foldable
 import Data.Functor.Identity
-import Data.Semigroup
 import Data.Traversable
 import Control.Monad (liftM)
 import Control.Monad.Trans
 import Control.Monad.Zip
 import Prelude hiding (id,(.))
 import Data.Data
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics hiding (Infix, Prefix)
+#endif
+
+#if !(MIN_VERSION_base(4,8,0))
+import Data.Monoid
+#endif
 
 infixr 5 :<
 
@@ -56,7 +63,7 @@ infixr 5 :<
 data CofreeF f a b = a :< f b
   deriving (Eq,Ord,Show,Read
 #if __GLASGOW_HASKELL__ >= 707
-           ,Typeable
+           ,Typeable, Generic, Generic1
 #endif
            )
 
@@ -147,7 +154,7 @@ instance (Functor f, Comonad w) => ComonadCofree f (CofreeT f w) where
 
 instance (Functor f, ComonadEnv e w) => ComonadEnv e (CofreeT f w) where
   ask = ask . lower
-  {-# INLINE ask #-} 
+  {-# INLINE ask #-}
 
 instance Functor f => ComonadHoist (CofreeT f) where
   cohoist g = CofreeT . fmap (second (cohoist g)) . g . runCofreeT

@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
+#endif
 #include "free-common.h"
 
 -----------------------------------------------------------------------------

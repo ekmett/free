@@ -5,6 +5,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE StandaloneDeriving #-}
 #endif
 #include "free-common.h"
@@ -58,6 +59,9 @@ import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Data
 import Prelude hiding (foldr)
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics
+#endif
 
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
 --
@@ -78,7 +82,7 @@ import Prelude hiding (foldr)
 --
 -- then 'Free' is the left adjoint to @U@.
 --
--- Being 'Free' being left adjoint to @U@ means that there is an isomorphism between
+-- 'Free' being left adjoint to @U@ means that there is an isomorphism between
 --
 -- @'Free' f -> m@ in the category of monads and @f -> U m@ in the category of functors.
 --
@@ -105,7 +109,7 @@ import Prelude hiding (foldr)
 -- * @'Free' 'Maybe'@ can be used to model a partiality monad where each layer represents running the computation for a while longer.
 data Free f a = Pure a | Free (f (Free f a))
 #if __GLASGOW_HASKELL__ >= 707
-  deriving (Typeable)
+  deriving (Typeable, Generic, Generic1)
 
 deriving instance (Typeable f, Data (f (Free f a)), Data a) => Data (Free f a)
 #endif
@@ -351,7 +355,7 @@ iterM :: (Monad m, Functor f) => (f (m a) -> m a) -> Free f a -> m a
 iterM _   (Pure x) = return x
 iterM phi (Free f) = phi (iterM phi <$> f)
 
--- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'FreeT' f@ to @'FreeT' g@.
+-- | Lift a natural transformation from @f@ to @g@ into a natural transformation from @'Free' f@ to @'Free' g@.
 hoistFree :: Functor g => (forall a. f a -> g a) -> Free f b -> Free g b
 hoistFree _ (Pure a)  = Pure a
 hoistFree f (Free as) = Free (hoistFree f <$> f as)
@@ -409,19 +413,19 @@ _Pure = dimap impure (either pure (fmap Pure)) . right'
   {-# INLINE impure #-}
 {-# INLINE _Pure #-}
 
--- | This is @Prism' (Free f a) (f (Free f a))@ in disguise
+-- | This is @Prism (Free f a) (Free g a) (f (Free f a)) (g (Free g a))@ in disguise
 --
 -- >>> preview _Free (review _Free (Just (Pure 3)))
 -- Just (Just (Pure 3))
 --
 -- >>> review _Free (Just (Pure 3))
 -- Free (Just (Pure 3))
-_Free :: forall f m a p. (Choice p, Applicative m)
-      => p (f (Free f a)) (m (f (Free f a))) -> p (Free f a) (m (Free f a))
+_Free :: forall f g m a p. (Choice p, Applicative m)
+      => p (f (Free f a)) (m (g (Free g a))) -> p (Free f a) (m (Free g a))
 _Free = dimap unfree (either pure (fmap Free)) . right'
  where
   unfree (Free x) = Right x
-  unfree x        = Left x
+  unfree (Pure x) = Left (Pure x)
   {-# INLINE unfree #-}
 {-# INLINE _Free #-}
 

@@ -84,10 +84,18 @@ instance (Functor f, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
 instance (Functor f, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
   liftCompare cmp x y= liftCompare cmp (fromFT x) (fromFT y)
 #else
-instance (Functor f, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
+instance ( Functor f, Monad m, Eq1 f, Eq1 m
+# if !(MIN_VERSION_base(4,8,0))
+         , Functor m
+# endif
+         ) => Eq1 (FT f m) where
   eq1 x y = eq1 (fromFT x) (fromFT y)
 
-instance (Functor f, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
+instance ( Functor f, Monad m, Ord1 f, Ord1 m
+# if !(MIN_VERSION_base(4,8,0))
+         , Functor m
+# endif
+         ) => Ord1 (FT f m) where
   compare1 x y = compare1 (fromFT x) (fromFT y)
 #endif
 

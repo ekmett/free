@@ -1,12 +1,12 @@
 > {-# LANGUAGE DeriveFunctor, TemplateHaskell, FlexibleContexts #-} --
 
+> import qualified Control.Exception as E (catch)
 > import Control.Monad         (mfilter)
 > import Control.Monad.Loops   (unfoldM)
 > import Control.Monad.Free    (liftF, Free, iterM, MonadFree)
 > import Control.Monad.Free.TH (makeFree)
 > import Control.Applicative   ((<$>))
 > import System.IO             (isEOF)
-> import Control.Exception     (catch)
 > import System.IO.Error       (ioeGetErrorString)
 > import System.Exit           (exitSuccess)
 
@@ -61,7 +61,7 @@ system terminal through the @IO@ monad.
 >   run (ReadOrEOF eof f)         = isEOF >>= \b -> if b then eof
 >                                                        else getChar >>= f
 >
->   run (ReadOrError ferror f)    = catch (getChar >>= f) (ferror . ioeGetErrorString)
+>   run (ReadOrError ferror f)    = E.catch (getChar >>= f) (ferror . ioeGetErrorString)
 >   run (NL rest)                 = putChar '\n' >> rest
 >   run (rest :\^^ str)           = putStr str >> rest
 >   run ((:%) rest format tokens) = ttFormat format tokens >> rest

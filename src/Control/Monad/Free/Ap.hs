@@ -5,6 +5,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #include "free-common.h"
 
@@ -12,17 +13,17 @@
 -- |
 -- \"Applicative Effects in Free Monads\"
 --
--- Often times, the '(<*>)' operator can be more efficient than 'ap'.
+-- Often times, the '(\<*\>)' operator can be more efficient than 'ap'.
 -- Conventional free monads don't provide any means of modeling this.
 -- The free monad can be modified to make use of an underlying applicative.
--- But it does require some laws, or else the '(<*>)' = 'ap' law is broken.
+-- But it does require some laws, or else the '(\<*\>)' = 'ap' law is broken.
 -- When interpreting this free monad with 'foldFree',
 -- the natural transformation must be an applicative homomorphism.
 -- An applicative homomorphism @hm :: (Applicative f, Applicative g) => f x -> g x@
 -- will satisfy these laws.
 --
 -- * @hm (pure a) = pure a@
--- * @hm (f <*> a) = hm f <*> hm a@
+-- * @hm (f \<*\> a) = hm f \<*\> hm a@
 --
 -- This is based on the \"Applicative Effects in Free Monads\" series of articles by Will Fancher
 --
@@ -68,11 +69,14 @@ import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Data
 import Prelude hiding (foldr)
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics
+#endif
 
 -- | A free monad given an applicative
 data Free f a = Pure a | Free (f (Free f a))
 #if __GLASGOW_HASKELL__ >= 707
-  deriving (Typeable)
+  deriving (Typeable, Generic, Generic1)
 #endif
 
 #ifdef LIFTED_FUNCTOR_CLASSES

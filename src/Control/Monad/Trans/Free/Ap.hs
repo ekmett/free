@@ -6,6 +6,7 @@
 {-# LANGUAGE Rank2Types #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #include "free-common.h"
 
@@ -56,30 +57,33 @@ import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Classes.Compat
-import Data.Monoid
 import Data.Functor.Identity
 import Data.Traversable
 import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
 import Data.Data
+#if __GLASGOW_HASKELL__ >= 707
+import GHC.Generics
+#endif
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable
+import Data.Monoid
 #endif
 
 -- | The base functor for a free monad.
 data FreeF f a b = Pure a | Free (f b)
   deriving (Eq,Ord,Show,Read
 #if __GLASGOW_HASKELL__ >= 707
-           ,Typeable
+           ,Typeable ,Generic, Generic1
 #endif
            )
 
 #ifdef LIFTED_FUNCTOR_CLASSES
 instance Show1 f => Show2 (FreeF f) where
   liftShowsPrec2 spa _sla _spb _slb d (Pure a) =
-    showsUnaryWith spa "Pure" d a 
+    showsUnaryWith spa "Pure" d a
   liftShowsPrec2 _spa _sla spb slb d (Free as) =
     showsUnaryWith (liftShowsPrec spb slb) "Free" d as
 
@@ -328,7 +332,7 @@ instance (Applicative f, Applicative m, MonadWriter w m) => MonadWriter w (FreeT
   listen (FreeT m) = FreeT $ liftM concat' $ listen (fmap listen `liftM` m)
     where
       concat' (Pure x, w) = Pure (x, w)
-      concat' (Free y, w) = Free $ fmap (second (w <>)) <$> y
+      concat' (Free y, w) = Free $ fmap (second (w `mappend`)) <$> y
   pass m = FreeT . pass' . runFreeT . hoistFreeT clean $ listen m
     where
       clean = pass . liftM (\x -> (x, const mempty))

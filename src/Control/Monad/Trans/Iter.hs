@@ -87,7 +87,6 @@ import Data.Either
 import Data.Functor.Bind hiding (join)
 import Data.Functor.Classes.Compat
 import Data.Functor.Identity
-import Data.Semigroup
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Typeable
@@ -96,6 +95,10 @@ import Data.Data
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Foldable hiding (fold)
 import Data.Traversable hiding (mapM)
+#endif
+
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup
 #endif
 
 -- | The monad supporting iteration based over a base monad @m@.
@@ -166,7 +169,7 @@ instance (Show1 m) => Show1 (IterT m) where
       goList = liftShowList sp sl
       go d (IterT x) = showsUnaryWith
         (liftShowsPrec (liftShowsPrec2 sp sl go goList) (liftShowList2 sp sl go goList))
-        "IterT" d x     
+        "IterT" d x
 #else
 instance (Functor m, Show1 m) => Show1 (IterT m) where
   showsPrec1 d (IterT m) = showParen (d > 10) $

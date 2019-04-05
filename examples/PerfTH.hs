@@ -1,10 +1,9 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module PerfTH where
+module Main where
 
 import System.CPUTime.Rdtsc
 import System.IO
@@ -13,6 +12,7 @@ import Data.IORef
 import Data.Word
 import Control.Monad
 import Control.Monad.State.Strict
+import Control.Monad.Fail (MonadFail)
 import Control.Monad.Free
 import Control.Monad.Free.TH
 import qualified Control.Monad.Free.Church as Church
@@ -20,7 +20,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
 import Control.Category ((>>>))
 import qualified Data.Foldable as F
-import Text.Read (readMaybe)
+import Text.Read.Compat (readMaybe)
 import Text.Printf
 
 -- | A data type representing basic commands for our performance-testing eDSL.
@@ -55,8 +55,8 @@ g_print_time_since_prev_call = liftIO $ do
 
 -- | Free-based interpreter
 runPerfFree :: (MonadIO m) => [String] -> Free PerfF () -> m ()
-runPerfFree [] = const (return ())
-runPerfFree (s:ss) = \case
+runPerfFree [] _ = return ()
+runPerfFree (s:ss) x = case x of
   Free (Output o next) -> do
     runPerfFree (s:ss) next
   Free (Input next) -> do
@@ -66,10 +66,10 @@ runPerfFree (s:ss) = \case
     return a
 
 -- | Church-based interpreter
-runPerfF :: (MonadIO m) => [String] -> Church.F PerfF () -> m ()
+runPerfF :: (MonadFail m, MonadIO m) => [String] -> Church.F PerfF () -> m ()
 runPerfF [] _ = return ()
 runPerfF ss0 f =
-  fst <$> do
+  fst `liftM` do
   flip runStateT ss0 $ Church.iterM go f where
     go (Output o next) = do
       next

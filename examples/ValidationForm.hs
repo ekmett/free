@@ -1,12 +1,15 @@
+{-# LANGUAGE CPP #-}
 module Main where
 
+#if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
+#endif
 import Control.Applicative.Free
 import Control.Monad.State
 
-import Data.Monoid
+import Data.Monoid (Sum(..))
 
-import Text.Read (readEither)
+import Text.Read.Compat (readEither)
 import Text.Printf
 
 import System.IO
@@ -66,8 +69,9 @@ count = getSum . runAp_ (\_ -> Sum 1)
 -- Repeats field input until it passes validation.
 -- Show help message on empty input.
 input :: Form a -> IO a
-input m = evalStateT (runAp inputField m) (1 :: Integer)
+input m = evalStateT (runAp inputField m) 1
   where
+    inputField :: Field a -> StateT Int IO a
     inputField f@(Field n g h) = do
       i <- get
       -- get field input with prompt

@@ -1,5 +1,22 @@
-5
--
+5.1 [2018.07.03]
+----------------
+* Generalize the type of `_Free`.
+* Allow building with `containers-0.6`.
+* Avoid incurring some dependencies when using recent GHCs.
+
+5.0.2 [2018.04.25]
+------------------
+* Add `Generic` and `Generic1` instances where possible.
+
+5.0.1 [2018.03.07]
+------------------
+* Fix the build on old GHCs with `transformers-0.4`.
+
+5 [2018.01.28]
+--------------
+* Add a `Semigroup` instance for `IterT`.
+* Add `MonadFail` instances for `IterT` and `FreeT`.
+* Add a `Comonad` instance for the free `Applicative`, `Ap`.
 * Add `Control.Monad.Free.Ap` and `Control.Monad.Trans.Free.Ap` modules, based
   on the "Applicative Effects in Free Monads" series of articles by Will
   Fancher.
