@@ -48,6 +48,8 @@ instance Alt.Alt (Alt f) where
 instance Alternative (Alt f) where
   empty = Alt (\_ -> empty)
   Alt x <|> Alt y = Alt (\k -> x k <|> y k)
+  some (Alt x) = Alt $ \k -> some (x k)
+  many (Alt x) = Alt $ \k -> many (x k)
 
 instance Semigroup (Alt f a) where
   (<>) = (<|>)
