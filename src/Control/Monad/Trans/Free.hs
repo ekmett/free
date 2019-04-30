@@ -308,10 +308,12 @@ instance (Functor f, Monad m) => Monad (FreeT f m) where
     Pure a -> runFreeT (f a)
     Free w -> return (Free (fmap (>>= f) w))
 
-  fail = Fail.fail
-
-instance (Functor f, Monad m) => Fail.MonadFail (FreeT f m) where
+#if !MIN_VERSION_base(4,13,0)
   fail e = FreeT (fail e)
+#endif
+
+instance (Functor f, Fail.MonadFail m) => Fail.MonadFail (FreeT f m) where
+  fail e = FreeT (Fail.fail e)
 
 instance MonadTrans (FreeT f) where
   lift = FreeT . liftM Pure
