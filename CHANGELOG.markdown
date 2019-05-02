@@ -1,3 +1,7 @@
+5.1.1 [2019.05.02]
+------------------
+* Allow building with `base-4.13` (GHC 8.8).
+
 5.1 [2018.07.03]
 ----------------
 * Generalize the type of `_Free`.
