@@ -219,8 +219,10 @@ instance Monad m => Monad (IterT m) where
   {-# INLINE return #-}
   IterT m >>= k = IterT $ m >>= either (runIterT . k) (return . Right . (>>= k))
   {-# INLINE (>>=) #-}
+#if !MIN_VERSION_base(4,13,0)
   fail = Fail.fail
   {-# INLINE fail #-}
+#endif
 
 instance Monad m => Fail.MonadFail (IterT m) where
   fail _ = never
