@@ -89,11 +89,12 @@ executable free-retry-th
   main-is: RetryTH.hs
   ghc-options: -Wall -fno-warn-orphans
   build-depends:
-    base         == 4.*,
+    base                == 4.*,
     base-compat,
-    fail         == 4.9.*,
+    fail                == 4.9.*,
     free,
-    transformers >= 0.2 && < 0.6
+    transformers        >= 0.2   && < 0.6,
+    transformers-compat >= 0.6.4 && < 0.7
 
 executable free-teletype
   hs-source-dirs: .

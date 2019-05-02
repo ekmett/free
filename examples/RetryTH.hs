@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -10,6 +9,7 @@ import Control.Monad.Fail as Fail
 import Control.Monad.Free
 import Control.Monad.Free.TH
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Instances ()
 import Control.Monad.Trans.Maybe
 import qualified Data.Foldable as F
 import Text.Read.Compat (readMaybe)
@@ -94,9 +94,3 @@ test = do
 
 main :: IO ()
 main = runRetry test
-
-#if !(MIN_VERSION_base(4,9,0))
-instance (Monad m) => MonadFail (MaybeT m) where
-    fail _ = MaybeT (return Nothing)
-    {-# INLINE fail #-}
-#endif
