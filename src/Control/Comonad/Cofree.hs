@@ -51,6 +51,7 @@ import Control.Comonad.Hoist.Class
 import Control.Category
 import Control.Monad(ap, (>=>), liftM)
 import Control.Monad.Zip
+import Data.Functor.Alt
 import Data.Functor.Bind
 import Data.Functor.Classes.Compat
 import Data.Functor.Extend
@@ -165,6 +166,10 @@ instance Functor f => Comonad (Cofree f) where
 instance ComonadTrans Cofree where
   lower (_ :< as) = fmap extract as
   {-# INLINE lower #-}
+
+instance (Alt f, Apply f) => Bind (Cofree f) where
+  (a :< m) >>- k = case k a of
+                     b :< n -> b :< (n <!> fmap (>>- k) m)
 
 instance Alternative f => Monad (Cofree f) where
   return = pure
