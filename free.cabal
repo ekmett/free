@@ -124,6 +124,9 @@ library
     Control.Monad.Trans.Free.Ap
     Control.Monad.Trans.Free.Church
     Control.Monad.Trans.Iter
+    Data.Functor.Alt.Free
+    Data.Functor.Apply.Free
+    Data.Functor.Plus.Free
 
   other-modules:
     Data.Functor.Classes.Compat
