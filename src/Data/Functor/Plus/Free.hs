@@ -3,6 +3,18 @@
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE RankNTypes        #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Functor.Plus.Free
+-- Copyright   :  (C) 2008-2015 Edward Kmett
+-- License     :  BSD-style (see the file LICENSE)
+--
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  provisional
+-- Portability :  MPTCs, fundeps
+--
+-- Plusses for free.
+----------------------------------------------------------------------------
 module Data.Functor.Plus.Free (
     ListF(..)
   , runListF
@@ -12,9 +24,11 @@ module Data.Functor.Plus.Free (
 
 import           Data.Functor.Plus
 
--- | The free 'Plus'
+-- | The free 'Plus'.  Represents a free "choice" of @f a@s.  The producer
+-- can supply as many as they like, and the consumer has the free choice to
+-- use any that they like.
 newtype ListF f a = ListF { plusses :: [f a] }
-  deriving (Functor, Foldable, Traversable)
+  deriving (Functor, Foldable, Traversable, Show, Eq, Ord, Read)
 
 instance Functor f => Alt (ListF f) where
     ListF xs <!> ListF ys = ListF (xs <> ys)
@@ -37,7 +51,7 @@ runListF
     -> g a
 runListF f (ListF xs) = foldr ((<!>) . f) zero xs
 
--- | A version of 'lift' that can be used with any @f@.
+-- | Lift an @f@ into @'ListF' f@.
 liftListF :: f a -> ListF f a
 liftListF x = ListF [x]
 

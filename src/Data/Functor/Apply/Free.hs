@@ -9,6 +9,18 @@
 {-# LANGUAGE TypeInType          #-}
 {-# LANGUAGE TypeOperators       #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Functor.Apply.Free
+-- Copyright   :  (C) 2008-2015 Edward Kmett
+-- License     :  BSD-style (see the file LICENSE)
+--
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  provisional
+-- Portability :  MPTCs, fundeps
+--
+-- Applys for free
+----------------------------------------------------------------------------
 module Data.Functor.Apply.Free (
     Ap1(..)
   , liftAp1
@@ -23,6 +35,10 @@ import           Data.Functor.Apply
 
 -- | The free 'Apply'.  Basically a "non-empty" 'Ap'.
 --
+-- Represents multiple @f@s sequenced together.  The producer may provide
+-- several (at least one), and the consumer must consume all of them to
+-- produce the final @a@.
+--
 -- The construction here is based on 'Ap', similar to now
 -- 'Data.List.NonEmpty.NonEmpty' is built on list.
 data Ap1 f a where
@@ -33,7 +49,7 @@ deriving instance Functor (Ap1 f)
 instance Apply (Ap1 f) where
     Ap1 x xs <.> ys = Ap1 x (flip <$> xs <*> toAp ys)
 
--- | A version of 'lift' that can be used with any @f@.
+-- | Lift an @f@ into @'Ap1' f@.
 liftAp1 :: f a -> Ap1 f a
 liftAp1 x = Ap1 x (Pure id)
 
@@ -47,7 +63,7 @@ runAp1
 runAp1 f (Ap1 x xs) = runAp1_ f x xs
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical
--- natural transformation from @'NonEmptyF' f@ to @'NonEmptyF' g@.
+-- natural transformation from @'Ap1' f@ to @'Ap1' g@.
 hoistAp1
     :: (forall x. f x -> g x)
     -> Ap1 f a

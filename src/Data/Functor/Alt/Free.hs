@@ -3,6 +3,18 @@
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE RankNTypes        #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Functor.Alt.Free
+-- Copyright   :  (C) 2008-2015 Edward Kmett
+-- License     :  BSD-style (see the file LICENSE)
+--
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
+-- Stability   :  provisional
+-- Portability :  MPTCs, fundeps
+--
+-- Alts for free.
+----------------------------------------------------------------------------
 module Data.Functor.Alt.Free (
     NonEmptyF(..)
   , runNonEmptyF
@@ -18,9 +30,11 @@ import           Data.Semigroup.Foldable
 import           Data.Semigroup.Traversable
 import qualified Data.List.NonEmpty         as NE
 
--- | The free 'Alt'
+-- | The free 'Alt'.  Represents a non-empty free "choice" of @f a@s.  The
+-- producer can supply as many as they like (as long as it's more than
+-- one), and the consumer has the free choice to use any that they like.
 newtype NonEmptyF f a = NonEmptyF { alts :: NonEmpty (f a) }
-  deriving (Functor, Foldable, Traversable)
+  deriving (Functor, Foldable, Traversable, Show, Eq, Ord, Read)
 
 instance Functor f => Alt (NonEmptyF f) where
     NonEmptyF xs <!> NonEmptyF ys = NonEmptyF (xs <> ys)
@@ -43,7 +57,7 @@ runNonEmptyF
     -> g a
 runNonEmptyF f (NonEmptyF xs) = asum1 (fmap f xs)
 
--- | A version of 'lift' that can be used with any @f@.
+-- | Lift an @f@ into @'ListF' f@.
 liftNonEmptyF :: f a -> NonEmptyF f a
 liftNonEmptyF x = NonEmptyF (x :| [])
 
