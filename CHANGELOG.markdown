@@ -1,3 +1,8 @@
+5.1.2 [2019.08.27]
+------------------
+* Implement more performant versions of `some` and `many` in the `Alternative`
+  instance for the final `Alt` encoding.
+
 5.1.1 [2019.05.02]
 ------------------
 * Allow building with `base-4.13` (GHC 8.8).
