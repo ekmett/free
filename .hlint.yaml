@@ -1,0 +1,15 @@
+- arguments: [--cpp-define=HLINT, --cpp-ansi, --cpp-include=include]
+
+- fixity: "infixr 5 :<"
+
+# This affects performance
+- ignore: {name: Redundant lambda}
+
+# This is not valid for improve
+- ignore: {name: Eta reduce}
+
+# DeriveDataTypable noise
+- ignore: {name: Unused LANGUAGE pragma}
+
+# They are clearer in places
+- ignore: {name: Avoid lambda}

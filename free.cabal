@@ -44,11 +44,11 @@ build-type:    Simple
 extra-source-files:
   .ghci
   .gitignore
+  .hlint.yaml
   .travis.yml
   .vim.custom
   README.markdown
   CHANGELOG.markdown
-  HLint.hs
   doc/proof/Control/Comonad/Cofree/*.md
   doc/proof/Control/Comonad/Trans/Cofree/*.md
   examples/free-examples.cabal
