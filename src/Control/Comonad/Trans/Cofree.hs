@@ -42,6 +42,8 @@ import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
 import Data.Foldable
+import Data.Functor.Alt
+import Data.Functor.Bind
 import Data.Functor.Identity
 import Data.Traversable
 import Control.Monad (liftM)
@@ -173,6 +175,12 @@ instance Eq (w (CofreeF f a (CofreeT f w a))) => Eq (CofreeT f w a) where
 instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
   compare (CofreeT a) (CofreeT b) = compare a b
 
+instance (Alt f, Apply f, Apply w, Monad w) => Bind (CofreeT f w) where
+  CofreeT cx >>- f = CofreeT $ do
+    a :< m <- cx
+    b :< n <- runCofreeT $ f a
+    return $ b :< (n <!> fmap (>>- f) m)
+
 instance (Alternative f, Monad w) => Monad (CofreeT f w) where
 #if __GLASGOW_HASKELL__ < 710
   return = CofreeT . return . (:< empty)
@@ -183,6 +191,11 @@ instance (Alternative f, Monad w) => Monad (CofreeT f w) where
     b :< n <- runCofreeT $ f a
     return $ b :< (n <|> fmap (>>= f) m)
 
+instance (Alt f, Apply f, Apply w) => Apply (CofreeT f w) where
+  wf <.> wa = CofreeT $ go <$> runCofreeT wf <.> runCofreeT wa where
+    go (f :< t) a = case bimap f (fmap f) a of
+      b :< n -> b :< (n <!> fmap (<.> wa) t)
+  {-# INLINE (<.>) #-}
 
 instance (Alternative f, Applicative w) => Applicative (CofreeT f w) where
   pure = CofreeT . pure . (:< empty)
