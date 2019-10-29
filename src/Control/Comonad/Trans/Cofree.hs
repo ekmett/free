@@ -7,6 +7,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 #endif
+#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -42,6 +43,7 @@ import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
 import Data.Foldable
+import Data.Functor.Classes
 import Data.Functor.Identity
 import Data.Traversable
 import Control.Monad (liftM)
@@ -66,6 +68,74 @@ data CofreeF f a b = a :< f b
            ,Typeable, Generic, Generic1
 #endif
            )
+
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance Show1 f => Show2 (CofreeF f) where
+  liftShowsPrec2 spa _sla spb slb d (a :< fb) =
+    showParen (d > 5) $
+      spa 6 a . showString " :< " . liftShowsPrec spb slb 5 fb
+
+instance (Show1 f, Show a) => Show1 (CofreeF f a) where
+  liftShowsPrec = liftShowsPrec2 showsPrec showList
+
+#else
+instance (Functor f, Show1 f, Show a) => Show1 (CofreeF f a) where
+  showsPrec1 d (a :< fb) = showParen (d > 5) $
+    showsPrec 6 a .  showString " :< " . showsPrec1 6 fb
+#endif
+
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance Read1 f => Read2 (CofreeF f) where
+  liftReadsPrec2 rpa _rla rpb rlb d =
+    readParen (d > 5) $
+      (\r' -> [ (u :< v, w)
+              | (u, s) <- rpa 6 r'
+              , (":<", t) <- lex s
+              , (v, w) <- liftReadsPrec rpb rlb 5 t
+              ])
+
+instance (Read1 f, Read a) => Read1 (CofreeF f a) where
+  liftReadsPrec = liftReadsPrec2 readsPrec readList
+#else
+instance (Read1 f, Read a) => Read1 (CofreeF f a) where
+  readsPrec1 d =
+    readParen (d > 5) $
+      (\r' -> [ (u :< v,w)
+              | (u, s) <- readsPrec 6 r'
+              , (":<", t) <- lex s
+              , (v, w) <- readsPrec1 5 t
+              ])
+#endif
+
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance Eq1 f => Eq2 (CofreeF f) where
+  liftEq2 eqa eqfb (a :< fb) (a' :< fb') = eqa a a' && liftEq eqfb fb fb'
+
+instance (Eq1 f, Eq a) => Eq1 (CofreeF f a) where
+  liftEq = liftEq2 (==)
+#else
+instance (Eq1 f, Eq a) => Eq1 (CofreeF f a) where
+  eq1 (a :< fb) (a' :< fb') = a == a' && eq1 fb fb'
+#endif
+
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance Ord1 f => Ord2 (CofreeF f) where
+  liftCompare2 cmpa cmpfb (a :< fb) (a' :< fb') =
+    case cmpa a a' of
+      LT -> LT
+      EQ -> liftCompare cmpfb fb fb'
+      GT -> GT
+
+instance (Ord1 f, Ord a) => Ord1 (CofreeF f a) where
+  liftCompare = liftCompare2 compare
+#else
+instance (Ord1 f, Ord a) => Ord1 (CofreeF f a) where
+  compare1 (a :< fb) (a' :< fb') =
+    case compare a a' of
+      LT -> LT
+      EQ -> compare1 fb fb'
+      GT -> GT
+#endif
 
 -- | Extract the head of the base functor
 headF :: CofreeF f a b -> a
