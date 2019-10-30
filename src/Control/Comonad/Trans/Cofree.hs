@@ -73,7 +73,7 @@ data CofreeF f a b = a :< f b
 instance Show1 f => Show2 (CofreeF f) where
   liftShowsPrec2 spa _sla spb slb d (a :< fb) =
     showParen (d > 5) $
-      spa 6 a . showString " :< " . liftShowsPrec spb slb 5 fb
+      spa 6 a . showString " :< " . liftShowsPrec spb slb 6 fb
 
 instance (Show1 f, Show a) => Show1 (CofreeF f a) where
   liftShowsPrec = liftShowsPrec2 showsPrec showList
@@ -91,7 +91,7 @@ instance Read1 f => Read2 (CofreeF f) where
       (\r' -> [ (u :< v, w)
               | (u, s) <- rpa 6 r'
               , (":<", t) <- lex s
-              , (v, w) <- liftReadsPrec rpb rlb 5 t
+              , (v, w) <- liftReadsPrec rpb rlb 6 t
               ])
 
 instance (Read1 f, Read a) => Read1 (CofreeF f a) where
@@ -103,7 +103,7 @@ instance (Read1 f, Read a) => Read1 (CofreeF f a) where
       (\r' -> [ (u :< v,w)
               | (u, s) <- readsPrec 6 r'
               , (":<", t) <- lex s
-              , (v, w) <- readsPrec1 5 t
+              , (v, w) <- readsPrec1 6 t
               ])
 #endif
 
