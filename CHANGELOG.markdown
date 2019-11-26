@@ -1,3 +1,9 @@
+next [????.??.??]
+-----------------
+* Allow building with `template-haskell-2.16` (GHC 8.10).
+* Add `Eq{1,2}`, `Ord{1,2}`, `Read{1,2}`, and `Show{1,2}` instances for
+  `CofreeF`.
+
 5.1.2 [2019.08.27]
 ------------------
 * Implement more performant versions of `some` and `many` in the `Alternative`
