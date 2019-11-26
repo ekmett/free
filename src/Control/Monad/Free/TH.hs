@@ -110,9 +110,9 @@ mkArg (VarT n) t
             [ "expected final return type `" ++ pprint n ++ "'"
             , "but got `" ++ pprint name ++ "'"
             , "in a constructor's argument type: `" ++ pprint t ++ "'" ]
-          let tup = foldl AppT (TupleT $ length ts) ts
+          let tup = nonUnaryTupleT ts
           xs <- mapM (const $ newName "x") ts
-          return $ Captured tup (LamE (map VarP xs) (TupE (map VarE xs)))
+          return $ Captured tup (LamE (map VarP xs) (nonUnaryTupE $ map VarE xs))
         _ -> fail $ unlines
               [ "expected a type variable `" ++ pprint n ++ "'"
               , "or a type like (a1 -> ... -> aN -> " ++ pprint n ++ ")"
@@ -128,6 +128,18 @@ mkArg (VarT n) t
       [ "expected final return type `" ++ pprint n ++ "'"
       , "but got `" ++ pprint rt ++ "'"
       , "in a constructor's argument type: `" ++ pprint t ++ "'" ]
+
+    nonUnaryTupleT :: [Type] -> Type
+    nonUnaryTupleT [t'] = t'
+    nonUnaryTupleT ts   = foldl AppT (TupleT $ length ts) ts
+
+    nonUnaryTupE :: [Exp] -> Exp
+    nonUnaryTupE [e] = e
+    nonUnaryTupE es  = TupE $
+#if MIN_VERSION_template_haskell(2,16,0)
+                              map Just
+#endif
+                              es
 
 mkArg n _ = fail $ unlines
   [ "expected a type variable"
