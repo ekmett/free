@@ -4,15 +4,12 @@ For example: @ghc -o 'mandelbrot_iter' -O2 MandelbrotIter.lhs ; ./mandelbrot_ite
 
 > {-# LANGUAGE PackageImports #-}
 
-> import Control.Arrow
+> import Control.Arrow hiding (loop)
 > import Control.Monad.Trans.Iter
 > import "mtl" Control.Monad.Reader
-> import "mtl" Control.Monad.List
-> import "mtl" Control.Monad.Identity
-> import Control.Monad.IO.Class
 > import Data.Complex
 > import Graphics.HGL (runGraphics, Window, withPen,
->                      line, RGB (RGB), RedrawMode (Unbuffered, DoubleBuffered), openWindowEx,
+>                      line, RGB (RGB), RedrawMode (DoubleBuffered), openWindowEx,
 >                      drawInWindow, mkPen, Style (Solid))
 
 Some fractals can be defined by infinite sequences of complex numbers. For example,
@@ -20,11 +17,11 @@ to render the <https://en.wikipedia.org/wiki/Mandelbrot_set Mandelbrot set>,
 the following sequence is generated for each point @c@ in the complex plane:
 
 @
-z₀ = c      
+z₀ = c
 
-z₁ = z₀² + c       
+z₁ = z₀² + c
 
-z₂ = z₁² + c        
+z₂ = z₁² + c
 
 …
 @
@@ -96,7 +93,7 @@ Im z = [-1,1], Re z = [-2,1].
 Drawing a point is equivalent to drawing a line of length one.
 
 > drawPoint :: RGB -> (Int,Int) -> FractalM ()
-> drawPoint color p@(x,y) = do
+> drawPoint color (x,y) = do
 >   w <- asks window
 >   let point = line (x,y) (x+1, y+1)
 >   liftIO $ drawInWindow w $ mkPen Solid 1 color (flip withPen point)
@@ -133,6 +130,6 @@ computational concerns.
 >   runGraphics $ do
 >     w <- openWindowEx "Mandelbrot" Nothing (windowWidth, windowHeight) DoubleBuffered (Just 1)
 >     let canvas = Canvas windowWidth windowHeight w
->     runFractalM' 100 canvas drawMandelbrot
+>     _ <- runFractalM' 100 canvas drawMandelbrot
 >     putStrLn $ "Fin"
 
