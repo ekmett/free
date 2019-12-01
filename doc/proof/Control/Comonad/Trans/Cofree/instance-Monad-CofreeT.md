@@ -20,7 +20,7 @@ instance (Alternative f, Monad w) => Monad (CofreeT f w) where
 This definition is equivalent to that of the Cofree module if 'w' is
 identity. 
 
-The tokens `CofreeT` and `runCofreeT` are abreviated as `C` and `unC`, 
+The tokens `CofreeT` and `runCofreeT` are abbreviated as `C` and `unC`, 
 respectively, for readability.
 
 ## Left identity

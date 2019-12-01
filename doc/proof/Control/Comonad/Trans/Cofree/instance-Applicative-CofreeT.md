@@ -200,7 +200,7 @@ p               ≡ pure
 .               ≡ (.)
 ```
 
-By repeteadly applying the Applicative laws for the underlying functor, we
+By repeatedly applying the Applicative laws for the underlying functor, we
 get:
 
 ```haskell
@@ -288,7 +288,7 @@ p               ≡ pure
 $W              ≡ ($ star(C w))
 ```
 
-By repeteadly applying composition law for w, we get:
+By repeatedly applying composition law for w, we get:
 
 ```haskell
   
