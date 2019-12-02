@@ -1,4 +1,4 @@
-Compiling to an executable file with the @-O2@ optimization level is recomended.
+Compiling to an executable file with the @-O2@ optimization level is recommended.
 
 For example: @ghc -o 'mandelbrot_iter' -O2 MandelbrotIter.lhs ; ./mandelbrot_iter@
 
