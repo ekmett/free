@@ -91,7 +91,7 @@ infixr 5 :<
 --
 -- For instance,
 --
--- * @'Cofree' 'Maybe'@ forms the a comonad for a non-empty list.
+-- * @'Cofree' 'Maybe'@ forms the comonad for a non-empty list.
 --
 -- * @'Cofree' ('Const' b)@ is a product.
 --
