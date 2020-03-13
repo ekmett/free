@@ -264,15 +264,21 @@ liftCon typeSig ts cx f n ns onlyCons con
       _ -> fail $ "Unsupported constructor type: `" ++ pprint con ++ "'"
 
 #if MIN_VERSION_template_haskell(2,11,0)
-splitAppT :: Type -> [Type]
-splitAppT (AppT x y) = splitAppT x ++ [y]
-splitAppT t = [t]
+splitAppT :: Type -> (Type, [Type])
+splitAppT ty = go ty ty []
+  where
+    go :: Type -> Type -> [Type] -> (Type, [Type])
+    go _      (AppT ty1 ty2)     args = go ty1 ty1 (ty2:args)
+    go origTy (SigT ty' _)       args = go origTy ty' args
+    go origTy (InfixT ty1 n ty2) args = go origTy (ConT n `AppT` ty1 `AppT` ty2) args
+    go origTy (ParensT ty')      args = go origTy ty' args
+    go origTy _                  args = (origTy, args)
 
 liftGadtC :: Name -> [BangType] -> Type -> Bool -> [TyVarBndr] -> Cxt -> Type -> Q [Dec]
 liftGadtC cName fields resType typeSig ts cx f =
   liftCon typeSig ts cx f nextTy (init tys) Nothing (NormalC cName fields)
   where
-    (_f : tys) = splitAppT resType
+    (_f, tys) = splitAppT resType
     nextTy = last tys
 #endif
 
