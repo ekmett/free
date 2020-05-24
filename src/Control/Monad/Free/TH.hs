@@ -184,10 +184,7 @@ unifyCaptured _ xs = fail $ unlines
   , unlines (map (pprint . fst) xs) ]
 
 extractVars :: Type -> [Name]
-extractVars (ForallT bs _ t) = extractVars t \\ map bndrName bs
-  where
-    bndrName (PlainTV n) = n
-    bndrName (KindedTV n _) = n
+extractVars (ForallT bs _ t) = extractVars t \\ map tyVarBndrName bs
 extractVars (VarT n) = [n]
 extractVars (AppT x y) = extractVars x ++ extractVars y
 #if MIN_VERSION_template_haskell(2,8,0)
