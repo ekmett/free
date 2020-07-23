@@ -89,7 +89,7 @@ library
     semigroupoids        >= 4 && < 6,
     transformers         >= 0.2.0   && < 0.6,
     transformers-base    >= 0.4 && < 0.5,
-    template-haskell     >= 2.7.0.0 && < 3,
+    template-haskell     >= 2.7.0.0 && < 2.17,
     exceptions           >= 0.6 && < 0.11,
     containers           < 0.7
 
