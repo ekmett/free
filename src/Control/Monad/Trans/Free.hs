@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TypeFamilies #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -57,6 +58,8 @@ import Control.Monad (liftM, MonadPlus(..), ap, join)
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Catch (MonadThrow(..), MonadCatch(..))
 import Control.Monad.Trans.Class
+import Control.Monad.Trans.Control (MonadTransControl(..), MonadBaseControl(..),
+                                    ComposeSt, defaultLiftBaseWith, defaultRestoreM)
 import Control.Monad.Free.Class
 import qualified Control.Monad.Fail as Fail
 import Control.Monad.IO.Class
@@ -326,6 +329,39 @@ instance (Functor f, MonadIO m) => MonadIO (FreeT f m) where
 instance (Functor f, MonadBase b m) => MonadBase b (FreeT f m) where
   liftBase = lift . liftBase
   {-# INLINE liftBase #-}
+
+{-
+This instance must satisfy:
+* liftWith . const . return = return
+liftWith . const . return $ x
+  = lift $ (const $ return x) joinFreeT
+  = lift (return x)
+  = return x
+
+* liftWith (const (m >>= f)) = liftWith (const m) >>= liftWith . const . f
+liftWith (const m) >>= liftWith . const . f
+  = lift (const m (joinFreeT)) >>= \x -> lift $ const (f x) joinFreeT
+  = lift m >>= lift . f
+  = lift (m >>= f)
+  = lift (const (m >>= f) joinFreeT)
+  = liftWith (const (m >>= f))
+* liftWith (\run -> run t) >>= restoreT . return = t
+liftWith (\run -> run t) >>= restoreT . return
+  = lift (joinFreeT t) >>= lift . return >>= hoistFreeT (return . runIdentity)
+  = lift (joinFreeT t) >>= hoistFreeT (return . runIdentity)
+  = t
+-}
+instance (Traversable f) => MonadTransControl (FreeT f) where
+  type StT (FreeT f) a = Free f a
+  liftWith mkFreeT = lift $ mkFreeT joinFreeT
+  {-# INLINE liftWith #-}
+  restoreT mstt = lift mstt >>= hoistFreeT (return . runIdentity)
+  {-# INLINE restoreT #-}
+
+instance (Traversable f, MonadBaseControl b m) => MonadBaseControl b (FreeT f m) where
+  type StM (FreeT f m) a = ComposeSt (FreeT f) m a
+  liftBaseWith = defaultLiftBaseWith
+  restoreM = defaultRestoreM
 
 instance (Functor f, MonadReader r m) => MonadReader r (FreeT f m) where
   ask = lift ask
