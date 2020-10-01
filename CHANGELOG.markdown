@@ -1,3 +1,7 @@
+next [????.??.??]
+-----------------
+* Allow building with `template-haskell-2.17.0.0` (GHC 9.0).
+
 5.1.3 [2019.11.26]
 ------------------
 * Allow building with `template-haskell-2.16` (GHC 8.10).
