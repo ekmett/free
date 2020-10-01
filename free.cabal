@@ -87,9 +87,10 @@ library
     mtl                  >= 2.0.1.0 && < 2.3,
     profunctors          >= 4 && < 6,
     semigroupoids        >= 4 && < 6,
+    th-abstraction       >= 0.4 && < 0.5,
     transformers         >= 0.2.0   && < 0.6,
     transformers-base    >= 0.4 && < 0.5,
-    template-haskell     >= 2.7.0.0 && < 2.17,
+    template-haskell     >= 2.7.0.0 && < 2.18,
     exceptions           >= 0.6 && < 0.11,
     containers           < 0.7
 

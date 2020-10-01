@@ -36,7 +36,8 @@ import Control.Arrow
 import Control.Monad
 import Data.Char (toLower)
 import Data.List ((\\), nub)
-import Language.Haskell.TH
+import Language.Haskell.TH.Datatype.TyVarBndr
+import Language.Haskell.TH.Ppr (pprint)
 import Language.Haskell.TH.Syntax
 
 #if !(MIN_VERSION_base(4,8,0))
@@ -63,10 +64,6 @@ zipExprs (p:ps) cs (Param    _   : as) = p : zipExprs ps cs as
 zipExprs ps (c:cs) (Captured _ _ : as) = c : zipExprs ps cs as
 zipExprs _ _ _ = []
 
-tyVarBndrName :: TyVarBndr -> Name
-tyVarBndrName (PlainTV  name)   = name
-tyVarBndrName (KindedTV name _) = name
-
 findTypeOrFail :: String -> Q Name
 findTypeOrFail s = lookupTypeName s >>= maybe (fail $ s ++ " is not in scope") return
 
@@ -86,7 +83,7 @@ usesTV :: Name -> Type -> Bool
 usesTV n (VarT name)  = n == name
 usesTV n (AppT t1 t2) = any (usesTV n) [t1, t2]
 usesTV n (SigT t  _ ) = usesTV n t
-usesTV n (ForallT bs _ t) = usesTV n t && n `notElem` map tyVarBndrName bs
+usesTV n (ForallT bs _ t) = usesTV n t && n `notElem` map tvName bs
 usesTV _ _ = False
 
 -- | Analyze constructor argument.
@@ -184,7 +181,7 @@ unifyCaptured _ xs = fail $ unlines
   , unlines (map (pprint . fst) xs) ]
 
 extractVars :: Type -> [Name]
-extractVars (ForallT bs _ t) = extractVars t \\ map tyVarBndrName bs
+extractVars (ForallT bs _ t) = extractVars t \\ map tvName bs
 extractVars (VarT n) = [n]
 extractVars (AppT x y) = extractVars x ++ extractVars y
 #if MIN_VERSION_template_haskell(2,8,0)
@@ -199,7 +196,7 @@ extractVars (ParensT x) = extractVars x
 #endif
 extractVars _ = []
 
-liftCon' :: Bool -> [TyVarBndr] -> Cxt -> Type -> Type -> [Type] -> Name -> [Type] -> Q [Dec]
+liftCon' :: Bool -> [TyVarBndrSpec] -> Cxt -> Type -> Type -> [Type] -> Name -> [Type] -> Q [Dec]
 liftCon' typeSig tvbs cx f n ns cn ts = do
   -- prepare some names
   opName <- mkName <$> mkOpName (nameBase cn)
@@ -222,7 +219,7 @@ liftCon' typeSig tvbs cx f n ns cn ts = do
       exprs = zipExprs (map VarE xs) es args  -- this is what ctor would be applied to
       fval = foldl AppE (ConE cn) exprs       -- this is RHS without liftF
       ns' = nub (concatMap extractVars ns)
-      q = filter nonNext tvbs ++ map PlainTV (qa ++ m : ns')
+      q = filter nonNext tvbs ++ map plainTVSpecified (qa ++ m : ns')
       qa = case retType of VarT b | a == b -> [a]; _ -> []
       f' = foldl AppT f ns
   return $ concat
@@ -235,11 +232,10 @@ liftCon' typeSig tvbs cx f n ns cn ts = do
         else []
     , [ FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ] ]
   where
-    nonNext (PlainTV pn) = VarT pn /= n
-    nonNext (KindedTV kn _) = VarT kn /= n
+    nonNext tv = VarT (tvName tv) /= n
 
 -- | Provide free monadic actions for a single value constructor.
-liftCon :: Bool -> [TyVarBndr] -> Cxt -> Type -> Type -> [Type] -> Maybe [Name] -> Con -> Q [Dec]
+liftCon :: Bool -> [TyVarBndrSpec] -> Cxt -> Type -> Type -> [Type] -> Maybe [Name] -> Con -> Q [Dec]
 liftCon typeSig ts cx f n ns onlyCons con
   | not (any (`melem` onlyCons) (constructorNames con)) = return []
   | otherwise = case con of
@@ -271,7 +267,7 @@ splitAppT ty = go ty ty []
     go origTy (ParensT ty')      args = go origTy ty' args
     go origTy _                  args = (origTy, args)
 
-liftGadtC :: Name -> [BangType] -> Type -> Bool -> [TyVarBndr] -> Cxt -> Type -> Q [Dec]
+liftGadtC :: Name -> [BangType] -> Type -> Bool -> [TyVarBndrSpec] -> Cxt -> Type -> Q [Dec]
 liftGadtC cName fields resType typeSig ts cx f =
   liftCon typeSig ts cx f nextTy (init tys) Nothing (NormalC cName fields)
   where
@@ -308,7 +304,7 @@ liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs cons _)
   | null tyVarBndrs = fail $ "Type constructor " ++ pprint tyName ++ " needs at least one type parameter"
   | otherwise = concat <$> mapM (liftCon typeSig [] [] con nextTy (init tys) onlyCons) cons
     where
-      tys     = map (VarT . tyVarBndrName) tyVarBndrs
+      tys     = map (VarT . tvName) tyVarBndrs
       nextTy  = last tys
       con        = ConT tyName
 liftDec _ _ dec = fail $ unlines
