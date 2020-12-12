@@ -54,11 +54,14 @@ import Control.Monad.Zip
 import Data.Functor.Bind
 import Data.Functor.Classes.Compat
 import Data.Functor.Extend
+import Data.Functor.WithIndex
 import Data.Data
 import Data.Distributive
 import Data.Foldable
+import Data.Foldable.WithIndex
 import Data.Semigroup
 import Data.Traversable
+import Data.Traversable.WithIndex
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Prelude hiding (id,(.))
@@ -311,6 +314,18 @@ instance Traversable1 f => Traversable1 (Cofree f) where
   traverse1 f = go where
     go (a :< as) = (:<) <$> f a <.> traverse1 go as
   {-# INLINE traverse1 #-}
+
+instance FunctorWithIndex i f => FunctorWithIndex [i] (Cofree f) where
+  imap f (a :< as) = f [] a :< imap (\i -> imap (f . (:) i)) as
+  {-# INLINE imap #-}
+
+instance FoldableWithIndex i f => FoldableWithIndex [i] (Cofree f) where
+  ifoldMap f (a :< as) = f [] a `mappend` ifoldMap (\i -> ifoldMap (f . (:) i)) as
+  {-# INLINE ifoldMap #-}
+
+instance TraversableWithIndex i f => TraversableWithIndex [i] (Cofree f) where
+  itraverse f (a :< as) = (:<) <$> f [] a <*> itraverse (\i -> itraverse (f . (:) i)) as
+  {-# INLINE itraverse #-}
 
 #if __GLASGOW_HASKELL__ < 707
 instance (Typeable1 f) => Typeable1 (Cofree f) where

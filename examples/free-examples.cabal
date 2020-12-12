@@ -2,7 +2,7 @@ name:          free-examples
 category:      Control, Monads
 version:       0.1
 license:       BSD3
-cabal-version: >= 1.18
+cabal-version: 1.18
 license-file:  LICENSE
 author:        Edward A. Kmett
 maintainer:    Edward A. Kmett <ekmett@gmail.com>

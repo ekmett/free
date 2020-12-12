@@ -52,9 +52,12 @@ import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind
 import Data.Functor.Classes.Compat
+import Data.Functor.WithIndex
 import Data.Foldable
+import Data.Foldable.WithIndex
 import Data.Profunctor
 import Data.Traversable
+import Data.Traversable.WithIndex
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Data
@@ -294,6 +297,21 @@ instance Traversable1 f => Traversable1 (Free f) where
     go (Pure a) = Pure <$> f a
     go (Free fa) = Free <$> traverse1 go fa
   {-# INLINE traverse1 #-}
+
+instance FunctorWithIndex i f => FunctorWithIndex [i] (Free f) where
+  imap f (Pure a) = Pure $ f [] a
+  imap f (Free s) = Free $ imap (\i -> imap (f . (:) i)) s
+  {-# INLINE imap #-}
+
+instance FoldableWithIndex i f => FoldableWithIndex [i] (Free f) where
+  ifoldMap f (Pure a) = f [] a
+  ifoldMap f (Free s) = ifoldMap (\i -> ifoldMap (f . (:) i)) s
+  {-# INLINE ifoldMap #-}
+
+instance TraversableWithIndex i f => TraversableWithIndex [i] (Free f) where
+  itraverse f (Pure a) = Pure <$> f [] a
+  itraverse f (Free s) = Free <$> itraverse (\i -> itraverse (f . (:) i)) s
+  {-# INLINE itraverse #-}
 
 instance (Functor m, MonadWriter e m) => MonadWriter e (Free m) where
   tell = lift . tell
