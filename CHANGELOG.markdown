@@ -1,4 +1,4 @@
-5.1.5 [2020.xx.yy]
+5.1.5 [2020.12.16]
 ------------------
 * Move `indexed-traversable` (`FunctorWithIndex` etc) instances from `lens`.
 
