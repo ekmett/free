@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       5.1.4
+version:       5.1.5
 license:       BSD3
 cabal-version: 1.18
 license-file:  LICENSE
@@ -92,7 +92,8 @@ library
     transformers-base    >= 0.4 && < 0.5,
     template-haskell     >= 2.7.0.0 && < 2.18,
     exceptions           >= 0.6 && < 0.11,
-    containers           < 0.7
+    containers           < 0.7,
+    indexed-traversable  >=0.1 && <0.2
 
   if !impl(ghc >= 8.2)
     build-depends: bifunctors >= 4 && < 6

@@ -1,3 +1,7 @@
+5.1.5 [2020.xx.yy]
+------------------
+* Move `indexed-traversable` (`FunctorWithIndex` etc) instances from `lens`.
+
 5.1.4 [2020.10.01]
 ------------------
 * Allow building with `template-haskell-2.17.0.0` (GHC 9.0).
