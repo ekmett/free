@@ -46,7 +46,6 @@ extra-source-files:
   .ghci
   .gitignore
   .hlint.yaml
-  .travis.yml
   .vim.custom
   README.markdown
   CHANGELOG.markdown
