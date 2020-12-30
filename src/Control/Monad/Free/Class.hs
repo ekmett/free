@@ -2,12 +2,14 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE UndecidableInstances #-}
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 704
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 #endif
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
+{-# LANGUAGE Safe #-}
 #include "free-common.h"
 
 -----------------------------------------------------------------------------

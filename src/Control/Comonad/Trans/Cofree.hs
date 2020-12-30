@@ -6,6 +6,10 @@
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Safe #-}
+#else
+-- Manual Typeable instances
+{-# LANGUAGE Trustworthy #-}
 #endif
 #include "free-common.h"
 

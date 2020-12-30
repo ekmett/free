@@ -1,3 +1,7 @@
+5.1.6 [202y.mm.dd]
+------------------
+* Explicitly mark modules as `Safe`.
+
 5.1.5 [2020.12.16]
 ------------------
 * Move `indexed-traversable` (`FunctorWithIndex` etc) instances from `lens`.

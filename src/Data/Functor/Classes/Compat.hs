@@ -1,5 +1,6 @@
 #include "free-common.h"
 #ifdef LIFTED_FUNCTOR_CLASSES
+{-# LANGUAGE Safe #-}
 module Data.Functor.Classes.Compat (
     mappend,
     module Data.Functor.Classes,
@@ -13,6 +14,7 @@ import Data.Monoid (mappend)
 #else
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE Trustworthy #-}
 module Data.Functor.Classes.Compat (
     Lift1 (..),
     on,
