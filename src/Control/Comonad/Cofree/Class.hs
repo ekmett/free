@@ -2,8 +2,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE UndecidableInstances #-}
 #include "free-common.h"
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree.Class

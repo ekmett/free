@@ -3,12 +3,13 @@
 {-# LANGUAGE RankNTypes         #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE Safe #-}
+#else
+-- Manual Typeable instances
+{-# LANGUAGE Trustworthy #-}
 #endif
-{-# OPTIONS_GHC -Wall #-}
+#include "free-common.h"
 
-#ifndef MIN_VERSION_base
-#define MIN_VERSION_base(x,y,z) 1
-#endif
 --------------------------------------------------------------------------------
 -- |
 -- A faster free applicative.

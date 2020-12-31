@@ -2,6 +2,11 @@
 #if __GLASGOW_HASKELL__ >= 800
 {-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 #endif
+#if MIN_VERSION_template_haskell(2,12,0)
+{-# LANGUAGE Safe #-}
+#else
+{-# LANGUAGE Trustworthy #-}
+#endif
 #include "free-common.h"
 
 -----------------------------------------------------------------------------

@@ -7,8 +7,13 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE Safe #-}
+#else
+-- Manual Typeable instances
+{-# LANGUAGE Trustworthy #-}
 #endif
 #include "free-common.h"
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Comonad.Cofree
