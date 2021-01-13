@@ -71,6 +71,14 @@ import Prelude hiding (foldr)
 import GHC.Generics
 #endif
 
+-- $setup
+-- >>> import Control.Applicative (Const (..))
+-- >>> import Data.Functor.Identity (Identity (..))
+-- >>> import Data.Monoid (First (..))
+-- >>> import Data.Tagged (Tagged (..))
+-- >>> let preview l x = getFirst (getConst (l (Const . First . Just) x))
+-- >>> let review l x = runIdentity (unTagged (l (Tagged (Identity x))))
+
 -- | The 'Free' 'Monad' for a 'Functor' @f@.
 --
 -- /Formally/

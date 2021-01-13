@@ -160,3 +160,5 @@ library
     -- these flags may abort compilation with GHC-8.10
     -- https://gitlab.haskell.org/ghc/ghc/-/merge_requests/3295
     ghc-options: -Winferred-safe-imports -Wmissing-safe-haskell-mode
+
+  x-docspec-extra-packages: tagged
