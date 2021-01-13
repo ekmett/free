@@ -77,6 +77,14 @@ import Prelude hiding (foldr)
 import GHC.Generics
 #endif
 
+-- $setup
+-- >>> import Control.Applicative (Const (..))
+-- >>> import Data.Functor.Identity (Identity (..))
+-- >>> import Data.Monoid (First (..))
+-- >>> import Data.Tagged (Tagged (..))
+-- >>> let preview l x = getFirst (getConst (l (Const . First . Just) x))
+-- >>> let review l x = runIdentity (unTagged (l (Tagged (Identity x))))
+
 -- | A free monad given an applicative
 data Free f a = Pure a | Free (f (Free f a))
 #if __GLASGOW_HASKELL__ >= 707
