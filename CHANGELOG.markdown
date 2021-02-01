@@ -1,3 +1,7 @@
+next [????.??.??]
+-----------------
+* Enable `FlexibleContexts` in `Control.Monad.Trans.Free.Church`.
+
 5.1.6 [2020.12.31]
 ------------------
 * Explicitly mark modules as `Safe`.
