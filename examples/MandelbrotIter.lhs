@@ -3,6 +3,7 @@ Compiling to an executable file with the @-O2@ optimization level is recommended
 For example: @ghc -o 'mandelbrot_iter' -O2 MandelbrotIter.lhs ; ./mandelbrot_iter@
 
 > {-# LANGUAGE PackageImports #-}
+> module Main where
 
 > import Control.Arrow hiding (loop)
 > import Control.Monad.Trans.Iter

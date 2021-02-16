@@ -5,11 +5,13 @@ hopefully, more accurate than the previous one.
 to find zeroes of a function is one such algorithm.
 
 > {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, UndecidableInstances #-}
+> module Main where
 
 > import Control.Comonad.Trans.Coiter
 > import Control.Comonad.Env
-> import Control.Applicative
 > import Data.Foldable (toList, find)
+> import Prelude
+> import Prelude.Compat ()
 
 > data Function = Function {
 >   -- Function to find zeroes of
@@ -75,9 +77,9 @@ future and check if the result improves at all.
 > estimateOutlook :: Int -> Solution Result -> Outlook
 > estimateOutlook sampleSize solution =
 >   let sample = map ferror $ take sampleSize $ tail $ toList solution in
->   let result = extract solution in
->   Outlook { result = result,
->             progress = ferror result > minimum sample }
+>   let result' = extract solution in
+>   Outlook { result = result',
+>             progress = ferror result' > minimum sample }
 
 To compute the square root of @c@, we solve the equation @x*x - c = 0@. We will
 stop whenever the accuracy of the result doesn't improve in the next 5 steps.

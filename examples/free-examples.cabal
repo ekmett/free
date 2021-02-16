@@ -39,6 +39,7 @@ library
   ghc-options: -Wall
   build-depends:
     base         == 4.*,
+    base-compat  >= 0.6,
     free,
     mtl          >= 2.0.1 && < 2.3,
     transformers >= 0.2   && < 0.6
@@ -63,8 +64,9 @@ executable free-newton-coiter
   main-is: NewtonCoiter.lhs
   ghc-options: -Wall
   build-depends:
-    base    == 4.*,
-    comonad >= 4 && < 6,
+    base        == 4.*,
+    base-compat >= 0.6,
+    comonad     >= 4 && < 6,
     free
 
 executable free-perf-th
@@ -74,7 +76,6 @@ executable free-perf-th
   ghc-options: -Wall
   build-depends:
     base         == 4.*,
-    base-compat,
     fail         == 4.9.*,
     free,
     mtl          >= 2.0.1 && < 2.3,
@@ -88,7 +89,7 @@ executable free-retry-th
   ghc-options: -Wall -fno-warn-orphans
   build-depends:
     base                == 4.*,
-    base-compat,
+    base-compat         >= 0.6,
     fail                == 4.9.*,
     free,
     transformers        >= 0.2   && < 0.6,
@@ -100,7 +101,8 @@ executable free-teletype
   main-is: Teletype.lhs
   ghc-options: -Wall
   build-depends:
-    base == 4.*,
+    base        == 4.*,
+    base-compat >= 0.6,
     free,
     monad-loops
 
@@ -110,7 +112,7 @@ executable free-validation-form
   main-is: ValidationForm.hs
   ghc-options: -Wall
   build-depends:
-    base == 4.*,
-    base-compat,
+    base        == 4.*,
+    base-compat >= 0.6,
     free,
-    mtl  >= 2.0.1 && < 2.3
+    mtl         >= 2.0.1 && < 2.3

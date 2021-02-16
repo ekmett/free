@@ -1,7 +1,6 @@
 > {-# LANGUAGE ViewPatterns #-}
 > module Cabbage where
- 
-> import Control.Applicative
+
 > import Control.Monad
 > import Control.Monad.State
 > import Control.Monad.Trans.Iter
@@ -10,22 +9,24 @@
 > import Data.Maybe
 > import Data.Tuple
 > import Data.List
+> import Prelude ()
+> import Prelude.Compat
 
 Consider the following problem:
 
-A farmer must cross a river with a wolf, a sheep and a cabbage. 
-He owns a boat, which can only carry himself and one other item. 
+A farmer must cross a river with a wolf, a sheep and a cabbage.
+He owns a boat, which can only carry himself and one other item.
 The sheep must not be left alone with the wolf, or with the cabbage:
-if that happened, one of them would eat the other. 
+if that happened, one of them would eat the other.
 
 > data Item = Wolf | Sheep | Cabbage | Farmer deriving (Ord, Show, Eq)
-> 
+>
 > eats :: Item -> Item -> Bool
 > Sheep `eats` Cabbage = True
 > Wolf `eats` Sheep    = True
 > _ `eats` _           = False
 
-The problem can be represented as the set of items on each side of the river. 
+The problem can be represented as the set of items on each side of the river.
 
 > type Situation = ([Item],[Item])
 
@@ -35,7 +36,7 @@ The problem can be represented as the set of items on each side of the river.
 First, some helper functions to extract single elements from lists, leaving the
 rest intact:
 
-> plusTailOf :: [a] -> [a] -> (Maybe a, [a]) 
+> plusTailOf :: [a] -> [a] -> (Maybe a, [a])
 > a `plusTailOf` b = (listToMaybe b,  a ++ drop 1 b)
 
 > singleOut1 :: (a -> Bool) -> [a] -> (Maybe a,[a])
@@ -61,11 +62,11 @@ The remaining items must not eat each other for the move to be valid.
 
 > move :: Situation -> [Situation]
 > move = move2
->   where 
+>   where
 >   move2 (singleOut1 (== Farmer) -> (Just Farmer,as), bs)  = move1 as bs
 >   move2 (bs, singleOut1 (== Farmer) -> (Just Farmer,as))  = map swap $ move1 as bs
 >   move2 _                                            = []
-> 
+>
 >   move1 as bs = [(as', [Farmer] ++ maybeToList b ++ bs) |
 >                  (b, as') <- singleOutAll as,
 >                  and [not $ x `eats` y | x <- as', y <- as']]
@@ -74,15 +75,15 @@ The remaining items must not eat each other for the move to be valid.
 *Cabbage> move initial
 [([Wolf,Cabbage],[Farmer,Sheep])]
 @
-  
+
 When the starting side becomes empty, the farmer succeeds.
 
 > success :: Situation -> Bool
 > success ([],_) = True
 > success _      = False
 
-A straightforward implementation to solve the problem could use the 
-list monad, trying all possible solutions and 
+A straightforward implementation to solve the problem could use the
+list monad, trying all possible solutions and
 
 > solution1 :: Situation
 > solution1 = head $ solutions' initial
@@ -96,8 +97,8 @@ is shuffled back and forth. The solution is being searched in depth.
 
 To guarantee termination, we can use the 'Iter' monad with its MonadPlus instance.
 As long as one of the possible execution paths finds a solution, the program
-will terminate: the solution is looked for _in breadth_. 
- 
+will terminate: the solution is looked for _in breadth_.
+
 > solution2 :: Iter Situation
 > solution2 = solution' initial
 >             where

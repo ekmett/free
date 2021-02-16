@@ -6,21 +6,15 @@
 module Main where
 
 import System.CPUTime.Rdtsc
-import System.IO
 import System.IO.Unsafe
 import Data.IORef
 import Data.Word
 import Control.Monad
 import Control.Monad.State.Strict
-import Control.Monad.Fail (MonadFail)
+import qualified Control.Monad.Fail as Fail (MonadFail)
 import Control.Monad.Free
 import Control.Monad.Free.TH
 import qualified Control.Monad.Free.Church as Church
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Maybe
-import Control.Category ((>>>))
-import qualified Data.Foldable as F
-import Text.Read.Compat (readMaybe)
 import Text.Printf
 
 -- | A data type representing basic commands for our performance-testing eDSL.
@@ -57,7 +51,7 @@ g_print_time_since_prev_call = liftIO $ do
 runPerfFree :: (MonadIO m) => [String] -> Free PerfF () -> m ()
 runPerfFree [] _ = return ()
 runPerfFree (s:ss) x = case x of
-  Free (Output o next) -> do
+  Free (Output _o next) -> do
     runPerfFree (s:ss) next
   Free (Input next) -> do
     g_print_time_since_prev_call
@@ -66,12 +60,12 @@ runPerfFree (s:ss) x = case x of
     return a
 
 -- | Church-based interpreter
-runPerfF :: (MonadFail m, MonadIO m) => [String] -> Church.F PerfF () -> m ()
+runPerfF :: (Fail.MonadFail m, MonadIO m) => [String] -> Church.F PerfF () -> m ()
 runPerfF [] _ = return ()
 runPerfF ss0 f =
   fst `liftM` do
   flip runStateT ss0 $ Church.iterM go f where
-    go (Output o next) = do
+    go (Output _o next) = do
       next
     go (Input next) = do
       g_print_time_since_prev_call
@@ -80,7 +74,8 @@ runPerfF ss0 f =
       next (read s)
 
 -- | Test input is the same for all cases
-test_input = [show i | i<-([1..9999] ++ [0])]
+test_input :: [String]
+test_input = [show i | i<-([1..9999] ++ [0 :: Int])]
 
 -- | Tail-recursive program
 test_tail :: (MonadFree PerfF m) => m ()
