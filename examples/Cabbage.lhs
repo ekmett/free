@@ -8,7 +8,7 @@
 > import Data.Functor.Identity
 > import Data.Maybe
 > import Data.Tuple
-> import Data.List
+> import Data.List (inits, tails)
 > import Prelude ()
 > import Prelude.Compat
 

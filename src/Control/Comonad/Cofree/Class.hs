@@ -26,7 +26,7 @@ import Control.Comonad.Trans.Env
 import Control.Comonad.Trans.Store
 import Control.Comonad.Trans.Traced
 import Control.Comonad.Trans.Identity
-import Data.List.NonEmpty
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Tree
 #if __GLASGOW_HASKELL__ < 710
 import Data.Monoid
