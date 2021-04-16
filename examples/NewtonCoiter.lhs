@@ -64,7 +64,8 @@ We know that the exact value of a function at one of it's zeroes is 0. So,
 
 > estimateError :: Solution Double -> Result
 > estimateError s =
->   let a:a':_ = toList s in
+>   let (a, s') = extract $ runCoiterT s in
+>   let a' = extract s' in
 >   let f = asks function s in
 >   Result { value = a,
 >            xerror = abs $ a - a',
