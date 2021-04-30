@@ -91,7 +91,7 @@ library
     th-abstraction       >= 0.4.2.0 && < 0.5,
     transformers         >= 0.3     && < 0.6,
     transformers-base    >= 0.4.5.2 && < 0.5,
-    template-haskell     >= 2.7.0.0 && < 2.18
+    template-haskell     >= 2.7.0.0 && < 2.19
 
   -- GHC-7.8 bundles transformers-0.3,
   -- mtl-2.2.* requires transformers >=0.4
