@@ -1,6 +1,7 @@
-next [????.??.??]
------------------
-* Enable `FlexibleContexts` in `Control.Monad.Trans.Free.Church`.
+5.1.7 [2021.04.30]
+------------------
+* Enable `FlexibleContexts` in `Control.Monad.Trans.Free.Church` to allow
+  building with GHC 9.2.
 
 5.1.6 [2020.12.31]
 ------------------
