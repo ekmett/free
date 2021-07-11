@@ -44,7 +44,6 @@ module Control.Monad.Trans.Free.Church
   , iterM
   -- * Free Monads With Class
   , MonadFree(..)
-  , liftF
   ) where
 
 import Control.Applicative
@@ -122,6 +121,7 @@ instance Monad (FT f m) where
 
 instance MonadFree f (FT f m) where
   wrap f = FT (\kp kf -> kf (\ft -> runFT ft kp kf) f)
+  liftF f = FT (\kp kf -> kf kp f)
 
 instance MonadTrans (FT f) where
   lift m = FT (\a _ -> m >>= a)

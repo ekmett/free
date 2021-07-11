@@ -63,7 +63,6 @@ module Control.Monad.Free.Church
   , hoistF
   , foldF
   , MonadFree(..)
-  , liftF
   , cutoff
   ) where
 
@@ -157,6 +156,7 @@ instance MonadTrans F where
 
 instance Functor f => MonadFree f (F f) where
   wrap f = F (\kp kf -> kf (fmap (\ (F m) -> m kp kf) f))
+  liftF f = F (\kp kf -> kf (fmap kp f))
 
 instance MonadState s m => MonadState s (F m) where
   get = lift get

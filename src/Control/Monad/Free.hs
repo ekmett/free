@@ -30,7 +30,6 @@ module Control.Monad.Free
   ( MonadFree(..)
   , Free(..)
   , retract
-  , liftF
   , iter
   , iterA
   , iterM
