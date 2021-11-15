@@ -96,7 +96,7 @@ executable free-retry-th
     fail                == 4.9.*,
     free,
     transformers        >= 0.2   && < 0.6,
-    transformers-compat >= 0.6.4 && < 0.7
+    transformers-compat >= 0.6.4 && < 0.8
 
 executable free-teletype
   hs-source-dirs: .
