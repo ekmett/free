@@ -3,6 +3,7 @@ next [????.??.??]
 * Generalize the `Monad` constraint in the type signatures for
   `hoistFreeT` in `Control.Monad.Trans.Free` and `Control.Monad.Trans.Free.Ap`
   to a `Functor` constraint.
+* Allow building with `transformers-0.6.*` and `mtl-2.3.*`.
 
 5.1.7 [2021.04.30]
 ------------------

@@ -318,7 +318,7 @@ instance (Applicative f, Applicative m, Monad m) => Monad (FreeT f m) where
 instance (Applicative f, Applicative m, Fail.MonadFail m) => Fail.MonadFail (FreeT f m) where
   fail e = FreeT (Fail.fail e)
 
-instance MonadTrans (FreeT f) where
+instance Applicative f => MonadTrans (FreeT f) where
   lift = FreeT . liftM Pure
   {-# INLINE lift #-}
 

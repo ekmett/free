@@ -6,8 +6,9 @@ For example: @ghc -o 'mandelbrot_iter' -O2 MandelbrotIter.lhs ; ./mandelbrot_ite
 > module Main where
 
 > import Control.Arrow hiding (loop)
+> import Control.Monad.IO.Class (MonadIO(..))
 > import Control.Monad.Trans.Iter
-> import "mtl" Control.Monad.Reader
+> import "mtl" Control.Monad.Reader (ReaderT, runReaderT, asks)
 > import Data.Complex
 > import Graphics.HGL (runGraphics, Window, withPen,
 >                      line, RGB (RGB), RedrawMode (DoubleBuffered), openWindowEx,

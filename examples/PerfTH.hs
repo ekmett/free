@@ -10,11 +10,12 @@ import System.IO.Unsafe
 import Data.IORef
 import Data.Word
 import Control.Monad
-import Control.Monad.State.Strict
+import Control.Monad.IO.Class (MonadIO(..))
 import qualified Control.Monad.Fail as Fail (MonadFail)
 import Control.Monad.Free
 import Control.Monad.Free.TH
 import qualified Control.Monad.Free.Church as Church
+import Control.Monad.Trans.State.Strict
 import Text.Printf
 
 -- | A data type representing basic commands for our performance-testing eDSL.

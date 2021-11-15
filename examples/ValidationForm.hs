@@ -5,7 +5,8 @@ module Main where
 import Control.Applicative
 #endif
 import Control.Applicative.Free
-import Control.Monad.State
+import Control.Monad.IO.Class (MonadIO(..))
+import Control.Monad.Trans.State
 
 import Data.Monoid (Sum(..))
 

@@ -42,8 +42,8 @@ library
     base         == 4.*,
     base-compat  >= 0.6,
     free,
-    mtl          >= 2.0.1 && < 2.3,
-    transformers >= 0.2   && < 0.6
+    mtl          >= 2.0.1 && < 2.4,
+    transformers >= 0.2   && < 0.7
 
 executable free-mandelbrot-iter
   if !flag(mandelbrot-iter)
@@ -59,8 +59,8 @@ executable free-mandelbrot-iter
     base >= 4.9 && < 5,
     free,
     HGL          >= 3.2.3.2,
-    mtl          >= 2.0.1 && < 2.3,
-    transformers >= 0.2   && < 0.6
+    mtl          >= 2.0.1 && < 2.4,
+    transformers >= 0.2   && < 0.7
 
 executable free-newton-coiter
   hs-source-dirs: .
@@ -82,9 +82,8 @@ executable free-perf-th
     base         == 4.*,
     fail         == 4.9.*,
     free,
-    mtl          >= 2.0.1 && < 2.3,
     rdtsc,
-    transformers >= 0.2   && < 0.6
+    transformers >= 0.2   && < 0.7
 
 executable free-retry-th
   hs-source-dirs: .
@@ -96,7 +95,7 @@ executable free-retry-th
     base-compat         >= 0.6,
     fail                == 4.9.*,
     free,
-    transformers        >= 0.2   && < 0.6,
+    transformers        >= 0.2   && < 0.7,
     transformers-compat >= 0.6.4 && < 0.8
 
 executable free-teletype
@@ -119,4 +118,4 @@ executable free-validation-form
     base        == 4.*,
     base-compat >= 0.6,
     free,
-    mtl         >= 2.0.1 && < 2.3
+    transformers >= 0.2 && < 0.7
