@@ -172,7 +172,7 @@ instance MonadReader r m => MonadReader r (FT f m) where
   local f = hoistFT (local f)
   {-# INLINE local #-}
 
-instance (Functor f, MonadWriter w m) => MonadWriter w (FT f m) where
+instance (Functor f, Functor m, MonadWriter w m) => MonadWriter w (FT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen = toFT . listen . fromFT
