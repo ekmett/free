@@ -418,9 +418,9 @@ instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) wher
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' f n@
 --
--- @'hoistFreeT' :: ('Monad' m, 'Functor' f) => (m ~> n) -> 'FreeT' f m ~> 'FreeT' f n@
-hoistFreeT :: (Monad m, Applicative f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
-hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
+-- @'hoistFreeT' :: ('Functor' m, 'Applicative' f) => (m ~> n) -> 'FreeT' f m ~> 'FreeT' f n@
+hoistFreeT :: (Functor m, Applicative f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
+hoistFreeT mh = FreeT . mh . fmap (fmap (hoistFreeT mh)) . runFreeT
 
 -- | Lift an applicative homomorphism from @f@ to @g@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' g m@
 transFreeT :: (Monad m, Applicative g) => (forall a. f a -> g a) -> FreeT f m b -> FreeT g m b

@@ -331,13 +331,13 @@ instance (Functor f, MonadBase b m) => MonadBase b (FreeT f m) where
   liftBase = lift . liftBase
   {-# INLINE liftBase #-}
 
-instance (Functor f, MonadReader r m) => MonadReader r (FreeT f m) where
+instance (Functor f, Functor m, MonadReader r m) => MonadReader r (FreeT f m) where
   ask = lift ask
   {-# INLINE ask #-}
   local f = hoistFreeT (local f)
   {-# INLINE local #-}
 
-instance (Functor f, MonadWriter w m) => MonadWriter w (FreeT f m) where
+instance (Functor f, Functor m, MonadWriter w m) => MonadWriter w (FreeT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen (FreeT m) = FreeT $ liftM concat' $ listen (fmap listen `liftM` m)
@@ -421,9 +421,9 @@ instance (Monad m, Traversable m, Traversable f) => Traversable (FreeT f m) wher
 
 -- | Lift a monad homomorphism from @m@ to @n@ into a monad homomorphism from @'FreeT' f m@ to @'FreeT' f n@
 --
--- @'hoistFreeT' :: ('Monad' m, 'Functor' f) => (m ~> n) -> 'FreeT' f m ~> 'FreeT' f n@
-hoistFreeT :: (Monad m, Functor f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
-hoistFreeT mh = FreeT . mh . liftM (fmap (hoistFreeT mh)) . runFreeT
+-- @'hoistFreeT' :: ('Functor' m, 'Functor' f) => (m ~> n) -> 'FreeT' f m ~> 'FreeT' f n@
+hoistFreeT :: (Functor m, Functor f) => (forall a. m a -> n a) -> FreeT f m b -> FreeT f n b
+hoistFreeT mh = FreeT . mh . fmap (fmap (hoistFreeT mh)) . runFreeT
 
 -- | The very definition of a free monad transformer is that given a natural
 -- transformation you get a monad transformer homomorphism.
