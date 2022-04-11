@@ -8,6 +8,7 @@
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 704
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DefaultSignatures #-}
 #endif
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 {-# LANGUAGE Safe #-}
@@ -27,8 +28,8 @@
 ----------------------------------------------------------------------------
 module Control.Monad.Free.Class
   ( MonadFree(..)
-  , liftF
   , wrapT
+  , defaultWrap
   ) where
 
 import Control.Monad
@@ -110,6 +111,11 @@ class Monad m => MonadFree f m | m -> f where
   wrap = join . lift . wrap . fmap return
 #endif
 
+  -- | A version of lift that can be used with just a Functor for f.
+  liftF :: f a -> m a
+  default liftF :: Functor f => f a -> m a
+  liftF = wrap . fmap return
+
 instance (Functor f, MonadFree f m) => MonadFree f (ReaderT e m) where
   wrap fm = ReaderT $ \e -> wrap $ flip runReaderT e <$> fm
 
@@ -152,13 +158,13 @@ instance (Functor f, MonadFree f m) => MonadFree f (ExceptT e m) where
 -- instance (Functor f, MonadFree f m) => MonadFree f (EitherT e m) where
 --   wrap = EitherT . wrap . fmap runEitherT
 
--- | A version of lift that can be used with just a Functor for f.
-liftF :: (Functor f, MonadFree f m) => f a -> m a
-liftF = wrap . fmap return
-
 -- | A version of wrap for monad transformers over a free monad.
 --
 -- /Note:/ that this is the default implementation for 'wrap' for
 -- @MonadFree f (t m)@.
 wrapT :: (Functor f, MonadFree f m, MonadTrans t, Monad (t m)) => f (t m a) -> t m a
 wrapT = join . lift . liftF
+
+-- | An implementation of 'wrap' for 'MonadFree' instances that define 'liftF'.
+defaultWrap :: (Functor f, MonadFree f m) => f (m a) -> m a
+defaultWrap = join . liftF

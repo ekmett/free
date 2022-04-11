@@ -36,7 +36,6 @@ module Control.Monad.Trans.Free
   -- * The free monad
   , Free, free, runFree
   -- * Operations
-  , liftF
   , iterT
   , iterTM
   , hoistFreeT

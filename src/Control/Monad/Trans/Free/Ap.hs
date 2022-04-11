@@ -28,7 +28,6 @@ module Control.Monad.Trans.Free.Ap
   -- * The free monad
   , Free, free, runFree
   -- * Operations
-  , liftF
   , iterT
   , iterTM
   , hoistFreeT
