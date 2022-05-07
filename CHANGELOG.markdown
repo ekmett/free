@@ -1,3 +1,9 @@
+next [????.??.??]
+-----------------
+* Generalize the `Monad` constraint in the type signatures for
+  `hoistFreeT` in `Control.Monad.Trans.Free` and `Control.Monad.Trans.Free.Ap`
+  to a `Functor` constraint.
+
 5.1.7 [2021.04.30]
 ------------------
 * Enable `FlexibleContexts` in `Control.Monad.Trans.Free.Church` to allow
