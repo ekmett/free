@@ -1,5 +1,5 @@
-next [????.??.??]
------------------
+5.1.8 [2022.05.07]
+------------------
 * Generalize the `Monad` constraint in the type signatures for
   `hoistFreeT` in `Control.Monad.Trans.Free` and `Control.Monad.Trans.Free.Ap`
   to a `Functor` constraint.
