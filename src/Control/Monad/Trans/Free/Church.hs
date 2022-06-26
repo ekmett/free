@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
@@ -97,10 +96,20 @@ instance ( Functor f, Monad m, Ord1 f, Ord1 m
   compare1 x y = compare1 (fromFT x) (fromFT y)
 #endif
 
-instance (Eq1 (FT f m), Eq a) => Eq (FT f m a) where
+instance ( Functor f, Monad m, Eq1 f, Eq1 m
+# if !(MIN_VERSION_base(4,8,0))
+         , Functor m
+# endif
+         , Eq a
+         ) => Eq (FT f m a) where
   (==) = eq1
 
-instance (Ord1 (FT f m), Ord a) => Ord (FT f m a) where
+instance ( Functor f, Monad m, Ord1 f, Ord1 m
+# if !(MIN_VERSION_base(4,8,0))
+         , Functor m
+# endif
+         , Ord a
+         ) => Ord (FT f m a) where
   compare = compare1
 
 instance Functor (FT f m) where

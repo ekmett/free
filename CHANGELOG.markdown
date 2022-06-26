@@ -1,3 +1,8 @@
+next [????.??.??]
+-----------------
+* Simplify the `Eq` and `Ord` instances for `FT` to avoid the use of
+  overlapping instances.
+
 5.1.8 [2022.05.07]
 ------------------
 * Generalize the `Monad` constraint in the type signatures for
