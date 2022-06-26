@@ -1,5 +1,5 @@
-next [????.??.??]
------------------
+5.1.9 [2022.06.26]
+------------------
 * Simplify the `Eq` and `Ord` instances for `FT` to avoid the use of
   overlapping instances.
 

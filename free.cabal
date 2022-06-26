@@ -1,6 +1,6 @@
 name:          free
 category:      Control, Monads
-version:       5.1.8
+version:       5.1.9
 license:       BSD3
 cabal-version: 1.18
 license-file:  LICENSE
