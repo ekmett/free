@@ -50,6 +50,7 @@ import Control.Applicative
 import Control.Category ((<<<), (>>>))
 import Control.Monad
 import Control.Monad.Catch (MonadCatch(..), MonadThrow(..))
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.Identity
 import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
@@ -128,6 +129,10 @@ instance Bind (FT f m) where
 instance Monad (FT f m) where
   return = pure
   FT fk >>= f = FT $ \b fr -> fk (\d -> runFT (f d) b fr) fr
+
+instance Fail.MonadFail m => Fail.MonadFail (FT f m) where
+  fail = lift . Fail.fail
+  {-# INLINE fail #-}
 
 instance MonadFree f (FT f m) where
   wrap f = FT (\kp kf -> kf (\ft -> runFT ft kp kf) f)
