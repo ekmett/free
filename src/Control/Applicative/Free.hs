@@ -98,71 +98,78 @@ instance Comonad f => Comonad (Ap f) where
   duplicate (Pure a) = Pure (Pure a)
   duplicate (Ap x y) = Ap (duplicate x) (extend (flip Ap) y)
 
+#ifdef LIFTED_FUNCTOR_CLASSES
+boringEqAp :: Eq1 f => Ap f a -> Ap f b -> Bool
+#else
+boringEqAp :: (Eq1 f, Functor f, Foldable f) => Ap f a -> Ap f b -> Bool
+#endif
+boringEqAp (Pure _) (Pure _) = True
+boringEqAp (Ap x1 y1) (Ap x2 y2) = boringEq x1 x2 && boringEqAp y1 y2
+boringEqAp _ _ = False
+
+#ifdef LIFTED_FUNCTOR_CLASSES
+liftEqAp :: Eq1 f => (a -> b -> Bool) -> Ap f a -> Ap f b -> Bool
+#else
+liftEqAp :: (Eq1 f, Functor f) => (a -> b -> Bool) -> Ap f a -> Ap f b -> Bool
+#endif
+liftEqAp eq (Pure a1) (Pure a2) = eq a1 a2
+liftEqAp eq (Ap x1 y1) (Ap x2 y2)
+  | emptyEq x1 x2 = boringEqAp y1 y2
+  | otherwise =
+      liftEq (\a1 a2 -> liftEqAp (\g1 g2 -> eq (g1 a1) (g2 a2)) y1 y2) x1 x2
+liftEqAp _ _ _ = False
+
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance Eq1 f => Eq1 (Ap f) where
+  liftEq = liftEqAp
+#else
+instance (Eq1 f, Functor f) => Eq1 (Ap f) where
+  eq1 = liftEqAp (==)
+#endif
+
+#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 f, Eq a) => Eq (Ap f a) where
+#else
+instance (Eq1 f, Functor f, Eq a) => Eq (Ap f a) where
+#endif
   (==) = eq1
 
-instance Eq1 f => Eq1 (Ap f) where
-  liftEq eq (Pure a1) (Pure a2) = eq a1 a2
-  liftEq eq (Ap x1 y1) (Ap x2 y2)
-    | emptyEq x1 x2 = boringEqAp1 y1 y2
-    | otherwise = liftEq (\a1 a2 -> liftEq (\g1 g2 -> eq (g1 a1) (g2 a2)) y1 y2) x1 x2
-  liftEq _ _ _ = False
+#ifdef LIFTED_FUNCTOR_CLASSES
+boringCompareAp :: Ord1 f => Ap f a -> Ap f b -> Ordering
+#else
+boringCompareAp :: (Ord1 f, Functor f) => Ap f a -> Ap f b -> Ordering
+#endif
+boringCompareAp (Pure _) (Pure _) = EQ
+boringCompareAp (Pure _) (Ap _ _) = LT
+boringCompareAp (Ap x1 y1) (Ap x2 y2) = boringCompare x1 x2 `mappend` boringCompareAp y1 y2
+boringCompareAp (Ap _ _) (Pure _) = GT
 
-instance (Ord1 f, Ord a) => Ord (Ap f a) where
-  compare = compare1
+#ifdef LIFTED_FUNCTOR_CLASSES
+liftCompareAp :: Ord1 f => (a -> b -> Ordering) -> Ap f a -> Ap f b -> Ordering
+#else
+liftCompareAp :: (Ord1 f, Functor f) => (a -> b -> Ordering) -> Ap f a -> Ap f b -> Ordering
+#endif
+liftCompareAp cmp (Pure a1) (Pure a2) = cmp a1 a2
+liftCompareAp _   (Pure _) (Ap _ _) = LT
+liftCompareAp cmp (Ap x1 y1) (Ap x2 y2)
+  | emptyEq x1 x2 = boringCompareAp y1 y2
+  | otherwise     = liftCompare (\a1 a2 -> liftCompareAp (\g1 g2 -> cmp (g1 a1) (g2 a2)) y1 y2) x1 x2
+liftCompareAp _   (Ap _ _) (Pure _) = GT
 
+#ifdef LIFTED_FUNCTOR_CLASSES
 instance Ord1 f => Ord1 (Ap f) where
-  liftCompare cmp (Pure a1) (Pure a2) = cmp a1 a2
-  liftCompare _   (Pure _) (Ap _ _) = LT
-  liftCompare cmp (Ap x1 y1) (Ap x2 y2)
-    | emptyEq x1 x2 = boringCompareAp1 y1 y2
-    | otherwise     = liftCompare (\a1 a2 -> liftCompare (\g1 g2 -> cmp (g1 a1) (g2 a2)) y1 y2) x1 x2
-  liftCompare _   (Ap _ _) (Pure _) = GT
+  liftCompare = liftCompareAp
+#else
+instance Ord1 f => Ord1 (Ap f) where
+  compare1 = liftCompareAp compare
+#endif
 
--- | @emptyEq = 'liftEq' (\_ _ -> False)@
---
---   When @f@ is 'Traversable', there is a function recognizing that an functor
---   contains no value:
---   
---   > toEmpty :: Traversable f => f a -> Maybe (f b)
---   > toEmpty = traverse (const Nothing)
---   
---   Using @toEmpty@, for any @eq :: c -> d -> Bool@, @emptyEq@ is equivalent to the following function
---   
---   > emptyEq fa fb = case (,) <$> toEmpty fa <*> toEmpty fb of
---   >    Just (fc,fd) -> liftEq eq fc fd
---   >    Nothing      -> False
-emptyEq :: Eq1 f => f a -> f b -> Bool
-emptyEq = liftEq (\_ _ -> False)
-
--- | @boringEq = 'liftEq' (\_ _ -> True)@
---
---   When @f@ is 'Functor', it's equivalent to the following definition
---
---   > boringEq = (==) \`'on'\` fmap (const ())
-boringEq :: Eq1 f => f a -> f b -> Bool
-boringEq = liftEq (\_ _ -> True)
-
--- | 'boringEq' optimized for @Ap f@
-boringEqAp1 :: Eq1 f => Ap f a -> Ap f b -> Bool
-boringEqAp1 (Pure _) (Pure _) = True
-boringEqAp1 (Ap x1 y1) (Ap x2 y2) = boringEq x1 x2 && boringEqAp1 y1 y2
-boringEqAp1 _ _ = False
-
--- | @boringEq = 'liftCompare' (\_ _ -> EQ)@
---
---   When @f@ is 'Functor', it's equivalent to the following definition
---
---   > boringCompare = compare \`'on'\` fmap (const ())
-boringCompare :: Ord1 f => f a -> f b -> Ordering
-boringCompare = liftCompare (\_ _ -> EQ)
-
--- | 'boringCompare' optimized for @Ap f@
-boringCompareAp1 :: Ord1 f => Ap f a -> Ap f b -> Ordering
-boringCompareAp1 (Pure _) (Pure _) = EQ
-boringCompareAp1 (Pure _) (Ap _ _) = LT
-boringCompareAp1 (Ap x1 y1) (Ap x2 y2) = boringCompare x1 x2 <> boringCompareAp1 y1 y2
-boringCompareAp1 (Ap _ _) (Pure _) = GT
+#ifdef LIFTED_FUNCTOR_CLASSES
+instance (Ord1 f, Ord a) => Ord (Ap f a) where
+#else
+instance (Ord1 f, Functor f, Ord a) => Ord (Ap f a) where
+#endif
+  compare = compare1
 
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftAp :: f a -> Ap f a
