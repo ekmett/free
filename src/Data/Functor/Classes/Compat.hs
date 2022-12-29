@@ -90,9 +90,9 @@ boringCompare fa fb = compare1 (() <$ fa) (() <$ fb)
 -- | Internal only, do not export
 data ComparisonTmp b = ComparisonLeft (b -> Ordering) | ComparisonRight b
 
-instance Eq (CompareTmp b) where
+instance Eq (ComparisonTmp b) where
   x == y = compare x y == EQ
-instance Ord (CompareTmp b) where
+instance Ord (ComparisonTmp b) where
   compare (ComparisonLeft f) (ComparisonRight b) = f b
   compare (ComparisonRight b) (ComparisonLeft f) = case f b of
     LT -> GT

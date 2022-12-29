@@ -101,7 +101,7 @@ instance Comonad f => Comonad (Ap f) where
 #ifdef LIFTED_FUNCTOR_CLASSES
 boringEqAp :: Eq1 f => Ap f a -> Ap f b -> Bool
 #else
-boringEqAp :: (Eq1 f, Functor f, Foldable f) => Ap f a -> Ap f b -> Bool
+boringEqAp :: (Eq1 f, Functor f) => Ap f a -> Ap f b -> Bool
 #endif
 boringEqAp (Pure _) (Pure _) = True
 boringEqAp (Ap x1 y1) (Ap x2 y2) = boringEq x1 x2 && boringEqAp y1 y2
@@ -160,7 +160,7 @@ liftCompareAp _   (Ap _ _) (Pure _) = GT
 instance Ord1 f => Ord1 (Ap f) where
   liftCompare = liftCompareAp
 #else
-instance Ord1 f => Ord1 (Ap f) where
+instance (Ord1 f, Functor f) => Ord1 (Ap f) where
   compare1 = liftCompareAp compare
 #endif
 
