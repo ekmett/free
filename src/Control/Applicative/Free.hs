@@ -47,7 +47,10 @@ import Control.Applicative
 import Control.Comonad (Comonad(..))
 import Data.Functor.Apply
 import Data.Typeable
+import Data.Foldable
 import Data.Semigroup.Foldable
+
+import Prelude hiding (null)
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid
