@@ -106,6 +106,7 @@ instance Foldable f => Foldable (Ap f) where
   foldMap f (Pure a) = f a
   foldMap f (Ap x y) = foldMap (\a -> foldMap (\g -> f (g a)) y) x
 
+#if MIN_VERSION_base(4,8,0)
   null (Pure _) = False
   null (Ap x y) = null x || null y
 
@@ -117,6 +118,7 @@ instance Foldable f => Foldable (Ap f) where
       go n (Ap x y) = case n * length x of
         0  -> 0
         n' -> go n' y
+#endif
 
 -- | @foldMap f == foldMap f . 'runAp' 'toNonEmpty'@
 instance Foldable1 f => Foldable1 (Ap f) where
