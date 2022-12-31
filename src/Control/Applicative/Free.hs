@@ -47,6 +47,10 @@ import Control.Applicative
 import Control.Comonad (Comonad(..))
 import Data.Functor.Apply
 import Data.Typeable
+import Data.Foldable
+import Data.Semigroup.Foldable
+
+import Prelude hiding (null)
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid
@@ -96,7 +100,31 @@ instance Comonad f => Comonad (Ap f) where
   extract (Ap x y) = extract y (extract x)
   duplicate (Pure a) = Pure (Pure a)
   duplicate (Ap x y) = Ap (duplicate x) (extend (flip Ap) y)
-  
+
+-- | @foldMap f == foldMap f . 'runAp' 'Data.Foldable.toList'@
+instance Foldable f => Foldable (Ap f) where
+  foldMap f (Pure a) = f a
+  foldMap f (Ap x y) = foldMap (\a -> foldMap (\g -> f (g a)) y) x
+
+#if MIN_VERSION_base(4,8,0)
+  null (Pure _) = False
+  null (Ap x y) = null x || null y
+
+  length = go 1
+    where
+      -- This type annotation is required to do polymorphic recursion
+      go :: Foldable t => Int -> Ap t a -> Int
+      go n (Pure _) = n
+      go n (Ap x y) = case n * length x of
+        0  -> 0
+        n' -> go n' y
+#endif
+
+-- | @foldMap f == foldMap f . 'runAp' 'toNonEmpty'@
+instance Foldable1 f => Foldable1 (Ap f) where
+  foldMap1 f (Pure a) = f a
+  foldMap1 f (Ap x y) = foldMap1 (\a -> foldMap1 (\g -> f (g a)) y) x
+
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
 liftAp :: f a -> Ap f a
 liftAp x = Ap x (Pure id)
