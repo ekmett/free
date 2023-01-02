@@ -134,15 +134,15 @@ Haddock markup. It is to allow rendering them to ease reading this rather long d
 
 === About the definition of @Eq1 (Ap f)@ instance
 
-The @Eq1 (Ap f)@ instance below have a complex definition. This comment
+The @Eq1 (Ap f)@ instance below has a complex definition. This comment
 explains why it is defined like that.
 
 The discussion given here also applies to @Ord1 (Ap f)@ instance with a little change.
 
 ==== General discussion about @Eq1@ type class
 
-Currently, there isn't a law on @Eq1@ type class, but the following
-property can be expected.
+Currently, there isn't a law on the @Eq1@ type class, but the following
+properties can be expected.
 
 * If @Eq (f ())@, and @Functor f@ holds, @Eq1 f@ satisfies
 
@@ -159,7 +159,8 @@ Let's define the commonly used function @liftEq (\\_ _ -> True)@ as @boringEq@.
 > boringEq :: Eq1 f => f a -> f b -> Bool
 > boringEq = liftEq (\_ _ -> True)
 
-Changing constant @True@ to constant @False@ in the @boringEq@, let @emptyEq@ function be defined.
+Changing the constant @True@ to the constant @False@ in the definition of
+@boringEq@, let @emptyEq@ function be defined as:
 
 > emptyEq :: Eq1 f => f a -> f b -> Bool
 > emptyEq = liftEq (\_ _ -> False)
@@ -170,12 +171,12 @@ From the above properties expectated on a @Eq1@ instance, @emptyEq@ satisfies th
 
 ==== About @instance (Eq1 (Ap f))@
 
-If we're to define @Eq1 (Ap f)@ satisfying these properties expected, @Eq (Ap f ())@ will determine
+If we're to define @Eq1 (Ap f)@ satisfying these properties as expected, @Eq (Ap f ())@ will determine
 how @liftEq@ should behave. It's not unreasonable to define equality between @Ap f ()@ as below.
 
 > boringEqAp (Pure _) (Pure _) = True
 > boringEqAp (Ap x1 y1) (Ap x2 y2) = boringEq x1 x2 && boringEqAp y1 y2
->    {-  = ((() <$ x1) == (() <$ x2)) && (y1 == y2)  -} 
+>    {-  = ((() <$ x1) == (() <$ x2)) && (y1 == y2)  -}
 > boringEqAp _ _ = False
 
 Its type can be more general than equality between @Ap f ()@:
@@ -211,7 +212,7 @@ If @zip as1 as2@ is /not/ empty, the following transformation is valid.
 >   = boringEq x1 x2 && all (\(a1, a2) -> liftEq (\g1 g2 -> eq (g1 a1) (g2 a2)) y1 y2) (zip as1 as2)
 >   = liftEq (\a1 a2 -> liftEq (\g1 g2 -> eq (g1 a1) (g2 a2)) y1 y2)) x1 x2
 
-Because, generally, the following transformation is valid if @xs@ is nonempty list.
+Because, generally, the following transformation is valid if @xs@ is a nonempty list.
 
 > cond && all p xs = all (\x -> cond && p x) xs -- Only when xs is not empty!
 
@@ -255,7 +256,7 @@ liftEqAp :: (Eq1 f, Functor f) => (a -> b -> Bool) -> Ap f a -> Ap f b -> Bool
 #endif
 liftEqAp eq (Pure a1) (Pure a2) = eq a1 a2
 liftEqAp eq (Ap x1 y1) (Ap x2 y2)
-    -- This branching is not an optimization and necessary.
+    -- This branching is necessary and not just an optimization.
     -- See the above comment for more
   | emptyEq x1 x2 = boringEqAp y1 y2
   | otherwise =
@@ -297,7 +298,7 @@ liftCompareAp :: (Ord1 f, Functor f) => (a -> b -> Ordering) -> Ap f a -> Ap f b
 liftCompareAp cmp (Pure a1) (Pure a2) = cmp a1 a2
 liftCompareAp _   (Pure _) (Ap _ _) = LT
 liftCompareAp cmp (Ap x1 y1) (Ap x2 y2)
-    -- This branching is not an optimization and necessary.
+    -- This branching is necessary and not just an optimization.
     -- See the above comment for more
   | emptyEq x1 x2 = boringCompareAp y1 y2
   | otherwise     = liftCompare (\a1 a2 -> liftCompareAp (\g1 g2 -> cmp (g1 a1) (g2 a2)) y1 y2) x1 x2

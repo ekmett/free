@@ -17,7 +17,7 @@ import Data.Monoid (mappend)
 
 -- | @boringEq fa fb@ tests if @fa@ and @fb@ are equal ignoring any difference between
 --   their content (the values of their last parameters @a@ and @b@.)
---   
+--
 --   It is named \'boring\' because the type parameters @a@ and @b@ are
 --   treated as if they are the most boring type @()@.
 boringEq :: Eq1 f => f a -> f b -> Bool
@@ -32,9 +32,9 @@ boringEq = liftEq (\_ _ -> True)
 --   If @f@ is also @Foldable@, @emptyEq fa fb@ would be equivalent to
 --   @null fa && null fb && liftEq eq@ for any @eq :: a -> b -> Bool@.
 --
---   (It depends on each instances of @Eq1@. Since @Eq1@ does not have
---   any laws now, this is not a hard guarantee. But all instances in "base", "transformers",
---   "containers", "array", and "free" satisfies it.)
+--   (It depends on each instance of @Eq1@. Since @Eq1@ does not have
+--   any laws currently, this is not a hard guarantee. But all instances in "base", "transformers",
+--   "containers", "array", and "free" satisfy it.)
 --
 --   Note that @emptyEq@ is not a equivalence relation, since it's possible @emptyEq x x == False@.
 emptyEq :: Eq1 f => f a -> f b -> Bool
