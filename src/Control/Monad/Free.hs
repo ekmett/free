@@ -3,6 +3,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TupleSections #-}
 #if __GLASGOW_HASKELL__ >= 707
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -40,6 +41,11 @@ module Control.Monad.Free
   , cutoff
   , unfold
   , unfoldM
+  , after
+  , before
+  , weave
+  , weaveMax
+  , weaveMin
   , _Pure, _Free
   ) where
 
@@ -501,3 +507,40 @@ freeDataType = mkDataType "Control.Monad.Free.FreeF" [pureConstr, freeConstr]
 {-# NOINLINE freeDataType #-}
 
 #endif
+
+before :: Functor m => m () -> Free m a -> Free m a
+before mu = go
+  where
+    go = iterM $ \mfa -> liftF mu *> wrap (fmap go mfa)
+
+after :: Functor m => m () -> Free m a -> Free m a
+after mu = go
+  where
+    go = iterM $ \mfa -> wrap $ flip fmap mfa $ \fa' -> liftF mu *> go fa'
+
+weave
+  :: forall f a b c
+   . Functor f
+  => (          a  ->           b  -> Free f c)
+  -> (          a  -> f (Free f b) -> Free f c)
+  -> (f (Free f a) ->           b  -> Free f c)
+  -> Free f a
+  -> Free f b
+  -> Free f c
+weave end endA endB = go
+  where
+    go fa fb = case (fa, fb) of
+      (Free ma, Free mb) -> join $ liftA2 go (liftF ma) (liftF mb)
+      (Pure  a, Pure  b) -> end   a  b
+      (Pure  a, Free mb) -> endA  a mb
+      (Free ma, Pure  b) -> endB ma  b
+
+weaveMax :: Functor f => Free f a -> Free f b -> Free f (a,b)
+weaveMax = weave
+  (curry Pure)
+  (\a fb -> fmap (a,) (Free fb))
+  (\fa b -> fmap (,b) (Free fa))
+
+weaveMin :: Functor f => Free f a -> Free f b -> Free f ()
+weaveMin = weave stop stop stop
+  where stop _ _ = pure ()
