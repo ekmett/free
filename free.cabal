@@ -40,8 +40,8 @@ description:
   .
   More information on free monads, including examples, can be found in the
   following blog posts:
-  <http://comonad.com/reader/2008/monads-for-free/>
-  <http://comonad.com/reader/2011/free-monads-for-less/>
+  <https://ekmett.github.io/reader/2008/monads-for-free/>
+  <https://ekmett.github.io/reader/2011/free-monads-for-less/>
 
 build-type:    Simple
 extra-source-files:

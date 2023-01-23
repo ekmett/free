@@ -318,8 +318,8 @@ toF = toFT
 --
 -- This is based on the \"Free Monads for Less\" series of articles by Edward Kmett:
 --
--- <http://comonad.com/reader/2011/free-monads-for-less/>
--- <http://comonad.com/reader/2011/free-monads-for-less-2/>
+-- <https://ekmett.github.io/reader/2011/free-monads-for-less/>
+-- <https://ekmett.github.io/reader/2011/free-monads-for-less-2/>
 --
 -- and \"Asymptotic Improvement of Computations over Free Monads\" by Janis Voightländer:
 --
