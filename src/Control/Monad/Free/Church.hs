@@ -48,9 +48,9 @@
 --
 -- This is based on the \"Free Monads for Less\" series of articles by Edward Kmett:
 --
--- * <http://comonad.com/reader/2011/free-monads-for-less/   Free monads for less — Part 1>
+-- * <https://ekmett.github.io/reader/2011/free-monads-for-less/   Free monads for less — Part 1>
 --
--- * <http://comonad.com/reader/2011/free-monads-for-less-2/ Free monads for less — Part 2>
+-- * <https://ekmett.github.io/reader/2011/free-monads-for-less-2/ Free monads for less — Part 2>
 ----------------------------------------------------------------------------
 module Control.Monad.Free.Church
   ( F(..)
@@ -87,7 +87,7 @@ import Prelude hiding (foldr)
 --
 -- It is /asymptotically/ more efficient to use ('>>=') for 'F' than it is to ('>>=') with 'Free'.
 --
--- <http://comonad.com/reader/2011/free-monads-for-less-2/>
+-- <https://ekmett.github.io/reader/2011/free-monads-for-less-2/>
 newtype F f a = F { runF :: forall r. (a -> r) -> (f r -> r) -> r }
 
 -- | Tear down a 'Free' 'Monad' using iteration.
@@ -208,9 +208,9 @@ toF xs = F (\kp kf -> go kp kf xs) where
 --
 -- This is based on the \"Free Monads for Less\" series of articles by Edward Kmett:
 --
--- * <http://comonad.com/reader/2011/free-monads-for-less/   Free monads for less — Part 1>
+-- * <https://ekmett.github.io/reader/2011/free-monads-for-less/   Free monads for less — Part 1>
 --
--- * <http://comonad.com/reader/2011/free-monads-for-less-2/ Free monads for less — Part 2>
+-- * <https://ekmett.github.io/reader/2011/free-monads-for-less-2/ Free monads for less — Part 2>
 --
 -- and <http://www.iai.uni-bonn.de/~jv/mpc08.pdf \"Asymptotic Improvement of Computations over Free Monads\"> by Janis Voightländer.
 improve :: Functor f => (forall m. MonadFree f m => m a) -> Free f a
