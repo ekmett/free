@@ -200,8 +200,8 @@ instance (Read1 f, Read1 m) => Read1 (FreeT f m) where
 instance (Read1 f, Read1 m, Read a) => Read (FreeT f m a) where
   readsPrec = readsPrec1
 
-instance (Functor f, Monad m) => Functor (FreeT f m) where
-  fmap f (FreeT m) = FreeT (liftM f' m) where
+instance (Functor f, Functor m) => Functor (FreeT f m) where
+  fmap f (FreeT m) = FreeT (fmap f' m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
