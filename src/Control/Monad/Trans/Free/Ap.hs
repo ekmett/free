@@ -196,13 +196,13 @@ instance (Read1 f, Read1 m) => Read1 (FreeT f m) where
 instance (Read1 f, Read1 m, Read a) => Read (FreeT f m a) where
   readsPrec = readsPrec1
 
-instance (Functor f, Monad m) => Functor (FreeT f m) where
-  fmap f (FreeT m) = FreeT (liftM f' m) where
+instance (Functor f, Functor m) => Functor (FreeT f m) where
+  fmap f (FreeT m) = FreeT (fmap f' m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
-instance (Applicative f, Monad m) => Applicative (FreeT f m) where
-  pure a = FreeT (return (Pure a))
+instance (Applicative f, Applicative m) => Applicative (FreeT f m) where
+  pure a = FreeT (pure (Pure a))
   {-# INLINE pure #-}
   FreeT f <*> FreeT a = FreeT $ g <$> f <*> a where
     g (Pure f') (Pure a') = Pure (f' a')
@@ -211,7 +211,7 @@ instance (Applicative f, Monad m) => Applicative (FreeT f m) where
     g (Free fs) (Free as) = Free $ (<*>) <$> fs <*> as
   {-# INLINE (<*>) #-}
 
-instance (Apply f, Apply m, Monad m) => Apply (FreeT f m) where
+instance (Apply f, Apply m) => Apply (FreeT f m) where
   FreeT f <.> FreeT a = FreeT $ g <$> f <.> a where
     g (Pure f') (Pure a') = Pure (f' a')
     g (Pure f') (Free as) = Free $ fmap f' <$> as
