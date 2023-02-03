@@ -1,17 +1,11 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE Safe #-}
-#else
--- Manual Typeable instances
-{-# LANGUAGE Trustworthy #-}
-#endif
-#include "free-common.h"
+{-# LANGUAGE StandaloneDeriving #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -55,25 +49,14 @@ import Control.Monad.Trans
 import Control.Monad.Zip
 import Prelude hiding (id,(.))
 import Data.Data
-#if __GLASGOW_HASKELL__ >= 707
 import GHC.Generics hiding (Infix, Prefix)
-#endif
-
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Monoid
-#endif
 
 infixr 5 :<
 
 -- | This is the base functor of the cofree comonad transformer.
 data CofreeF f a b = a :< f b
-  deriving (Eq,Ord,Show,Read
-#if __GLASGOW_HASKELL__ >= 707
-           ,Typeable, Generic, Generic1
-#endif
-           )
+  deriving (Eq,Ord,Show,Read,Generic,Generic1)
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance Show1 f => Show2 (CofreeF f) where
   liftShowsPrec2 spa _sla spb slb d (a :< fb) =
     showParen (d > 5) $
@@ -82,13 +65,6 @@ instance Show1 f => Show2 (CofreeF f) where
 instance (Show1 f, Show a) => Show1 (CofreeF f a) where
   liftShowsPrec = liftShowsPrec2 showsPrec showList
 
-#else
-instance (Functor f, Show1 f, Show a) => Show1 (CofreeF f a) where
-  showsPrec1 d (a :< fb) = showParen (d > 5) $
-    showsPrec 6 a .  showString " :< " . showsPrec1 6 fb
-#endif
-
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance Read1 f => Read2 (CofreeF f) where
   liftReadsPrec2 rpa _rla rpb rlb d =
     readParen (d > 5) $
@@ -100,29 +76,13 @@ instance Read1 f => Read2 (CofreeF f) where
 
 instance (Read1 f, Read a) => Read1 (CofreeF f a) where
   liftReadsPrec = liftReadsPrec2 readsPrec readList
-#else
-instance (Read1 f, Read a) => Read1 (CofreeF f a) where
-  readsPrec1 d =
-    readParen (d > 5) $
-      (\r' -> [ (u :< v,w)
-              | (u, s) <- readsPrec 6 r'
-              , (":<", t) <- lex s
-              , (v, w) <- readsPrec1 6 t
-              ])
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance Eq1 f => Eq2 (CofreeF f) where
   liftEq2 eqa eqfb (a :< fb) (a' :< fb') = eqa a a' && liftEq eqfb fb fb'
 
 instance (Eq1 f, Eq a) => Eq1 (CofreeF f a) where
   liftEq = liftEq2 (==)
-#else
-instance (Eq1 f, Eq a) => Eq1 (CofreeF f a) where
-  eq1 (a :< fb) (a' :< fb') = a == a' && eq1 fb fb'
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance Ord1 f => Ord2 (CofreeF f) where
   liftCompare2 cmpa cmpfb (a :< fb) (a' :< fb') =
     case cmpa a a' of
@@ -132,14 +92,6 @@ instance Ord1 f => Ord2 (CofreeF f) where
 
 instance (Ord1 f, Ord a) => Ord1 (CofreeF f a) where
   liftCompare = liftCompare2 compare
-#else
-instance (Ord1 f, Ord a) => Ord1 (CofreeF f a) where
-  compare1 (a :< fb) (a' :< fb') =
-    case compare a a' of
-      LT -> LT
-      EQ -> compare1 fb fb'
-      GT -> GT
-#endif
 
 -- | Extract the head of the base functor
 headF :: CofreeF f a b -> a
@@ -173,9 +125,6 @@ transCofreeF t (a :< fb) = a :< t fb
 
 -- | This is a cofree comonad of some functor @f@, with a comonad @w@ threaded through it at each level.
 newtype CofreeT f w a = CofreeT { runCofreeT :: w (CofreeF f a (CofreeT f w a)) }
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
 
 -- | The cofree `Comonad` of a functor @f@.
 type Cofree f = CofreeT f Identity
@@ -248,10 +197,6 @@ instance Ord (w (CofreeF f a (CofreeT f w a))) => Ord (CofreeT f w a) where
   compare (CofreeT a) (CofreeT b) = compare a b
 
 instance (Alternative f, Monad w) => Monad (CofreeT f w) where
-#if __GLASGOW_HASKELL__ < 710
-  return = CofreeT . return . (:< empty)
-  {-# INLINE return #-}
-#endif
   CofreeT cx >>= f = CofreeT $ do
     a :< m <- cx
     b :< n <- runCofreeT $ f a
@@ -282,71 +227,16 @@ transCofreeT t = CofreeT . liftW (fmap (transCofreeT t) . transCofreeF t) . runC
 coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
 coiterT psi = CofreeT . extend (\w -> extract w :< fmap (coiterT psi) (psi w))
 
-#if __GLASGOW_HASKELL__ < 707
-
-instance Typeable1 f => Typeable2 (CofreeF f) where
-  typeOf2 t = mkTyConApp cofreeFTyCon [typeOf1 (f t)] where
-    f :: CofreeF f a b -> f a
-    f = undefined
-
-instance (Typeable1 f, Typeable1 w) => Typeable1 (CofreeT f w) where
-  typeOf1 t = mkTyConApp cofreeTTyCon [typeOf1 (f t), typeOf1 (w t)] where
-    f :: CofreeT f w a -> f a
-    f = undefined
-    w :: CofreeT f w a -> w a
-    w = undefined
-
-cofreeFTyCon, cofreeTTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-cofreeTTyCon = mkTyCon "Control.Comonad.Trans.Cofree.CofreeT"
-cofreeFTyCon = mkTyCon "Control.Comonad.Trans.Cofree.CofreeF"
-#else
-cofreeTTyCon = mkTyCon3 "free" "Control.Comonad.Trans.Cofree" "CofreeT"
-cofreeFTyCon = mkTyCon3 "free" "Control.Comonad.Trans.Cofree" "CofreeF"
-#endif
-{-# NOINLINE cofreeTTyCon #-}
-{-# NOINLINE cofreeFTyCon #-}
-
-#else
-#define Typeable1 Typeable
-#endif
-
-instance
-  ( Typeable1 f, Typeable a, Typeable b
+deriving instance
+  ( Typeable f, Typeable a, Typeable b
   , Data a, Data (f b), Data b
-  ) => Data (CofreeF f a b) where
-    gfoldl f z (a :< as) = z (:<) `f` a `f` as
-    toConstr _ = cofreeFConstr
-    gunfold k z c = case constrIndex c of
-        1 -> k (k (z (:<)))
-        _ -> error "gunfold"
-    dataTypeOf _ = cofreeFDataType
-    dataCast1 f = gcast1 f
+  ) => Data (CofreeF f a b)
 
-instance
-  ( Typeable1 f, Typeable1 w, Typeable a
+deriving instance
+  ( Typeable f, Typeable w, Typeable a
   , Data (w (CofreeF f a (CofreeT f w a)))
   , Data a
-  ) => Data (CofreeT f w a) where
-    gfoldl f z (CofreeT w) = z CofreeT `f` w
-    toConstr _ = cofreeTConstr
-    gunfold k z c = case constrIndex c of
-        1 -> k (z CofreeT)
-        _ -> error "gunfold"
-    dataTypeOf _ = cofreeTDataType
-    dataCast1 f = gcast1 f
-
-cofreeFConstr, cofreeTConstr :: Constr
-cofreeFConstr = mkConstr cofreeFDataType ":<" [] Infix
-cofreeTConstr = mkConstr cofreeTDataType "CofreeT" [] Prefix
-{-# NOINLINE cofreeFConstr #-}
-{-# NOINLINE cofreeTConstr #-}
-
-cofreeFDataType, cofreeTDataType :: DataType
-cofreeFDataType = mkDataType "Control.Comonad.Trans.Cofree.CofreeF" [cofreeFConstr]
-cofreeTDataType = mkDataType "Control.Comonad.Trans.Cofree.CofreeT" [cofreeTConstr]
-{-# NOINLINE cofreeFDataType #-}
-{-# NOINLINE cofreeTDataType #-}
+  ) => Data (CofreeT f w a)
 
 -- lowerF :: (Functor f, Comonad w) => CofreeT f w a -> f a
 -- lowerF = fmap extract . unwrap

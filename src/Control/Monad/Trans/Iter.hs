@@ -1,16 +1,11 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Rank2Types #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE Safe #-}
-#else
--- Manual Typeable instances
-{-# LANGUAGE Trustworthy #-}
-#endif
-#include "free-common.h"
+{-# LANGUAGE StandaloneDeriving #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -91,17 +86,12 @@ import Data.Bifunctor
 import Data.Bitraversable
 import Data.Either
 import Data.Functor.Bind hiding (join)
-import Data.Functor.Classes.Compat
+import Data.Functor.Classes
 import Data.Functor.Identity
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
 import Data.Typeable
 import Data.Data
-
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Foldable hiding (fold)
-import Data.Traversable hiding (mapM)
-#endif
 
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup
@@ -113,9 +103,6 @@ import Data.Semigroup
 -- 'IterT' ~ 'FreeT' 'Identity'
 -- @
 newtype IterT m a = IterT { runIterT :: m (Either a (IterT m a)) }
-#if __GLASGOW_HASKELL__ >= 707
-  deriving (Typeable)
-#endif
 
 -- | Plain iterative computations.
 type Iter = IterT Identity
@@ -134,41 +121,22 @@ runIter :: Iter a -> Either a (Iter a)
 runIter = runIdentity . runIterT
 {-# INLINE runIter #-}
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 m) => Eq1 (IterT m) where
   liftEq eq = go
     where
       go (IterT x) (IterT y) = liftEq (liftEq2 eq go) x y
-#else
-instance (Functor m, Eq1 m) => Eq1 (IterT m) where
-  eq1 = on eq1 (fmap (fmap Lift1) . runIterT)
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 m, Eq a) => Eq (IterT m a) where
-#else
-instance (Functor m, Eq1 m, Eq a) => Eq (IterT m a) where
-#endif
   (==) = eq1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Ord1 m) => Ord1 (IterT m) where
   liftCompare cmp = go
     where
       go (IterT x) (IterT y) = liftCompare (liftCompare2 cmp go) x y
-#else
-instance (Functor m, Ord1 m) => Ord1 (IterT m) where
-  compare1 = on compare1 (fmap (fmap Lift1) . runIterT)
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Ord1 m, Ord a) => Ord (IterT m a) where
-#else
-instance (Functor m, Ord1 m, Ord a) => Ord (IterT m a) where
-#endif
   compare = compare1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Show1 m) => Show1 (IterT m) where
   liftShowsPrec sp sl = go
     where
@@ -176,20 +144,10 @@ instance (Show1 m) => Show1 (IterT m) where
       go d (IterT x) = showsUnaryWith
         (liftShowsPrec (liftShowsPrec2 sp sl go goList) (liftShowList2 sp sl go goList))
         "IterT" d x
-#else
-instance (Functor m, Show1 m) => Show1 (IterT m) where
-  showsPrec1 d (IterT m) = showParen (d > 10) $
-    showString "IterT " . showsPrec1 11 (fmap (fmap Lift1) m)
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Show1 m, Show a) => Show (IterT m a) where
-#else
-instance (Functor m, Show1 m, Show a) => Show (IterT m a) where
-#endif
   showsPrec = showsPrec1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Read1 m) => Read1 (IterT m) where
   liftReadsPrec rp rl = go
     where
@@ -197,17 +155,8 @@ instance (Read1 m) => Read1 (IterT m) where
       go = readsData $ readsUnaryWith
         (liftReadsPrec (liftReadsPrec2 rp rl go goList) (liftReadList2 rp rl go goList))
         "IterT" IterT
-#else
-instance (Functor m, Read1 m) => Read1 (IterT m) where
-  readsPrec1 d =  readParen (d > 10) $ \r ->
-    [ (IterT (fmap (fmap lower1) m),t) | ("IterT",s) <- lex r, (m,t) <- readsPrec1 11 s]
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Read1 m, Read a) => Read (IterT m a) where
-#else
-instance (Functor m, Read1 m, Read a) => Read (IterT m a) where
-#endif
   readsPrec = readsPrec1
 
 instance Monad m => Functor (IterT m) where
@@ -302,20 +251,16 @@ instance MonadWriter w m => MonadWriter w (IterT m) where
       pass' = join . liftM g
       g (Left  ((x, f), w)) = tell (f w) >> return (Left x)
       g (Right f)           = return . Right . IterT . pass' . runIterT $ f
-#if MIN_VERSION_mtl(2,1,1)
   writer w = lift (writer w)
   {-# INLINE writer #-}
-#endif
 
 instance MonadState s m => MonadState s (IterT m) where
   get = lift get
   {-# INLINE get #-}
   put s = lift (put s)
   {-# INLINE put #-}
-#if MIN_VERSION_mtl(2,1,1)
   state f = lift (state f)
   {-# INLINE state #-}
-#endif
 
 instance MonadError e m => MonadError e (IterT m) where
   throwError = lift . throwError
@@ -475,44 +420,11 @@ instance (Monad m, Semigroup a) => Semigroup (IterT m a) where
       (Right a, Left b)  -> return . Right $ liftM (<> b) a
       (Right a, Right b) -> return . Right $ a <> b
 
-#if __GLASGOW_HASKELL__ < 707
-instance Typeable1 m => Typeable1 (IterT m) where
-  typeOf1 t = mkTyConApp freeTyCon [typeOf1 (f t)] where
-    f :: IterT m a -> m a
-    f = undefined
-
-freeTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-freeTyCon = mkTyCon "Control.Monad.Iter.IterT"
-#else
-freeTyCon = mkTyCon3 "free" "Control.Monad.Iter" "IterT"
-#endif
-{-# NOINLINE freeTyCon #-}
-
-#else
-#define Typeable1 Typeable
-#endif
-
-instance
-  ( Typeable1 m, Typeable a
+deriving instance
+  ( Typeable m, Typeable a
   , Data (m (Either a (IterT m a)))
   , Data a
-  ) => Data (IterT m a) where
-    gfoldl f z (IterT as) = z IterT `f` as
-    toConstr IterT{} = iterConstr
-    gunfold k z c = case constrIndex c of
-        1 -> k (z IterT)
-        _ -> error "gunfold"
-    dataTypeOf _ = iterDataType
-    dataCast1 f  = gcast1 f
-
-iterConstr :: Constr
-iterConstr = mkConstr iterDataType "IterT" [] Prefix
-{-# NOINLINE iterConstr #-}
-
-iterDataType :: DataType
-iterDataType = mkDataType "Control.Monad.Iter.IterT" [iterConstr]
-{-# NOINLINE iterDataType #-}
+  ) => Data (IterT m a)
 
 {- $examples
 

@@ -1,14 +1,6 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE GADTs #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE Safe #-}
-#else
--- Manual Typeable instances
-{-# LANGUAGE Trustworthy #-}
-#endif
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -46,24 +38,16 @@ module Control.Applicative.Free
 import Control.Applicative
 import Control.Comonad (Comonad(..))
 import Data.Functor.Apply
-import Data.Typeable
 import Data.Foldable
 import Data.Semigroup.Foldable
-import Data.Functor.Classes.Compat
+import Data.Functor.Classes
 
 import Prelude hiding (null)
-
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Monoid
-#endif
 
 -- | The free 'Applicative' for a 'Functor' @f@.
 data Ap f a where
   Pure :: a -> Ap f a
   Ap   :: f a -> Ap f (a -> b) -> Ap f b
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
 --
@@ -107,7 +91,6 @@ instance Foldable f => Foldable (Ap f) where
   foldMap f (Pure a) = f a
   foldMap f (Ap x y) = foldMap (\a -> foldMap (\g -> f (g a)) y) x
 
-#if MIN_VERSION_base(4,8,0)
   null (Pure _) = False
   null (Ap x y) = null x || null y
 
@@ -119,7 +102,6 @@ instance Foldable f => Foldable (Ap f) where
       go n (Ap x y) = case n * length x of
         0  -> 0
         n' -> go n' y
-#endif
 
 -- | @foldMap f == foldMap f . 'runAp' 'toNonEmpty'@
 instance Foldable1 f => Foldable1 (Ap f) where
@@ -239,21 +221,13 @@ Hence it's defined as this source code.
 -}
 
 -- | Specialized 'boringEq' for @Ap f@.
-#ifdef LIFTED_FUNCTOR_CLASSES
 boringEqAp :: Eq1 f => Ap f a -> Ap f b -> Bool
-#else
-boringEqAp :: (Eq1 f, Functor f) => Ap f a -> Ap f b -> Bool
-#endif
 boringEqAp (Pure _) (Pure _) = True
 boringEqAp (Ap x1 y1) (Ap x2 y2) = boringEq x1 x2 && boringEqAp y1 y2
 boringEqAp _ _ = False
 
 -- | Implementaion of 'liftEq' for @Ap f@.
-#ifdef LIFTED_FUNCTOR_CLASSES
 liftEqAp :: Eq1 f => (a -> b -> Bool) -> Ap f a -> Ap f b -> Bool
-#else
-liftEqAp :: (Eq1 f, Functor f) => (a -> b -> Bool) -> Ap f a -> Ap f b -> Bool
-#endif
 liftEqAp eq (Pure a1) (Pure a2) = eq a1 a2
 liftEqAp eq (Ap x1 y1) (Ap x2 y2)
     -- This branching is necessary and not just an optimization.
@@ -263,38 +237,46 @@ liftEqAp eq (Ap x1 y1) (Ap x2 y2)
       liftEq (\a1 a2 -> liftEqAp (\g1 g2 -> eq (g1 a1) (g2 a2)) y1 y2) x1 x2
 liftEqAp _ _ _ = False
 
-#ifdef LIFTED_FUNCTOR_CLASSES
+-- | @boringEq fa fb@ tests if @fa@ and @fb@ are equal ignoring any difference between
+--   their content (the values of their last parameters @a@ and @b@.)
+--
+--   It is named \'boring\' because the type parameters @a@ and @b@ are
+--   treated as if they are the most boring type @()@.
+boringEq :: Eq1 f => f a -> f b -> Bool
+boringEq = liftEq (\_ _ -> True)
+
+-- | @emptyEq fa fb@ tests if @fa@ and @fb@ are equal /and/ they don't have any content
+--   (the values of their last parameters @a@ and @b@.)
+--
+--   It is named \'empty\' because it only tests for values without any content,
+--   like an empty list or @Nothing@.
+--
+--   If @f@ is also @Foldable@, @emptyEq fa fb@ would be equivalent to
+--   @null fa && null fb && liftEq eq@ for any @eq :: a -> b -> Bool@.
+--
+--   (It depends on each instance of @Eq1@. Since @Eq1@ does not have
+--   any laws currently, this is not a hard guarantee. But all instances in "base", "transformers",
+--   "containers", "array", and "free" satisfy it.)
+--
+--   Note that @emptyEq@ is not a equivalence relation, since it's possible @emptyEq x x == False@.
+emptyEq :: Eq1 f => f a -> f b -> Bool
+emptyEq = liftEq (\_ _ -> False)
+
 instance Eq1 f => Eq1 (Ap f) where
   liftEq = liftEqAp
-#else
-instance (Eq1 f, Functor f) => Eq1 (Ap f) where
-  eq1 = liftEqAp (==)
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 f, Eq a) => Eq (Ap f a) where
-#else
-instance (Eq1 f, Functor f, Eq a) => Eq (Ap f a) where
-#endif
   (==) = eq1
 
 -- | Specialized 'boringCompare' for @Ap f@.
-#ifdef LIFTED_FUNCTOR_CLASSES
 boringCompareAp :: Ord1 f => Ap f a -> Ap f b -> Ordering
-#else
-boringCompareAp :: (Ord1 f, Functor f) => Ap f a -> Ap f b -> Ordering
-#endif
 boringCompareAp (Pure _) (Pure _) = EQ
 boringCompareAp (Pure _) (Ap _ _) = LT
 boringCompareAp (Ap x1 y1) (Ap x2 y2) = boringCompare x1 x2 `mappend` boringCompareAp y1 y2
 boringCompareAp (Ap _ _) (Pure _) = GT
 
 -- | Implementation of 'liftCompare' for @Ap f@
-#ifdef LIFTED_FUNCTOR_CLASSES
 liftCompareAp :: Ord1 f => (a -> b -> Ordering) -> Ap f a -> Ap f b -> Ordering
-#else
-liftCompareAp :: (Ord1 f, Functor f) => (a -> b -> Ordering) -> Ap f a -> Ap f b -> Ordering
-#endif
 liftCompareAp cmp (Pure a1) (Pure a2) = cmp a1 a2
 liftCompareAp _   (Pure _) (Ap _ _) = LT
 liftCompareAp cmp (Ap x1 y1) (Ap x2 y2)
@@ -304,19 +286,18 @@ liftCompareAp cmp (Ap x1 y1) (Ap x2 y2)
   | otherwise     = liftCompare (\a1 a2 -> liftCompareAp (\g1 g2 -> cmp (g1 a1) (g2 a2)) y1 y2) x1 x2
 liftCompareAp _   (Ap _ _) (Pure _) = GT
 
-#ifdef LIFTED_FUNCTOR_CLASSES
+-- | @boringCompare fa fb@ compares @fa@ and @fb@ ignoring any difference between
+--   their content (the values of their last parameters @a@ and @b@.)
+--
+--   It is named \'boring\' because the type parameters @a@ and @b@ are
+--   treated as if they are the most boring type @()@.
+boringCompare :: Ord1 f => f a -> f b -> Ordering
+boringCompare = liftCompare (\_ _ -> EQ)
+
 instance Ord1 f => Ord1 (Ap f) where
   liftCompare = liftCompareAp
-#else
-instance (Ord1 f, Functor f) => Ord1 (Ap f) where
-  compare1 = liftCompareAp compare
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Ord1 f, Ord a) => Ord (Ap f a) where
-#else
-instance (Ord1 f, Functor f, Ord a) => Ord (Ap f a) where
-#endif
   compare = compare1
 
 -- | A version of 'lift' that can be used with just a 'Functor' for @f@.
@@ -342,22 +323,6 @@ hoistAp f (Ap x y) = Ap (f x) (hoistAp f y)
 retractAp :: Applicative f => Ap f a -> f a
 retractAp (Pure a) = pure a
 retractAp (Ap x y) = x <**> retractAp y
-
-#if __GLASGOW_HASKELL__ < 707
-instance Typeable1 f => Typeable1 (Ap f) where
-  typeOf1 t = mkTyConApp apTyCon [typeOf1 (f t)] where
-    f :: Ap f a -> f a
-    f = undefined
-
-apTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-apTyCon = mkTyCon "Control.Applicative.Free.Ap"
-#else
-apTyCon = mkTyCon3 "free" "Control.Applicative.Free" "Ap"
-#endif
-{-# NOINLINE apTyCon #-}
-
-#endif
 
 {- $examples
 

@@ -1,3 +1,9 @@
+next [????.??.??]
+-----------------
+* Drop support for GHC 7.10 and earlier.
+* Add `Eq`, `Eq1`, `Ord`, `Ord1`, and `Foldable` instances for `Ap` in
+  `Control.Applicative.Free`.
+
 5.1.10 [2022.11.30]
 -------------------
 * Add a `MonadFail` instance for `FT`.

@@ -1,14 +1,6 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE GADTs #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE Safe #-}
-#else
--- Manual Typeable instances
-{-# LANGUAGE Trustworthy #-}
-#endif
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -56,26 +48,15 @@ import Control.Applicative
 import Control.Monad (liftM)
 import Data.Functor.Apply
 import Data.Functor.Identity
-import Data.Typeable
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Monoid (Monoid)
-#endif
-import qualified Data.Foldable as F
 
 -- | The free 'Applicative' for a 'Functor' @f@.
 data ApF f g a where
   Pure :: a -> ApF f g a
   Ap   :: f a -> ApT f g (a -> b) -> ApF f g b
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
 
 -- | The free 'Applicative' transformer for a 'Functor' @f@ over
 -- 'Applicative' @g@.
 newtype ApT f g a = ApT { getApT :: g (ApF f g a) }
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
 
 instance Functor g => Functor (ApF f g) where
   fmap f (Pure a) = Pure (f a)
@@ -136,13 +117,13 @@ runApT f g (ApT a) = g (runApF f g <$> a)
 -- Examples:
 --
 -- @
--- height :: ('Functor' g, 'F.Foldable' g) => 'ApT' f g a -> 'Int'
--- height = 'getSum' . runApT_ (\_ -> 'Sum' 1) 'F.maximum'
+-- height :: ('Functor' g, 'Foldable' g) => 'ApT' f g a -> 'Int'
+-- height = 'getSum' . runApT_ (\_ -> 'Sum' 1) 'maximum'
 -- @
 --
 -- @
--- size :: ('Functor' g, 'F.Foldable' g) => 'ApT' f g a -> 'Int'
--- size = 'getSum' . runApT_ (\_ -> 'Sum' 1) 'F.fold'
+-- size :: ('Functor' g, 'Foldable' g) => 'ApT' f g a -> 'Int'
+-- size = 'getSum' . runApT_ (\_ -> 'Sum' 1) 'fold'
 -- @
 runApT_ :: (Functor g, Monoid m) => (forall a. f a -> m) -> (g m -> m) -> ApT f g b -> m
 runApT_ f g = getConst . runApT (Const . f) (Const . g . fmap getConst)
@@ -203,31 +184,8 @@ retractAp = runAp id
 type Alt f = ApT f []
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Alt' f@ to @g@.
-runAlt :: (Alternative g, F.Foldable t) => (forall x. f x -> g x) -> ApT f t a -> g a
-runAlt f (ApT xs) = F.foldr (\x acc -> h x <|> acc) empty xs
+runAlt :: (Alternative g, Foldable t) => (forall x. f x -> g x) -> ApT f t a -> g a
+runAlt f (ApT xs) = foldr (\x acc -> h x <|> acc) empty xs
   where
     h (Pure x) = pure x
     h (Ap x g) = f x <**> runAlt f g
-
-#if __GLASGOW_HASKELL__ < 707
-instance (Typeable1 f, Typeable1 g) => Typeable1 (ApT f g) where
-  typeOf1 t = mkTyConApp apTTyCon [typeOf1 (f t)] where
-    f :: ApT f g a -> g (f a)
-    f = undefined
-
-instance (Typeable1 f, Typeable1 g) => Typeable1 (ApF f g) where
-  typeOf1 t = mkTyConApp apFTyCon [typeOf1 (f t)] where
-    f :: ApF f g a -> g (f a)
-    f = undefined
-
-apTTyCon, apFTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-apTTyCon = mkTyCon "Control.Applicative.Trans.Free.ApT"
-apFTyCon = mkTyCon "Control.Applicative.Trans.Free.ApF"
-#else
-apTTyCon = mkTyCon3 "free" "Control.Applicative.Trans.Free" "ApT"
-apFTyCon = mkTyCon3 "free" "Control.Applicative.Trans.Free" "ApF"
-#endif
-{-# NOINLINE apTTyCon #-}
-{-# NOINLINE apFTyCon #-}
-#endif

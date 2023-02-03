@@ -1,14 +1,6 @@
-{-# LANGUAGE CPP                #-}
 {-# LANGUAGE GADTs              #-}
 {-# LANGUAGE RankNTypes         #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE Safe #-}
-#else
--- Manual Typeable instances
-{-# LANGUAGE Trustworthy #-}
-#endif
-#include "free-common.h"
 
 --------------------------------------------------------------------------------
 -- |
@@ -34,11 +26,6 @@ module Control.Applicative.Free.Fast
 
 import           Control.Applicative
 import           Data.Functor.Apply
-import           Data.Typeable
-
-#if !(MIN_VERSION_base(4,8,0))
-import           Data.Monoid
-#endif
 
 -- | The free applicative is composed of a sequence of effects,
 -- and a pure function to apply that sequence to.
@@ -48,9 +35,6 @@ import           Data.Monoid
 data ASeq f a where
   ANil :: ASeq f ()
   ACons :: f a -> ASeq f u -> ASeq f (a,u)
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
 
 -- | Interprets the sequence of effects using the semantics for
 --   `pure` and `<*>` given by the Applicative instance for 'f'.
@@ -86,9 +70,6 @@ newtype Ap f a = Ap
   { unAp :: forall u y z.
     (forall x. (x -> y) -> ASeq f x -> z) ->
     (u -> a -> y) -> ASeq f u -> z }
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
 
 -- | Given a natural transformation from @f@ to @g@, this gives a canonical monoidal natural transformation from @'Ap' f@ to @g@.
 --
@@ -138,32 +119,3 @@ hoistAp g x = Ap (\k f s ->
 --   prop> retractApp == runAp id
 retractAp :: Applicative f => Ap f a -> f a
 retractAp x = unAp x (\f s -> f <$> reduceASeq s) (\() -> id) ANil
-
-#if __GLASGOW_HASKELL__ < 707
-instance Typeable1 f => Typeable1 (Ap f) where
-  typeOf1 t = mkTyConApp apTyCon [typeOf1 (f t)] where
-    f :: Ap f a -> f a
-    f = undefined
-
-apTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-apTyCon = mkTyCon "Control.Applicative.Free.Fast.Ap"
-#else
-apTyCon = mkTyCon3 "free" "Control.Applicative.Free.Fast" "Ap"
-#endif
-{-# NOINLINE apTyCon #-}
-
-instance Typeable1 f => Typeable1 (ASeq f) where
-  typeOf1 t = mkTyConApp apTyCon [typeOf1 (f t)] where
-    f :: ASeq f a -> f a
-    f = undefined
-
-apSeqTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-apSeqTyCon = mkTyCon "Control.Applicative.Free.Fast.ASeq"
-#else
-apSeqTyCon = mkTyCon3 "free" "Control.Applicative.Free.Fast" "ASeq"
-#endif
-{-# NOINLINE apSeqTyCon #-}
-
-#endif

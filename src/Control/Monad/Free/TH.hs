@@ -1,13 +1,9 @@
 {-# LANGUAGE CPP #-}
-#if __GLASGOW_HASKELL__ >= 800
-{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
-#endif
 #if MIN_VERSION_template_haskell(2,12,0)
 {-# LANGUAGE Safe #-}
 #else
 {-# LANGUAGE Trustworthy #-}
 #endif
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -44,10 +40,6 @@ import Data.List ((\\), nub)
 import Language.Haskell.TH.Datatype.TyVarBndr
 import Language.Haskell.TH.Ppr (pprint)
 import Language.Haskell.TH.Syntax
-
-#if !(MIN_VERSION_base(4,8,0))
-import Control.Applicative
-#endif
 
 data Arg
   = Captured Type Exp
@@ -189,16 +181,10 @@ extractVars :: Type -> [Name]
 extractVars (ForallT bs _ t) = extractVars t \\ map tvName bs
 extractVars (VarT n) = [n]
 extractVars (AppT x y) = extractVars x ++ extractVars y
-#if MIN_VERSION_template_haskell(2,8,0)
 extractVars (SigT x k) = extractVars x ++ extractVars k
-#else
-extractVars (SigT x k) = extractVars x
-#endif
-#if MIN_VERSION_template_haskell(2,11,0)
 extractVars (InfixT x _ y) = extractVars x ++ extractVars y
 extractVars (UInfixT x _ y) = extractVars x ++ extractVars y
 extractVars (ParensT x) = extractVars x
-#endif
 extractVars _ = []
 
 liftCon' :: Bool -> [TyVarBndrSpec] -> Cxt -> Type -> Type -> [Type] -> Name -> [Type] -> Q [Dec]
@@ -229,11 +215,7 @@ liftCon' typeSig tvbs cx f n ns cn ts = do
       f' = foldl AppT f ns
   return $ concat
     [ if typeSig
-#if MIN_VERSION_template_haskell(2,10,0)
         then [ SigD opName (ForallT q (cx ++ [ConT monadFree `AppT` f' `AppT` VarT m]) opType) ]
-#else
-        then [ SigD opName (ForallT q (cx ++ [ClassP monadFree [f', VarT m]]) opType) ]
-#endif
         else []
     , [ FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ] ]
   where
@@ -248,7 +230,6 @@ liftCon typeSig ts cx f n ns onlyCons con
       RecC    cName fields -> liftCon' typeSig ts cx f n ns cName $ map (\(_, _, ty) -> ty) fields
       InfixC  (_,t1) cName (_,t2) -> liftCon' typeSig ts cx f n ns cName [t1, t2]
       ForallC ts' cx' con' -> liftCon typeSig (ts ++ ts') (cx ++ cx') f n ns onlyCons con'
-#if MIN_VERSION_template_haskell(2,11,0)
       GadtC cNames fields resType -> do
         decs <- forM (filter (`melem` onlyCons) cNames) $ \cName ->
                   liftGadtC cName fields resType typeSig ts cx f
@@ -258,10 +239,7 @@ liftCon typeSig ts cx f n ns onlyCons con
         decs <- forM (filter (`melem` onlyCons) cNames) $ \cName ->
                   liftGadtC cName fields' resType typeSig ts cx f
         return (concat decs)
-#endif
-      _ -> fail $ "Unsupported constructor type: `" ++ pprint con ++ "'"
 
-#if MIN_VERSION_template_haskell(2,11,0)
 splitAppT :: Type -> (Type, [Type])
 splitAppT ty = go ty ty []
   where
@@ -278,7 +256,6 @@ liftGadtC cName fields resType typeSig ts cx f =
   where
     (_f, tys) = splitAppT resType
     nextTy = last tys
-#endif
 
 melem :: Eq a => a -> Maybe [a] -> Bool
 melem _ Nothing   = True
@@ -290,22 +267,15 @@ constructorNames (NormalC  name _)    = [name]
 constructorNames (RecC     name _)    = [name]
 constructorNames (InfixC   _ name _)  = [name]
 constructorNames (ForallC  _ _ c)     = constructorNames c
-#if MIN_VERSION_template_haskell(2,11,0)
 constructorNames (GadtC names _ _)    = names
 constructorNames (RecGadtC names _ _) = names
-#endif
-constructorNames con' = fail $ "Unsupported constructor type: `" ++ pprint con' ++ "'"
 
 -- | Provide free monadic actions for a type declaration.
 liftDec :: Bool             -- ^ Include type signature?
         -> Maybe [Name]     -- ^ Include only mentioned constructor names. Use all constructors when @Nothing@.
         -> Dec              -- ^ Data type declaration.
         -> Q [Dec]
-#if MIN_VERSION_template_haskell(2,11,0)
 liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs _ cons _)
-#else
-liftDec typeSig onlyCons (DataD _ tyName tyVarBndrs cons _)
-#endif
   | null tyVarBndrs = fail $ "Type constructor " ++ pprint tyName ++ " needs at least one type parameter"
   | otherwise = concat <$> mapM (liftCon typeSig [] [] con nextTy (init tys) onlyCons) cons
     where
@@ -335,11 +305,7 @@ genFreeCon :: Bool         -- ^ Include type signature?
 genFreeCon typeSig cname = do
   info <- reify cname
   case info of
-    DataConI _ _ tname
-#if !(MIN_VERSION_template_haskell(2,11,0))
-                       _
-#endif
-                         -> genFree typeSig (Just [cname]) tname
+    DataConI _ _ tname -> genFree typeSig (Just [cname]) tname
     _ -> fail $ unlines
           [ "expected a data constructor"
           , "but got " ++ pprint info ]
