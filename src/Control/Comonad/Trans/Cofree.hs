@@ -228,12 +228,12 @@ coiterT :: (Functor f, Comonad w) => (w a -> f (w a)) -> w a -> CofreeT f w a
 coiterT psi = CofreeT . extend (\w -> extract w :< fmap (coiterT psi) (psi w))
 
 deriving instance
-  ( Typeable f, Typeable a, Typeable b
+  ( Typeable f
   , Data a, Data (f b), Data b
   ) => Data (CofreeF f a b)
 
 deriving instance
-  ( Typeable f, Typeable w, Typeable a
+  ( Typeable f, Typeable w
   , Data (w (CofreeF f a (CofreeT f w a)))
   , Data a
   ) => Data (CofreeT f w a)
