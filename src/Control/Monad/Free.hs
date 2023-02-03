@@ -413,7 +413,7 @@ toFreeT (Free f) = FreeT.FreeT (return (FreeT.Free (fmap toFreeT f)))
 -- prop> cutoff (n+1) . lift   ==   lift . liftM Just
 -- prop> cutoff (n+1) . wrap   ==  wrap . fmap (cutoff n)
 --
--- Calling 'retract . cutoff n' is always terminating, provided each of the
+-- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
 cutoff :: (Functor f) => Integer -> Free f a -> Free f (Maybe a)
 cutoff n _ | n <= 0 = return Nothing
