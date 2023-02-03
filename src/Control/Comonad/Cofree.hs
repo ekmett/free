@@ -1,18 +1,11 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Safe #-}
-#else
--- Manual Typeable instances
-{-# LANGUAGE Trustworthy #-}
-#endif
-#include "free-common.h"
+{-# LANGUAGE StandaloneDeriving #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -57,7 +50,7 @@ import Control.Category
 import Control.Monad(ap, (>=>), liftM)
 import Control.Monad.Zip
 import Data.Functor.Bind
-import Data.Functor.Classes.Compat
+import Data.Functor.Classes
 import Data.Functor.Extend
 import Data.Functor.WithIndex
 import Data.Data
@@ -69,10 +62,8 @@ import Data.Traversable
 import Data.Traversable.WithIndex
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
-import Prelude hiding (id,(.))
-#if __GLASGOW_HASKELL__ >= 707
 import GHC.Generics hiding (Infix, Prefix)
-#endif
+import Prelude hiding (id,(.))
 
 
 infixr 5 :<
@@ -118,11 +109,9 @@ infixr 5 :<
 -- For a practical application, check
 -- <https://web.archive.org/web/20161208002902/http://www.cs.le.ac.uk/people/ak155/Papers/CALCO-07/GK07.pdf Higher Dimensional Trees, Algebraically> by Neil Ghani et al.
 data Cofree f a = a :< f (Cofree f a)
-#if __GLASGOW_HASKELL__ >= 707
-  deriving (Typeable, Generic, Generic1)
+  deriving (Generic, Generic1)
 
 deriving instance (Typeable f, Data (f (Cofree f a)), Data a) => Data (Cofree f a)
-#endif
 
 -- | Use coiteration to generate a cofree comonad from a seed.
 --
@@ -211,27 +200,16 @@ instance Alternative f => Applicative (Cofree f) where
   (<*>) = ap
   {-# INLINE (<*>) #-}
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Show1 f) => Show1 (Cofree f) where
   liftShowsPrec sp sl = go
     where
       goList = liftShowList sp sl
       go d (a :< as) = showParen (d > 5) $
         sp 6 a . showString " :< " . liftShowsPrec go goList 5 as
-#else
-instance (Functor f, Show1 f) => Show1 (Cofree f) where
-  showsPrec1 d (a :< as) = showParen (d > 5) $
-    showsPrec 6 a . showString " :< " . showsPrec1 5 (fmap Lift1 as)
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Show1 f, Show a) => Show (Cofree f a) where
-#else
-instance (Functor f, Show1 f, Show a) => Show (Cofree f a) where
-#endif
   showsPrec = showsPrec1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Read1 f) => Read1 (Cofree f) where
   liftReadsPrec rp rl = go
     where
@@ -241,69 +219,32 @@ instance (Read1 f) => Read1 (Cofree f) where
                 (u, s) <- rp 6 r',
                 (":<", t) <- lex s,
                 (v, w) <- liftReadsPrec go goList 5 t]) r
-#else
-instance (Functor f, Read1 f) => Read1 (Cofree f) where
-  readsPrec1 d r = readParen (d > 5)
-                          (\r' -> [(u :< fmap lower1 v,w) |
-                                  (u, s) <- readsPrec 6 r',
-                                  (":<", t) <- lex s,
-                                  (v, w) <- readsPrec1 5 t]) r
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Read1 f, Read a) => Read (Cofree f a) where
-#else
-instance (Functor f, Read1 f, Read a) => Read (Cofree f a) where
-#endif
   readsPrec = readsPrec1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 f, Eq a) => Eq (Cofree f a) where
-#else
-instance (Functor f, Eq1 f, Eq a) => Eq (Cofree f a) where
-#endif
   (==) = eq1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 f) => Eq1 (Cofree f) where
   liftEq eq = go
     where
       go (a :< as) (b :< bs) = eq a b && liftEq go as bs
-#else
-instance (Functor f, Eq1 f) => Eq1 (Cofree f) where
-#ifndef HLINT
-  eq1 (a :< as) (b :< bs) = a == b && eq1 (fmap Lift1 as) (fmap Lift1 bs)
-#endif
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Ord1 f, Ord a) => Ord (Cofree f a) where
-#else
-instance (Functor f, Ord1 f, Ord a) => Ord (Cofree f a) where
-#endif
   compare = compare1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Ord1 f) => Ord1 (Cofree f) where
   liftCompare cmp = go
     where
       go (a :< as) (b :< bs) = cmp a b `mappend` liftCompare go as bs
-#else
-instance (Functor f, Ord1 f) => Ord1 (Cofree f) where
-  compare1 (a :< as) (b :< bs) = case compare a b of
-    LT -> LT
-    EQ -> compare1 (fmap Lift1 as) (fmap Lift1 bs)
-    GT -> GT
-#endif
 
 instance Foldable f => Foldable (Cofree f) where
   foldMap f = go where
     go (a :< as) = f a `mappend` foldMap go as
   {-# INLINE foldMap #-}
-#if __GLASGOW_HASKELL__ >= 709
   length = go 0 where
     go s (_ :< as) = foldl' go (s + 1) as
-#endif
 
 instance Foldable1 f => Foldable1 (Cofree f) where
   foldMap1 f = go where
@@ -331,46 +272,6 @@ instance FoldableWithIndex i f => FoldableWithIndex [i] (Cofree f) where
 instance TraversableWithIndex i f => TraversableWithIndex [i] (Cofree f) where
   itraverse f (a :< as) = (:<) <$> f [] a <*> itraverse (\i -> itraverse (f . (:) i)) as
   {-# INLINE itraverse #-}
-
-#if __GLASGOW_HASKELL__ < 707
-instance (Typeable1 f) => Typeable1 (Cofree f) where
-  typeOf1 dfa = mkTyConApp cofreeTyCon [typeOf1 (f dfa)]
-    where
-      f :: Cofree f a -> f a
-      f = undefined
-
-instance (Typeable1 f, Typeable a) => Typeable (Cofree f a) where
-  typeOf = typeOfDefault
-
-cofreeTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-cofreeTyCon = mkTyCon "Control.Comonad.Cofree.Cofree"
-#else
-cofreeTyCon = mkTyCon3 "free" "Control.Comonad.Cofree" "Cofree"
-#endif
-{-# NOINLINE cofreeTyCon #-}
-
-instance
-  ( Typeable1 f
-  , Data (f (Cofree f a))
-  , Data a
-  ) => Data (Cofree f a) where
-    gfoldl f z (a :< as) = z (:<) `f` a `f` as
-    toConstr _ = cofreeConstr
-    gunfold k z c = case constrIndex c of
-        1 -> k (k (z (:<)))
-        _ -> error "gunfold"
-    dataTypeOf _ = cofreeDataType
-    dataCast1 f = gcast1 f
-
-cofreeConstr :: Constr
-cofreeConstr = mkConstr cofreeDataType ":<" [] Infix
-{-# NOINLINE cofreeConstr #-}
-
-cofreeDataType :: DataType
-cofreeDataType = mkDataType "Control.Comonad.Cofree.Cofree" [cofreeConstr]
-{-# NOINLINE cofreeDataType #-}
-#endif
 
 instance ComonadHoist Cofree where
   cohoist = hoistCofree
@@ -476,11 +377,7 @@ telescoped_ = Prelude.foldr (\l r -> _unwrap . l . r) id
 shoots :: (Applicative f, Traversable g) => (a -> f a) -> Cofree g a -> f (Cofree g a)
 shoots f = go
   where
-#if __GLASGOW_HASKELL__ < 709
-    go xxs@(x :< xs) | null (toList xs) = pure xxs
-#else
     go xxs@(x :< xs) | null xs          = pure xxs
-#endif
                      | otherwise        = (:<) <$> f x <*> traverse go xs
 {-# INLINE shoots #-}
 
@@ -498,10 +395,6 @@ shoots f = go
 leaves :: (Applicative f, Traversable g) => (a -> f a) -> Cofree g a -> f (Cofree g a)
 leaves f = go
   where
-#if __GLASGOW_HASKELL__ < 709
-    go (x :< xs) | null (toList xs) = (:< xs) <$> f x
-#else
     go (x :< xs) | null xs          = (:< xs) <$> f x
-#endif
                  | otherwise        = (x :<) <$> traverse go xs
 {-# INLINE leaves #-}

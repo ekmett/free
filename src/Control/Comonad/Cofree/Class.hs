@@ -1,10 +1,8 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE UndecidableInstances #-}
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -28,9 +26,6 @@ import Control.Comonad.Trans.Traced
 import Control.Comonad.Trans.Identity
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Tree
-#if __GLASGOW_HASKELL__ < 710
-import Data.Monoid
-#endif
 
 -- | Allows you to peel a layer off a cofree comonad.
 class (Functor f, Comonad w) => ComonadCofree f w | w -> f where

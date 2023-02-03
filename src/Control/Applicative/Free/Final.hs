@@ -1,7 +1,5 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE Safe #-}
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -34,10 +32,6 @@ module Control.Applicative.Free.Final
 
 import Control.Applicative
 import Data.Functor.Apply
-
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Monoid
-#endif
 
 -- | The free 'Applicative' for a 'Functor' @f@.
 newtype Ap f a = Ap { _runAp :: forall g. Applicative g => (forall x. f x -> g x) -> g a }

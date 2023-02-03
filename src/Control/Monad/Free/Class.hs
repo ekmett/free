@@ -1,18 +1,15 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 704
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE TypeFamilies #-}
-#endif
 #if !(MIN_VERSION_transformers(0,6,0))
-{-# OPTIONS_GHC -fno-warn-deprecations #-}
+{-# OPTIONS_GHC -Wno-deprecations #-}
 #endif
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -49,11 +46,6 @@ import Control.Monad.Trans.Identity
 #if !(MIN_VERSION_transformers(0,6,0))
 import Control.Monad.Trans.Error
 import Control.Monad.Trans.List
-#endif
-
-#if !(MIN_VERSION_base(4,8,0))
-import Control.Applicative
-import Data.Monoid
 #endif
 
 -- |
@@ -109,10 +101,8 @@ class Monad m => MonadFree f m | m -> f where
   -- wrap (fmap f x) ≡ wrap (fmap return x) >>= f
   -- @
   wrap :: f (m a) -> m a
-#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 704
   default wrap :: (m ~ t n, MonadTrans t, MonadFree f n, Functor f) => f (m a) -> m a
   wrap = join . lift . wrap . fmap return
-#endif
 
 instance (Functor f, MonadFree f m) => MonadFree f (ReaderT e m) where
   wrap fm = ReaderT $ \e -> wrap $ flip runReaderT e <$> fm

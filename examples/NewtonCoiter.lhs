@@ -10,8 +10,6 @@ to find zeroes of a function is one such algorithm.
 > import Control.Comonad.Trans.Coiter
 > import Control.Comonad.Env
 > import Data.Foldable (toList, find)
-> import Prelude
-> import Prelude.Compat ()
 
 > data Function = Function {
 >   -- Function to find zeroes of

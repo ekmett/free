@@ -1,11 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE Safe #-}
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -132,10 +130,8 @@ instance Foldable f => Foldable (F f) where
     foldr f r xs = runF xs f (foldr (.) id) r
     {-# INLINE foldr #-}
 
-#if MIN_VERSION_base(4,6,0)
     foldl' f z xs = runF xs (\a !r -> f r a) (flip $ foldl' $ \r g -> g r) z
     {-# INLINE foldl' #-}
-#endif
 
 instance Traversable f => Traversable (F f) where
     traverse f m = runF m (fmap return . f) (fmap wrap . sequenceA)

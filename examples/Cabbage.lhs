@@ -9,8 +9,6 @@
 > import Data.Maybe
 > import Data.Tuple
 > import Data.List (inits, tails)
-> import Prelude ()
-> import Prelude.Compat
 
 Consider the following problem:
 

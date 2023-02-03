@@ -1,16 +1,12 @@
-{-# LANGUAGE CPP #-}
 module Main where
 
-#if !(MIN_VERSION_base(4,8,0))
-import Control.Applicative
-#endif
 import Control.Applicative.Free
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.State
 
 import Data.Monoid (Sum(..))
 
-import Text.Read.Compat (readEither)
+import Text.Read (readEither)
 import Text.Printf
 
 import System.IO
