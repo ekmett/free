@@ -153,7 +153,7 @@ free = FreeT . Identity
 {-# INLINE free #-}
 
 deriving instance
-  ( Typeable f, Typeable m, Typeable a
+  ( Typeable f, Typeable m
   , Data (m (FreeF f a (FreeT f m a)))
   , Data a
   ) => Data (FreeT f m a)
@@ -201,7 +201,7 @@ instance (Functor f, Monad m) => Functor (FreeT f m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
-instance (Applicative f, Applicative m, Monad m) => Applicative (FreeT f m) where
+instance (Applicative f, Monad m) => Applicative (FreeT f m) where
   pure a = FreeT (return (Pure a))
   {-# INLINE pure #-}
   FreeT f <*> FreeT a = FreeT $ g <$> f <*> a where
@@ -223,7 +223,7 @@ instance (Apply f, Apply m, Monad m) => Bind (FreeT f m) where
     Pure a -> runFreeT (f a)
     Free w -> return (Free (fmap (>>- f) w))
 
-instance (Applicative f, Applicative m, Monad m) => Monad (FreeT f m) where
+instance (Applicative f, Monad m) => Monad (FreeT f m) where
   return = pure
   {-# INLINE return #-}
   FreeT m >>= f = FreeT $ m >>= \v -> case v of
@@ -233,24 +233,24 @@ instance (Applicative f, Applicative m, Monad m) => Monad (FreeT f m) where
   fail e = FreeT (fail e)
 #endif
 
-instance (Applicative f, Applicative m, Fail.MonadFail m) => Fail.MonadFail (FreeT f m) where
+instance (Applicative f, Fail.MonadFail m) => Fail.MonadFail (FreeT f m) where
   fail e = FreeT (Fail.fail e)
 
-instance Applicative f => MonadTrans (FreeT f) where
+instance MonadTrans (FreeT f) where
   lift = FreeT . liftM Pure
   {-# INLINE lift #-}
 
-instance (Applicative f, Applicative m, MonadIO m) => MonadIO (FreeT f m) where
+instance (Applicative f, MonadIO m) => MonadIO (FreeT f m) where
   liftIO = lift . liftIO
   {-# INLINE liftIO #-}
 
-instance (Applicative f, Applicative m, MonadReader r m) => MonadReader r (FreeT f m) where
+instance (Applicative f, MonadReader r m) => MonadReader r (FreeT f m) where
   ask = lift ask
   {-# INLINE ask #-}
   local f = hoistFreeT (local f)
   {-# INLINE local #-}
 
-instance (Applicative f, Applicative m, MonadWriter w m) => MonadWriter w (FreeT f m) where
+instance (Applicative f, MonadWriter w m) => MonadWriter w (FreeT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen (FreeT m) = FreeT $ liftM concat' $ listen (fmap listen `liftM` m)
@@ -266,7 +266,7 @@ instance (Applicative f, Applicative m, MonadWriter w m) => MonadWriter w (FreeT
   writer w = lift (writer w)
   {-# INLINE writer #-}
 
-instance (Applicative f, Applicative m, MonadState s m) => MonadState s (FreeT f m) where
+instance (Applicative f, MonadState s m) => MonadState s (FreeT f m) where
   get = lift get
   {-# INLINE get #-}
   put = lift . put
@@ -274,34 +274,34 @@ instance (Applicative f, Applicative m, MonadState s m) => MonadState s (FreeT f
   state f = lift (state f)
   {-# INLINE state #-}
 
-instance (Applicative f, Applicative m, MonadError e m) => MonadError e (FreeT f m) where
+instance (Applicative f, MonadError e m) => MonadError e (FreeT f m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
   FreeT m `catchError` f = FreeT $ liftM (fmap (`catchError` f)) m `catchError` (runFreeT . f)
 
-instance (Applicative f, Applicative m, MonadCont m) => MonadCont (FreeT f m) where
+instance (Applicative f, MonadCont m) => MonadCont (FreeT f m) where
   callCC f = FreeT $ callCC (\k -> runFreeT $ f (lift . k . Pure))
 
-instance (Applicative f, Applicative m, MonadPlus m) => Alternative (FreeT f m) where
+instance (Applicative f, MonadPlus m) => Alternative (FreeT f m) where
   empty = FreeT mzero
   FreeT ma <|> FreeT mb = FreeT (mplus ma mb)
   {-# INLINE (<|>) #-}
 
-instance (Applicative f, Applicative m, MonadPlus m) => MonadPlus (FreeT f m) where
+instance (Applicative f, MonadPlus m) => MonadPlus (FreeT f m) where
   mzero = FreeT mzero
   {-# INLINE mzero #-}
   mplus (FreeT ma) (FreeT mb) = FreeT (mplus ma mb)
   {-# INLINE mplus #-}
 
-instance (Applicative f, Applicative m, Monad m) => MonadFree f (FreeT f m) where
+instance (Applicative f, Monad m) => MonadFree f (FreeT f m) where
   wrap = FreeT . return . Free
   {-# INLINE wrap #-}
 
-instance (Applicative f, Applicative m, MonadThrow m) => MonadThrow (FreeT f m) where
+instance (Applicative f, MonadThrow m) => MonadThrow (FreeT f m) where
   throwM = lift . throwM
   {-# INLINE throwM #-}
 
-instance (Applicative f, Applicative m, MonadCatch m) => MonadCatch (FreeT f m) where
+instance (Applicative f, MonadCatch m) => MonadCatch (FreeT f m) where
   FreeT m `catch` f = FreeT $ liftM (fmap (`Control.Monad.Catch.catch` f)) m
                                 `Control.Monad.Catch.catch` (runFreeT . f)
   {-# INLINE catch #-}
@@ -382,7 +382,7 @@ iterM phi = iterT phi . hoistFreeT (return . runIdentity)
 --
 -- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
-cutoff :: (Applicative f, Applicative m, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
+cutoff :: (Applicative f, Monad m) => Integer -> FreeT f m a -> FreeT f m (Maybe a)
 cutoff n _ | n <= 0 = return Nothing
 cutoff n (FreeT m) = FreeT $ bimap Just (cutoff (n - 1)) `liftM` m
 
@@ -414,7 +414,7 @@ partialIterT n phi m
 -- 'intersperseT' f '.' 'lift'   ≡ 'lift'
 -- 'intersperseT' f '.' 'wrap'   ≡ 'wrap' '.' 'fmap' ('iterTM' ('wrap' '.' ('<$' f) '.' 'wrap'))
 -- @
-intersperseT :: (Monad m, Applicative m, Applicative f) => f a -> FreeT f m b -> FreeT f m b
+intersperseT :: (Monad m, Applicative f) => f a -> FreeT f m b -> FreeT f m b
 intersperseT f (FreeT m) = FreeT $ do
   val <- m
   case val of

@@ -421,7 +421,7 @@ instance (Monad m, Semigroup a) => Semigroup (IterT m a) where
       (Right a, Right b) -> return . Right $ a <> b
 
 deriving instance
-  ( Typeable m, Typeable a
+  ( Typeable m
   , Data (m (Either a (IterT m a)))
   , Data a
   ) => Data (IterT m a)

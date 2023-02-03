@@ -172,7 +172,7 @@ unfold :: Comonad w => (w a -> a) -> w a -> CoiterT w a
 unfold psi = CoiterT . extend (extract &&& unfold psi . extend psi)
 
 deriving instance
-  ( Typeable w, Typeable a
+  ( Typeable w
   , Data (w (a, CoiterT w a))
   , Data a
   ) => Data (CoiterT w a)

@@ -198,7 +198,7 @@ instance Alternative v => Alternative (Free v) where
   {-# INLINE (<|>) #-}
 
 -- | This violates the MonadPlus laws, handle with care.
-instance (Functor v, MonadPlus v) => MonadPlus (Free v) where
+instance MonadPlus v => MonadPlus (Free v) where
   mzero = Free mzero
   {-# INLINE mzero #-}
   a `mplus` b = Free (return a `mplus` return b)
@@ -262,7 +262,7 @@ instance TraversableWithIndex i f => TraversableWithIndex [i] (Free f) where
   itraverse f (Free s) = Free <$> itraverse (\i -> itraverse (f . (:) i)) s
   {-# INLINE itraverse #-}
 
-instance (Functor m, MonadWriter e m) => MonadWriter e (Free m) where
+instance MonadWriter e m => MonadWriter e (Free m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen = lift . listen . retract
@@ -270,25 +270,25 @@ instance (Functor m, MonadWriter e m) => MonadWriter e (Free m) where
   pass = lift . pass . retract
   {-# INLINE pass #-}
 
-instance (Functor m, MonadReader e m) => MonadReader e (Free m) where
+instance MonadReader e m => MonadReader e (Free m) where
   ask = lift ask
   {-# INLINE ask #-}
   local f = lift . local f . retract
   {-# INLINE local #-}
 
-instance (Functor m, MonadState s m) => MonadState s (Free m) where
+instance MonadState s m => MonadState s (Free m) where
   get = lift get
   {-# INLINE get #-}
   put s = lift (put s)
   {-# INLINE put #-}
 
-instance (Functor m, MonadError e m) => MonadError e (Free m) where
+instance MonadError e m => MonadError e (Free m) where
   throwError = lift . throwError
   {-# INLINE throwError #-}
   catchError as f = lift (catchError (retract as) (retract . f))
   {-# INLINE catchError #-}
 
-instance (Functor m, MonadCont m) => MonadCont (Free m) where
+instance MonadCont m => MonadCont (Free m) where
   callCC f = lift (callCC (retract . f . liftM lift))
   {-# INLINE callCC #-}
 
@@ -361,7 +361,7 @@ unfold :: Functor f => (b -> Either a (f b)) -> b -> Free f a
 unfold f = f >>> either Pure (Free . fmap (unfold f))
 
 -- | Unfold a free monad from a seed, monadically.
-unfoldM :: (Traversable f, Applicative m, Monad m) => (b -> m (Either a (f b))) -> b -> m (Free f a)
+unfoldM :: (Traversable f, Monad m) => (b -> m (Either a (f b))) -> b -> m (Free f a)
 unfoldM f = f >=> either (pure . pure) (fmap Free . traverse (unfoldM f))
 
 -- | This is @Prism' (Free f a) a@ in disguise

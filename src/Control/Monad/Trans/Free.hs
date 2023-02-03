@@ -231,7 +231,7 @@ instance (Functor f, Monad m) => Monad (FreeT f m) where
 instance (Functor f, Fail.MonadFail m) => Fail.MonadFail (FreeT f m) where
   fail e = FreeT (Fail.fail e)
 
-instance Functor f => MonadTrans (FreeT f) where
+instance MonadTrans (FreeT f) where
   lift = FreeT . liftM Pure
   {-# INLINE lift #-}
 
@@ -243,13 +243,13 @@ instance (Functor f, MonadBase b m) => MonadBase b (FreeT f m) where
   liftBase = lift . liftBase
   {-# INLINE liftBase #-}
 
-instance (Functor f, Functor m, MonadReader r m) => MonadReader r (FreeT f m) where
+instance (Functor f, MonadReader r m) => MonadReader r (FreeT f m) where
   ask = lift ask
   {-# INLINE ask #-}
   local f = hoistFreeT (local f)
   {-# INLINE local #-}
 
-instance (Functor f, Functor m, MonadWriter w m) => MonadWriter w (FreeT f m) where
+instance (Functor f, MonadWriter w m) => MonadWriter w (FreeT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen (FreeT m) = FreeT $ liftM concat' $ listen (fmap listen `liftM` m)
