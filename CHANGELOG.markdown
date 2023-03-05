@@ -1,11 +1,12 @@
-next [????.??.??]
------------------
+5.2 [????.??.??]
+----------------
 * Drop support for GHC 7.10 and earlier.
 * Drop redundant `Monad` constraints on many functions and instances. These
   constraints were only present for compatibility with pre-7.10 versions of
   GHC, which `free` no longer supports.
 * Add `Eq`, `Eq1`, `Ord`, `Ord1`, and `Foldable` instances for `Ap` in
   `Control.Applicative.Free`.
+* Switch out `bifunctors` dependency for `bifunctor-classes-compat`.
 
 5.1.10 [2022.11.30]
 -------------------
