@@ -1,4 +1,4 @@
-5.2 [????.??.??]
+5.2 [2023.03.12]
 ----------------
 * Drop support for GHC 7.10 and earlier.
 * Drop redundant `Monad` constraints on many functions and instances. These
