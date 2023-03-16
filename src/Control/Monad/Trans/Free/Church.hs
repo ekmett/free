@@ -1,10 +1,8 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE UndecidableInstances #-}
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -65,52 +63,21 @@ import qualified Control.Monad.Trans.Free as FreeT
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
 import Data.Functor.Bind hiding (join)
-import Data.Functor.Classes.Compat
-
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Foldable (Foldable)
-import Data.Traversable (Traversable)
-#endif
+import Data.Functor.Classes
 
 -- | The \"free monad transformer\" for a functor @f@
 newtype FT f m a = FT { runFT :: forall r. (a -> m r) -> (forall x. (x -> m r) -> f x -> m r) -> m r }
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Functor f, Monad m, Eq1 f, Eq1 m) => Eq1 (FT f m) where
   liftEq eq x y = liftEq eq (fromFT x) (fromFT y)
 
 instance (Functor f, Monad m, Ord1 f, Ord1 m) => Ord1 (FT f m) where
   liftCompare cmp x y= liftCompare cmp (fromFT x) (fromFT y)
-#else
-instance ( Functor f, Monad m, Eq1 f, Eq1 m
-# if !(MIN_VERSION_base(4,8,0))
-         , Functor m
-# endif
-         ) => Eq1 (FT f m) where
-  eq1 x y = eq1 (fromFT x) (fromFT y)
 
-instance ( Functor f, Monad m, Ord1 f, Ord1 m
-# if !(MIN_VERSION_base(4,8,0))
-         , Functor m
-# endif
-         ) => Ord1 (FT f m) where
-  compare1 x y = compare1 (fromFT x) (fromFT y)
-#endif
-
-instance ( Functor f, Monad m, Eq1 f, Eq1 m
-# if !(MIN_VERSION_base(4,8,0))
-         , Functor m
-# endif
-         , Eq a
-         ) => Eq (FT f m a) where
+instance (Functor f, Monad m, Eq1 f, Eq1 m, Eq a) => Eq (FT f m a) where
   (==) = eq1
 
-instance ( Functor f, Monad m, Ord1 f, Ord1 m
-# if !(MIN_VERSION_base(4,8,0))
-         , Functor m
-# endif
-         , Ord a
-         ) => Ord (FT f m a) where
+instance (Functor f, Monad m, Ord1 f, Ord1 m, Ord a) => Ord (FT f m a) where
   compare = compare1
 
 instance Functor (FT f m) where
@@ -154,13 +121,11 @@ instance (Foldable f, Foldable m, Monad m) => Foldable (FT f m) where
       inner = runFT xs (return . f) (\xg xf -> F.foldr (liftM2 (<<<) . xg) (return id) xf)
   {-# INLINE foldr #-}
 
-#if MIN_VERSION_base(4,6,0)
   foldl' f z xs = F.foldl' (!>>>) id inner z
     where
       (!>>>) h g = \r -> g $! h r
       inner = runFT xs (return . flip f) (\xg xf -> F.foldr (liftM2 (>>>) . xg) (return id) xf)
   {-# INLINE foldl' #-}
-#endif
 
 instance (Monad m, Traversable m, Traversable f) => Traversable (FT f m) where
   traverse f (FT k) = fmap (join . lift) . T.sequenceA $ k traversePure traverseFree
@@ -186,25 +151,21 @@ instance MonadReader r m => MonadReader r (FT f m) where
   local f = hoistFT (local f)
   {-# INLINE local #-}
 
-instance (Functor f, Functor m, MonadWriter w m) => MonadWriter w (FT f m) where
+instance (Functor f, MonadWriter w m) => MonadWriter w (FT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen = toFT . listen . fromFT
   pass = toFT . pass . fromFT
-#if MIN_VERSION_mtl(2,1,1)
   writer w = lift (writer w)
   {-# INLINE writer #-}
-#endif
 
 instance MonadState s m => MonadState s (FT f m) where
   get = lift get
   {-# INLINE get #-}
   put = lift . put
   {-# INLINE put #-}
-#if MIN_VERSION_mtl(2,1,1)
   state f = lift (state f)
   {-# INLINE state #-}
-#endif
 
 instance MonadThrow m => MonadThrow (FT f m) where
   throwM = lift . throwM
@@ -283,11 +244,7 @@ cutoff n = toFT . FreeT.cutoff n . fromFT
 -- @
 -- 'retract' . 'liftF' = 'id'
 -- @
-#if __GLASGOW_HASKELL__ < 710
-retract :: (Functor f, Monad f) => F f a -> f a
-#else
 retract :: Monad f => F f a -> f a
-#endif
 retract m = runF m return join
 {-# INLINE retract #-}
 
@@ -318,8 +275,8 @@ toF = toFT
 --
 -- This is based on the \"Free Monads for Less\" series of articles by Edward Kmett:
 --
--- <http://comonad.com/reader/2011/free-monads-for-less/>
--- <http://comonad.com/reader/2011/free-monads-for-less-2/>
+-- <https://ekmett.github.io/reader/2011/free-monads-for-less/>
+-- <https://ekmett.github.io/reader/2011/free-monads-for-less-2/>
 --
 -- and \"Asymptotic Improvement of Computations over Free Monads\" by Janis Voightländer:
 --

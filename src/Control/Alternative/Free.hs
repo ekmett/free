@@ -2,14 +2,7 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE Safe #-}
-#else
--- Manual Typeable instances
-{-# LANGUAGE Trustworthy #-}
-#endif
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -36,7 +29,6 @@ import Control.Applicative
 import Data.Functor.Apply
 import Data.Functor.Alt ((<!>))
 import qualified Data.Functor.Alt as Alt
-import Data.Typeable
 
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup
@@ -47,14 +39,8 @@ infixl 3 `Ap`
 data AltF f a where
   Ap     :: f a -> Alt f (a -> b) -> AltF f b
   Pure   :: a                     -> AltF f a
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
 
 newtype Alt f a = Alt { alternatives :: [AltF f a] }
-#if __GLASGOW_HASKELL__ >= 707
-  deriving Typeable
-#endif
 
 instance Functor (AltF f) where
   fmap f (Pure a) = Pure $ f a
@@ -139,26 +125,3 @@ hoistAltF f (Ap x y) = Ap (f x) (hoistAlt f y)
 hoistAlt :: (forall a. f a -> g a) -> Alt f b -> Alt g b
 hoistAlt f (Alt as) = Alt (map (hoistAltF f) as)
 {-# INLINE hoistAlt #-}
-
-#if __GLASGOW_HASKELL__ < 707
-instance Typeable1 f => Typeable1 (Alt f) where
-  typeOf1 t = mkTyConApp altTyCon [typeOf1 (f t)] where
-    f :: Alt f a -> f a
-    f = undefined
-
-instance Typeable1 f => Typeable1 (AltF f) where
-  typeOf1 t = mkTyConApp altFTyCon [typeOf1 (f t)] where
-    f :: AltF f a -> f a
-    f = undefined
-
-altTyCon, altFTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-altTyCon = mkTyCon "Control.Alternative.Free.Alt"
-altFTyCon = mkTyCon "Control.Alternative.Free.AltF"
-#else
-altTyCon = mkTyCon3 "free" "Control.Alternative.Free" "Alt"
-altFTyCon = mkTyCon3 "free" "Control.Alternative.Free" "AltF"
-#endif
-{-# NOINLINE altTyCon #-}
-{-# NOINLINE altFTyCon #-}
-#endif

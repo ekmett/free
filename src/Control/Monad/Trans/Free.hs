@@ -1,18 +1,12 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Rank2Types #-}
-#if __GLASGOW_HASKELL__ >= 707
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE Safe #-}
-#else
--- Manual Typeable instances
-{-# LANGUAGE Trustworthy #-}
-#endif
-#include "free-common.h"
 
 -----------------------------------------------------------------------------
 -- |
@@ -70,31 +64,19 @@ import Control.Monad.State.Class
 import Control.Monad.Error.Class
 import Control.Monad.Cont.Class
 import Data.Functor.Bind hiding (join)
-import Data.Functor.Classes.Compat
+import Data.Functor.Classes
 import Data.Functor.Identity
 import Data.Traversable
 import Data.Bifunctor
 import Data.Bifoldable
 import Data.Bitraversable
 import Data.Data
-#if __GLASGOW_HASKELL__ >= 707
 import GHC.Generics
-#endif
-
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Foldable
-import Data.Monoid
-#endif
 
 -- | The base functor for a free monad.
 data FreeF f a b = Pure a | Free (f b)
-  deriving (Eq,Ord,Show,Read
-#if __GLASGOW_HASKELL__ >= 707
-           ,Typeable ,Generic ,Generic1
-#endif
-           )
+  deriving (Eq,Ord,Show,Read,Generic,Generic1,Data)
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance Show1 f => Show2 (FreeF f) where
   liftShowsPrec2 spa _sla _spb _slb d (Pure a) =
     showsUnaryWith spa "Pure" d a
@@ -103,13 +85,7 @@ instance Show1 f => Show2 (FreeF f) where
 
 instance (Show1 f, Show a) => Show1 (FreeF f a) where
   liftShowsPrec = liftShowsPrec2 showsPrec showList
-#else
-instance (Show1 f, Show a) => Show1 (FreeF f a) where
-  showsPrec1 d (Pure a)  = showParen (d > 10) $ showString "Pure " . showsPrec 11 a
-  showsPrec1 d (Free as) = showParen (d > 10) $ showString "Free " . showsPrec1 11 as
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance Read1 f => Read2 (FreeF f) where
   liftReadsPrec2 rpa _rla rpb rlb = readsData $
     readsUnaryWith rpa "Pure" Pure `mappend`
@@ -117,19 +93,7 @@ instance Read1 f => Read2 (FreeF f) where
 
 instance (Read1 f, Read a) => Read1 (FreeF f a) where
   liftReadsPrec = liftReadsPrec2 readsPrec readList
-#else
-instance (Read1 f, Read a) => Read1 (FreeF f a) where
-  readsPrec1 d r = readParen (d > 10)
-      (\r' -> [ (Pure m, t)
-             | ("Pure", s) <- lex r'
-             , (m, t) <- readsPrec 11 s]) r
-    ++ readParen (d > 10)
-      (\r' -> [ (Free m, t)
-             | ("Free", s) <- lex r'
-             , (m, t) <- readsPrec1 11 s]) r
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance Eq1 f => Eq2 (FreeF f) where
   liftEq2 eq _ (Pure a) (Pure b) = eq a b
   liftEq2 _ eq (Free as) (Free bs) = liftEq eq as bs
@@ -137,14 +101,7 @@ instance Eq1 f => Eq2 (FreeF f) where
 
 instance (Eq1 f, Eq a) => Eq1 (FreeF f a) where
   liftEq = liftEq2 (==)
-#else
-instance (Eq1 f, Eq a) => Eq1 (FreeF f a) where
-  Pure a  `eq1` Pure b = a == b
-  Free as `eq1` Free bs = as `eq1` bs
-  _       `eq1` _ = False
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance Ord1 f => Ord2 (FreeF f) where
   liftCompare2 cmp _ (Pure a) (Pure b) = cmp a b
   liftCompare2 _ _ (Pure _) (Free _) = LT
@@ -153,13 +110,6 @@ instance Ord1 f => Ord2 (FreeF f) where
 
 instance (Ord1 f, Ord a) => Ord1 (FreeF f a) where
   liftCompare = liftCompare2 compare
-#else
-instance (Ord1 f, Ord a) => Ord1 (FreeF f a) where
-  Pure a `compare1` Pure b = a `compare` b
-  Pure _ `compare1` Free _ = LT
-  Free _ `compare1` Pure _ = GT
-  Free fa `compare1` Free fb = fa `compare1` fb
-#endif
 
 instance Functor f => Functor (FreeF f a) where
   fmap _ (Pure a)  = Pure a
@@ -212,41 +162,22 @@ free :: FreeF f a (Free f a) -> Free f a
 free = FreeT . Identity
 {-# INLINE free #-}
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 f, Eq1 m, Eq a) => Eq (FreeT f m a) where
-#else
-instance (Functor f, Eq1 f, Functor m, Eq1 m, Eq a)=> Eq (FreeT f m a) where
-#endif
     (==) = eq1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Eq1 f, Eq1 m) => Eq1 (FreeT f m) where
   liftEq eq = go
     where
       go (FreeT x) (FreeT y) = liftEq (liftEq2 eq go) x y
-#else
-instance (Functor f, Eq1 f, Functor m, Eq1 m) => Eq1 (FreeT f m) where
-  eq1 = on eq1 (fmap (Lift1 . fmap Lift1) . runFreeT)
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Ord1 f, Ord1 m, Ord a) => Ord (FreeT f m a) where
-#else
-instance (Functor f, Ord1 f, Functor m, Ord1 m, Ord a) => Ord (FreeT f m a) where
-#endif
     compare = compare1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Ord1 f, Ord1 m) => Ord1 (FreeT f m) where
   liftCompare cmp = go
     where
       go (FreeT x) (FreeT y) = liftCompare (liftCompare2 cmp go) x y
-#else
-instance (Functor f, Ord1 f, Functor m, Ord1 m) => Ord1 (FreeT f m) where
-  compare1 = on compare1 (fmap (Lift1 . fmap Lift1) . runFreeT)
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Show1 f, Show1 m) => Show1 (FreeT f m) where
   liftShowsPrec sp sl = go
     where
@@ -254,20 +185,10 @@ instance (Show1 f, Show1 m) => Show1 (FreeT f m) where
       go d (FreeT x) = showsUnaryWith
         (liftShowsPrec (liftShowsPrec2 sp sl go goList) (liftShowList2 sp sl go goList))
         "FreeT" d x
-#else
-instance (Functor f, Show1 f, Functor m, Show1 m) => Show1 (FreeT f m) where
-  showsPrec1 d (FreeT m) = showParen (d > 10) $
-    showString "FreeT " . showsPrec1 11 (Lift1 . fmap Lift1 <$> m)
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Show1 f, Show1 m, Show a) => Show (FreeT f m a) where
-#else
-instance (Functor f, Show1 f, Functor m, Show1 m, Show a) => Show (FreeT f m a) where
-#endif
   showsPrec = showsPrec1
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Read1 f, Read1 m) => Read1 (FreeT f m) where
   liftReadsPrec rp rl = go
     where
@@ -275,21 +196,12 @@ instance (Read1 f, Read1 m) => Read1 (FreeT f m) where
       go = readsData $ readsUnaryWith
         (liftReadsPrec (liftReadsPrec2 rp rl go goList) (liftReadList2 rp rl go goList))
         "FreeT" FreeT
-#else
-instance (Functor f, Read1 f, Functor m, Read1 m) => Read1 (FreeT f m) where
-  readsPrec1 d =  readParen (d > 10) $ \r ->
-    [ (FreeT (fmap lower1 . lower1 <$> m),t) | ("FreeT",s) <- lex r, (m,t) <- readsPrec1 11 s]
-#endif
 
-#ifdef LIFTED_FUNCTOR_CLASSES
 instance (Read1 f, Read1 m, Read a) => Read (FreeT f m a) where
-#else
-instance (Functor f, Read1 f, Functor m, Read1 m, Read a) => Read (FreeT f m a) where
-#endif
   readsPrec = readsPrec1
 
-instance (Functor f, Monad m) => Functor (FreeT f m) where
-  fmap f (FreeT m) = FreeT (liftM f' m) where
+instance (Functor f, Functor m) => Functor (FreeT f m) where
+  fmap f (FreeT m) = FreeT (fmap f' m) where
     f' (Pure a)  = Pure (f a)
     f' (Free as) = Free (fmap (fmap f) as)
 
@@ -331,13 +243,13 @@ instance (Functor f, MonadBase b m) => MonadBase b (FreeT f m) where
   liftBase = lift . liftBase
   {-# INLINE liftBase #-}
 
-instance (Functor f, Functor m, MonadReader r m) => MonadReader r (FreeT f m) where
+instance (Functor f, MonadReader r m) => MonadReader r (FreeT f m) where
   ask = lift ask
   {-# INLINE ask #-}
   local f = hoistFreeT (local f)
   {-# INLINE local #-}
 
-instance (Functor f, Functor m, MonadWriter w m) => MonadWriter w (FreeT f m) where
+instance (Functor f, MonadWriter w m) => MonadWriter w (FreeT f m) where
   tell = lift . tell
   {-# INLINE tell #-}
   listen (FreeT m) = FreeT $ liftM concat' $ listen (fmap listen `liftM` m)
@@ -350,20 +262,16 @@ instance (Functor f, Functor m, MonadWriter w m) => MonadWriter w (FreeT f m) wh
       pass' = join . liftM g
       g (Pure ((x, f), w)) = tell (f w) >> return (Pure x)
       g (Free f)           = return . Free . fmap (FreeT . pass' . runFreeT) $ f
-#if MIN_VERSION_mtl(2,1,1)
   writer w = lift (writer w)
   {-# INLINE writer #-}
-#endif
 
 instance (Functor f, MonadState s m) => MonadState s (FreeT f m) where
   get = lift get
   {-# INLINE get #-}
   put = lift . put
   {-# INLINE put #-}
-#if MIN_VERSION_mtl(2,1,1)
   state f = lift (state f)
   {-# INLINE state #-}
-#endif
 
 instance (Functor f, MonadError e m) => MonadError e (FreeT f m) where
   throwError = lift . throwError
@@ -533,80 +441,9 @@ retractT (FreeT m) = do
 -- @
 -- 'intercalateT' f ≡ 'retractT' . 'intersperseT' f
 -- @
-#if __GLASGOW_HASKELL__ < 710
-intercalateT :: (Monad m, MonadTrans t, Monad (t m), Functor (t m)) => t m a -> FreeT (t m) m b -> t m b
-#else
 intercalateT :: (Monad m, MonadTrans t, Monad (t m)) => t m a -> FreeT (t m) m b -> t m b
-#endif
 intercalateT f (FreeT m) = do
   val <- lift m
   case val of
     Pure x -> return x
     Free y -> y >>= iterTM (\x -> f >> join x)
-
-#if __GLASGOW_HASKELL__ < 707
-instance Typeable1 f => Typeable2 (FreeF f) where
-  typeOf2 t = mkTyConApp freeFTyCon [typeOf1 (f t)] where
-    f :: FreeF f a b -> f a
-    f = undefined
-
-instance (Typeable1 f, Typeable1 w) => Typeable1 (FreeT f w) where
-  typeOf1 t = mkTyConApp freeTTyCon [typeOf1 (f t), typeOf1 (w t)] where
-    f :: FreeT f w a -> f a
-    f = undefined
-    w :: FreeT f w a -> w a
-    w = undefined
-
-freeFTyCon, freeTTyCon :: TyCon
-#if __GLASGOW_HASKELL__ < 704
-freeTTyCon = mkTyCon "Control.Monad.Trans.Free.FreeT"
-freeFTyCon = mkTyCon "Control.Monad.Trans.Free.FreeF"
-#else
-freeTTyCon = mkTyCon3 "free" "Control.Monad.Trans.Free" "FreeT"
-freeFTyCon = mkTyCon3 "free" "Control.Monad.Trans.Free" "FreeF"
-#endif
-{-# NOINLINE freeTTyCon #-}
-{-# NOINLINE freeFTyCon #-}
-
-instance
-  ( Typeable1 f, Typeable a, Typeable b
-  , Data a, Data (f b), Data b
-  ) => Data (FreeF f a b) where
-    gfoldl f z (Pure a) = z Pure `f` a
-    gfoldl f z (Free as) = z Free `f` as
-    toConstr Pure{} = pureConstr
-    toConstr Free{} = freeConstr
-    gunfold k z c = case constrIndex c of
-        1 -> k (z Pure)
-        2 -> k (z Free)
-        _ -> error "gunfold"
-    dataTypeOf _ = freeFDataType
-    dataCast1 f = gcast1 f
-
-instance
-  ( Typeable1 f, Typeable1 w, Typeable a
-  , Data (w (FreeF f a (FreeT f w a)))
-  , Data a
-  ) => Data (FreeT f w a) where
-    gfoldl f z (FreeT w) = z FreeT `f` w
-    toConstr _ = freeTConstr
-    gunfold k z c = case constrIndex c of
-        1 -> k (z FreeT)
-        _ -> error "gunfold"
-    dataTypeOf _ = freeTDataType
-    dataCast1 f = gcast1 f
-
-pureConstr, freeConstr, freeTConstr :: Constr
-pureConstr = mkConstr freeFDataType "Pure" [] Prefix
-freeConstr = mkConstr freeFDataType "Free" [] Prefix
-freeTConstr = mkConstr freeTDataType "FreeT" [] Prefix
-{-# NOINLINE pureConstr #-}
-{-# NOINLINE freeConstr #-}
-{-# NOINLINE freeTConstr #-}
-
-freeFDataType, freeTDataType :: DataType
-freeFDataType = mkDataType "Control.Monad.Trans.Free.FreeF" [pureConstr, freeConstr]
-freeTDataType = mkDataType "Control.Monad.Trans.Free.FreeT" [freeTConstr]
-{-# NOINLINE freeFDataType #-}
-{-# NOINLINE freeTDataType #-}
-#endif

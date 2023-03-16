@@ -6,8 +6,6 @@
 > import Control.Monad.Loops   (unfoldM)
 > import Control.Monad.Free    (liftF, Free, iterM, MonadFree)
 > import Control.Monad.Free.TH (makeFree)
-> import Prelude               ()
-> import Prelude.Compat
 > import System.IO             (isEOF)
 > import System.IO.Error       (ioeGetErrorString)
 > import System.Exit           (exitSuccess)

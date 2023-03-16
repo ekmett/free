@@ -10,18 +10,16 @@ stability:     provisional
 homepage:      http://github.com/ekmett/free/
 bug-reports:   http://github.com/ekmett/free/issues
 copyright:     Copyright (C) 2008-2015 Edward A. Kmett
-tested-with:   GHC == 7.4.2
-             , GHC == 7.6.3
-             , GHC == 7.8.4
-             , GHC == 7.10.3
-             , GHC == 8.0.2
+tested-with:   GHC == 8.0.2
              , GHC == 8.2.2
              , GHC == 8.4.4
              , GHC == 8.6.5
              , GHC == 8.8.4
              , GHC == 8.10.7
              , GHC == 9.0.2
-             , GHC == 9.2.2
+             , GHC == 9.2.6
+             , GHC == 9.4.4
+             , GHC == 9.6.1
 synopsis:      Monads for free
 description:   Examples projects using @free@
 build-type:    Simple
@@ -39,8 +37,7 @@ library
   exposed-modules: Cabbage
   ghc-options: -Wall
   build-depends:
-    base         == 4.*,
-    base-compat  >= 0.6,
+    base         >= 4.9 && < 5,
     free,
     mtl          >= 2.0.1 && < 2.4,
     transformers >= 0.2   && < 0.7
@@ -53,10 +50,7 @@ executable free-mandelbrot-iter
   main-is: MandelbrotIter.lhs
   ghc-options: -Wall
   build-depends:
-    -- This unusually restrictive lower version bound on base is a workaround
-    -- for the fact that X11-1.10 does not build correctly on older versions of
-    -- base (see https://github.com/ekmett/free/runs/3235998897#step:18:237)
-    base >= 4.9 && < 5,
+    base         >= 4.9 && < 5,
     free,
     HGL          >= 3.2.3.2,
     mtl          >= 2.0.1 && < 2.4,
@@ -68,8 +62,7 @@ executable free-newton-coiter
   main-is: NewtonCoiter.lhs
   ghc-options: -Wall
   build-depends:
-    base        == 4.*,
-    base-compat >= 0.6,
+    base        >= 4.9 && < 5,
     comonad     >= 4 && < 6,
     free
 
@@ -79,8 +72,7 @@ executable free-perf-th
   main-is: PerfTH.hs
   ghc-options: -Wall
   build-depends:
-    base         == 4.*,
-    fail         == 4.9.*,
+    base         >= 4.9 && < 5,
     free,
     rdtsc,
     transformers >= 0.2   && < 0.7
@@ -91,9 +83,7 @@ executable free-retry-th
   main-is: RetryTH.hs
   ghc-options: -Wall -fno-warn-orphans
   build-depends:
-    base                == 4.*,
-    base-compat         >= 0.6,
-    fail                == 4.9.*,
+    base                >= 4.9 && < 5,
     free,
     transformers        >= 0.2   && < 0.7,
     transformers-compat >= 0.6.4 && < 0.8
@@ -104,8 +94,7 @@ executable free-teletype
   main-is: Teletype.lhs
   ghc-options: -Wall
   build-depends:
-    base        == 4.*,
-    base-compat >= 0.6,
+    base        >= 4.9 && < 5,
     free,
     monad-loops
 
@@ -115,7 +104,6 @@ executable free-validation-form
   main-is: ValidationForm.hs
   ghc-options: -Wall
   build-depends:
-    base        == 4.*,
-    base-compat >= 0.6,
+    base        >= 4.9 && < 5,
     free,
     transformers >= 0.2 && < 0.7
