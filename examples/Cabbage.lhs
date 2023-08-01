@@ -83,8 +83,14 @@ When the starting side becomes empty, the farmer succeeds.
 A straightforward implementation to solve the problem could use the
 list monad, trying all possible solutions and
 
+> getFirstSolution :: [Situation] -> Situation
+> getFirstSolution ss =
+>   case ss of
+>     s:_ -> s
+>     []  -> error "No solutions"
+>
 > solution1 :: Situation
-> solution1 = head $ solutions' initial
+> solution1 = getFirstSolution $ solutions' initial
 >             where
 >             solutions' a = if success a
 >                            then return a

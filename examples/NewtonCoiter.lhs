@@ -7,9 +7,11 @@ to find zeroes of a function is one such algorithm.
 > {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, UndecidableInstances #-}
 > module Main where
 
-> import Control.Comonad.Trans.Coiter
 > import Control.Comonad.Env
+> import Control.Comonad.Trans.Coiter
+> import Control.Comonad.Trans.Env (lowerEnvT)
 > import Data.Foldable (toList, find)
+> import Data.Functor.Identity (Identity(..))
 
 > data Function = Function {
 >   -- Function to find zeroes of
@@ -75,7 +77,8 @@ future and check if the result improves at all.
 
 > estimateOutlook :: Int -> Solution Result -> Outlook
 > estimateOutlook sampleSize solution =
->   let sample = map ferror $ take sampleSize $ tail $ toList solution in
+>   let sample = map ferror $ take sampleSize $ toList $ snd $ runIdentity $
+>                lowerEnvT $ runCoiterT solution in
 >   let result' = extract solution in
 >   Outlook { result = result',
 >             progress = ferror result' > minimum sample }
