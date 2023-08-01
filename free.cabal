@@ -84,10 +84,10 @@ library
     mtl                  >= 2.2.2   && < 2.4,
     profunctors          >= 5.6.1   && < 6,
     semigroupoids        >= 5.3.5   && < 7,
-    th-abstraction       >= 0.4.2.0 && < 0.6,
+    th-abstraction       >= 0.4.2.0 && < 0.7,
     transformers         >= 0.5     && < 0.7,
     transformers-base    >= 0.4.5.2 && < 0.5,
-    template-haskell     >= 2.11    && < 2.21
+    template-haskell     >= 2.11    && < 2.22
 
   if !impl(ghc >= 8.2)
     build-depends: bifunctor-classes-compat >= 0.1 && < 0.2
