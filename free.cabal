@@ -77,7 +77,7 @@ library
   build-depends:
     base                 >= 4.9     && < 5,
     comonad              >= 5.0.8   && < 6,
-    containers           >= 0.5.7.1 && < 0.7,
+    containers           >= 0.5.7.1 && < 0.8,
     distributive         >= 0.5.2   && < 1,
     exceptions           >= 0.10.4  && < 0.11,
     indexed-traversable  >= 0.1.1   && < 0.2,
