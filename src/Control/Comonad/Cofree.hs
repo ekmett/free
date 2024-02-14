@@ -62,6 +62,7 @@ import Data.Traversable
 import Data.Traversable.WithIndex
 import Data.Semigroup.Foldable
 import Data.Semigroup.Traversable
+import Data.Maybe(fromMaybe)
 import GHC.Generics hiding (Infix, Prefix)
 import Prelude hiding (id,(.))
 
@@ -246,9 +247,9 @@ instance Foldable f => Foldable (Cofree f) where
   length = go 0 where
     go s (_ :< as) = foldl' go (s + 1) as
 
-instance Foldable1 f => Foldable1 (Cofree f) where
+instance Foldable f => Foldable1 (Cofree f) where
   foldMap1 f = go where
-    go (a :< as) = f a <> foldMap1 go as
+    go w@(a :< _) = fromMaybe (f a) $ foldMap (Just . f) w
   {-# INLINE foldMap1 #-}
 
 instance Traversable f => Traversable (Cofree f) where
