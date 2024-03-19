@@ -1,3 +1,7 @@
+next [????.??.??]
+-----------------
+* Support building with `template-haskell-2.22.*` (GHC 9.10).
+
 5.2 [2023.03.12]
 ----------------
 * Drop support for GHC 7.10 and earlier.

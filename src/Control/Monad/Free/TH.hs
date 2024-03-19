@@ -38,6 +38,7 @@ import Control.Monad
 import Data.Char (toLower)
 import Data.List ((\\), nub)
 import Language.Haskell.TH.Datatype.TyVarBndr
+import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Ppr (pprint)
 import Language.Haskell.TH.Syntax
 
@@ -106,7 +107,7 @@ mkArg (VarT n) t
             , "in a constructor's argument type: `" ++ pprint t ++ "'" ]
           let tup = nonUnaryTupleT ts
           xs <- mapM (const $ newName "x") ts
-          return $ Captured tup (LamE (map VarP xs) (nonUnaryTupE $ map VarE xs))
+          Captured tup <$> lamE (map varP xs) (pure $ nonUnaryTupE $ map VarE xs)
         _ -> fail $ unlines
               [ "expected a type variable `" ++ pprint n ++ "'"
               , "or a type like (a1 -> ... -> aN -> " ++ pprint n ++ ")"
@@ -206,18 +207,19 @@ liftCon' typeSig tvbs cx f n ns cn ts = do
   let opType  = foldr (AppT . AppT ArrowT) (AppT (VarT m) retType) ps
   -- picking names for the implementation
   xs  <- mapM (const $ newName "p") ps
-  let pat  = map VarP xs                      -- this is LHS
+  let pat  = map varP xs                      -- this is LHS
       exprs = zipExprs (map VarE xs) es args  -- this is what ctor would be applied to
       fval = foldl AppE (ConE cn) exprs       -- this is RHS without liftF
       ns' = nub (concatMap extractVars ns)
       q = filter nonNext tvbs ++ map plainTVSpecified (qa ++ m : ns')
       qa = case retType of VarT b | a == b -> [a]; _ -> []
       f' = foldl AppT f ns
+  funClause <- clause pat (normalB $ appE (varE liftF) $ pure fval) []
   return $ concat
     [ if typeSig
         then [ SigD opName (ForallT q (cx ++ [ConT monadFree `AppT` f' `AppT` VarT m]) opType) ]
         else []
-    , [ FunD opName [ Clause pat (NormalB $ AppE (VarE liftF) fval) [] ] ] ]
+    , [ FunD opName [funClause] ] ]
   where
     nonNext tv = VarT (tvName tv) /= n
 
