@@ -1,4 +1,4 @@
-distribution:           bionic
+distribution:           jammy
 apt:                    libxss-dev libxrandr-dev
 no-tests-no-benchmarks: False
 unconstrained:          False

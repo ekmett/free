@@ -18,8 +18,10 @@ tested-with:   GHC == 8.0.2
              , GHC == 8.10.7
              , GHC == 9.0.2
              , GHC == 9.2.8
-             , GHC == 9.4.5
-             , GHC == 9.6.2
+             , GHC == 9.4.8
+             , GHC == 9.6.5
+             , GHC == 9.8.2
+             , GHC == 9.10.1
 synopsis:      Monads for free
 description:
   Free monads are useful for many tree-like structures and domain specific languages.
