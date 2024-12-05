@@ -22,6 +22,7 @@ tested-with:   GHC == 8.0.2
              , GHC == 9.6.6
              , GHC == 9.8.4
              , GHC == 9.10.1
+             , GHC == 9.12.1
 synopsis:      Monads for free
 description:
   Free monads are useful for many tree-like structures and domain specific languages.
@@ -89,7 +90,7 @@ library
     th-abstraction       >= 0.4.2.0 && < 0.8,
     transformers         >= 0.5     && < 0.7,
     transformers-base    >= 0.4.5.2 && < 0.5,
-    template-haskell     >= 2.11    && < 2.23
+    template-haskell     >= 2.11    && < 2.24
 
   if !impl(ghc >= 8.2)
     build-depends: bifunctor-classes-compat >= 0.1 && < 0.2
