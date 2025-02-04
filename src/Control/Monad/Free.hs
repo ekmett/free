@@ -37,7 +37,6 @@ module Control.Monad.Free
   ) where
 
 import Control.Applicative
-import Control.Arrow ((>>>))
 import Control.Monad (liftM, MonadPlus(..), (>=>))
 import Control.Monad.Fix
 import Control.Monad.Trans.Class
@@ -307,10 +306,23 @@ retract :: Monad f => Free f a -> f a
 retract (Pure a) = return a
 retract (Free as) = as >>= retract
 
+type FCata f a = (forall r. (f r -> r) -> (a -> r) -> r)
+
+buildF :: FCata f a -> Free f a
+buildF f = f Free Pure
+
+{-# INLINE [1] buildF #-}
+
 -- | Tear down a 'Free' 'Monad' using iteration.
 iter :: Functor f => (f a -> a) -> Free f a -> a
 iter _ (Pure a) = a
 iter phi (Free m) = phi (iter phi <$> m)
+
+{-# INLINE [0] iter #-}
+
+{-# RULES "iter/buildF" [~1]
+     forall (phi :: f a -> a) (g :: FCata f a).
+       iter phi (buildF g) = g phi id #-}
 
 -- | Like 'iter' for applicative values.
 iterA :: (Applicative p, Functor f) => (f (p a) -> p a) -> Free f a -> p a
@@ -352,13 +364,21 @@ toFreeT (Free f) = FreeT.FreeT (return (FreeT.Free (fmap toFreeT f)))
 -- Calling @'retract' '.' 'cutoff' n@ is always terminating, provided each of the
 -- steps in the iteration is terminating.
 cutoff :: (Functor f) => Integer -> Free f a -> Free f (Maybe a)
-cutoff n _ | n <= 0 = return Nothing
-cutoff n (Free f) = Free $ fmap (cutoff (n - 1)) f
-cutoff _ m = Just <$> m
+cutoff n b = buildF $ \u p ->
+  let c n' x
+          | n <= 0 = p Nothing
+          | otherwise = case x of
+                Pure v -> p (Just v)
+                Free f -> u (fmap (c (n' - 1)) f)
+  in c n b
 
 -- | Unfold a free monad from a seed.
 unfold :: Functor f => (b -> Either a (f b)) -> b -> Free f a
-unfold f = f >>> either Pure (Free . fmap (unfold f))
+unfold f b = buildF $ \u p ->
+  let c x = case f x of
+          Left  a -> p a
+          Right g -> u (fmap c g)
+  in c b
 
 -- | Unfold a free monad from a seed, monadically.
 unfoldM :: (Traversable f, Monad m) => (b -> m (Either a (f b))) -> b -> m (Free f a)
