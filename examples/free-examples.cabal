@@ -29,7 +29,7 @@ build-type:    Simple
 
 source-repository head
   type: git
-  location: git://github.com/ekmett/free.git
+  location: https://github.com/ekmett/free.git
 
 flag mandelbrot-iter
   default: True

@@ -63,7 +63,7 @@ extra-doc-files:
 
 source-repository head
   type: git
-  location: git://github.com/ekmett/free.git
+  location: https://github.com/ekmett/free.git
 
 library
   hs-source-dirs: src
