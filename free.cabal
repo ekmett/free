@@ -115,6 +115,10 @@ library
     Control.Monad.Trans.Free.Ap
     Control.Monad.Trans.Free.Church
     Control.Monad.Trans.Iter
+    Data.Functor.Alt.Free
+    Data.Functor.Apply.Free
+    Data.Functor.Bind.Free
+    Data.Functor.Plus.Free
 
   ghc-options: -Wall -Wcompat -Wnoncanonical-monad-instances
 
