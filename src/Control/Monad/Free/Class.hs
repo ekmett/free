@@ -42,6 +42,7 @@ import Control.Monad.Trans.Cont
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Except
 import Control.Monad.Trans.Identity
+import Data.Proxy
 
 #if !(MIN_VERSION_transformers(0,6,0))
 import Control.Monad.Trans.Error
@@ -147,6 +148,9 @@ instance (Functor f, MonadFree f m, Error e) => MonadFree f (ErrorT e m) where
 instance (Functor f, MonadFree f m) => MonadFree f (ListT m) where
   wrap = ListT . wrap . fmap runListT
 #endif
+
+instance MonadFree Proxy Maybe where
+  wrap _ = Nothing
 
 -- | A version of lift that can be used with just a Functor for f.
 liftF :: (Functor f, MonadFree f m) => f a -> m a
