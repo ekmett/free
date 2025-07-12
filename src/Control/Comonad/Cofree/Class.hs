@@ -24,7 +24,9 @@ import Control.Comonad.Trans.Env
 import Control.Comonad.Trans.Store
 import Control.Comonad.Trans.Traced
 import Control.Comonad.Trans.Identity
+import Data.Functor.Identity
 import Data.List.NonEmpty (NonEmpty(..))
+import Data.Proxy
 import Data.Tree
 
 -- | Allows you to peel a layer off a cofree comonad.
@@ -53,3 +55,6 @@ instance ComonadCofree f w => ComonadCofree f (StoreT s w) where
 
 instance (ComonadCofree f w, Monoid m) => ComonadCofree f (TracedT m w) where
   unwrap (TracedT wma) = TracedT <$> unwrap wma
+
+instance ComonadCofree Proxy Identity where
+  unwrap _ = Proxy
