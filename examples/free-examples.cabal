@@ -42,8 +42,7 @@ library
   build-depends:
     base         >= 4.9 && < 5,
     free,
-    mtl          >= 2.0.1 && < 2.4,
-    transformers >= 0.2   && < 0.7
+    mtl          >= 2.0.1 && < 2.4
 
 executable free-mandelbrot-iter
   if !flag(mandelbrot-iter)
@@ -56,8 +55,7 @@ executable free-mandelbrot-iter
     base         >= 4.9 && < 5,
     free,
     HGL          >= 3.2.3.2,
-    mtl          >= 2.0.1 && < 2.4,
-    transformers >= 0.2   && < 0.7
+    mtl          >= 2.0.1 && < 2.4
 
 executable free-newton-coiter
   hs-source-dirs: .
