@@ -9,7 +9,6 @@ import Control.Monad.Fail as Fail
 import Control.Monad.Free
 import Control.Monad.Free.TH
 import Control.Monad.IO.Class
-import Control.Monad.Trans.Instances ()
 import Control.Monad.Trans.Maybe
 import qualified Data.Foldable as F
 import Text.Read (readMaybe)
